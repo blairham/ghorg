@@ -1940,6 +1940,19 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			}
 		}
 
+		// Configure git user for commits
+		cmd = exec.Command("git", "config", "user.name", "Test User")
+		cmd.Dir = localDir
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("Failed to configure git user.name: %v", err)
+		}
+
+		cmd = exec.Command("git", "config", "user.email", "test@example.com")
+		cmd.Dir = localDir
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("Failed to configure git user.email: %v", err)
+		}
+
 		// Create initial commit
 		err = os.WriteFile(filepath.Join(localDir, "README.md"), []byte("# Test Repo"), 0644)
 		if err != nil {
