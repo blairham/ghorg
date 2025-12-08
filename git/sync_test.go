@@ -469,14 +469,6 @@ func createTestRepo(_ *testing.T) (string, error) {
 		return "", err
 	}
 
-	// Set default branch to main for consistency
-	cmd = exec.Command("git", "config", "init.defaultBranch", "main")
-	cmd.Dir = tempDir
-	if err := cmd.Run(); err != nil {
-		os.RemoveAll(tempDir)
-		return "", err
-	}
-
 	// Configure git user
 	cmd = exec.Command("git", "config", "user.name", "Test User")
 	cmd.Dir = tempDir
@@ -523,6 +515,14 @@ func createTestRepo(_ *testing.T) (string, error) {
 		return "", err
 	}
 
+	// Rename to main branch (works on all Git versions)
+	cmd = exec.Command("git", "branch", "-M", "main")
+	cmd.Dir = tempDir
+	if err := cmd.Run(); err != nil {
+		os.RemoveAll(tempDir)
+		return "", err
+	}
+
 	return tempDir, nil
 }
 
@@ -535,14 +535,6 @@ func createTestRepoWithMultipleFiles(_ *testing.T) (string, error) {
 
 	// Initialize repository
 	cmd := exec.Command("git", "init")
-	cmd.Dir = tempDir
-	if err := cmd.Run(); err != nil {
-		os.RemoveAll(tempDir)
-		return "", err
-	}
-
-	// Set default branch to main for consistency
-	cmd = exec.Command("git", "config", "init.defaultBranch", "main")
 	cmd.Dir = tempDir
 	if err := cmd.Run(); err != nil {
 		os.RemoveAll(tempDir)
@@ -611,6 +603,14 @@ func createTestRepoWithMultipleFiles(_ *testing.T) (string, error) {
 	}
 
 	cmd = exec.Command("git", "-c", "commit.gpgsign=false", "commit", "-m", "Initial commit with multiple file types")
+	cmd.Dir = tempDir
+	if err := cmd.Run(); err != nil {
+		os.RemoveAll(tempDir)
+		return "", err
+	}
+
+	// Rename to main branch (works on all Git versions)
+	cmd = exec.Command("git", "branch", "-M", "main")
 	cmd.Dir = tempDir
 	if err := cmd.Run(); err != nil {
 		os.RemoveAll(tempDir)
