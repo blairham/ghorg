@@ -110,10 +110,14 @@ func (_ Bitbucket) NewClient() (Client, error) {
 
 	// For Bitbucket Cloud, use the existing go-bitbucket library
 	var c *bitbucket.Client
+	var clientErr error
 	if oAuth != "" {
-		c = bitbucket.NewOAuthbearerToken(oAuth)
+		c, clientErr = bitbucket.NewOAuthbearerToken(oAuth)
 	} else {
-		c = bitbucket.NewBasicAuth(user, password)
+		c, clientErr = bitbucket.NewBasicAuth(user, password)
+	}
+	if clientErr != nil {
+		return Bitbucket{}, clientErr
 	}
 
 	return Bitbucket{

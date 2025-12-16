@@ -15,9 +15,9 @@ import (
 
 var (
 	_Client         = Gitlab{}
-	perPage         = 100
-	gitLabAllGroups = false
-	gitLabAllUsers  = false
+	perPage         int64 = 100
+	gitLabAllGroups       = false
+	gitLabAllUsers        = false
 )
 
 func init() {
@@ -139,7 +139,7 @@ func (c Gitlab) GetTopLevelGroups() ([]string, error) {
 	}
 
 	// Multiple pages - fetch remaining pages in parallel
-	return c.fetchTopLevelGroupsParallel(groups, resp.TotalPages)
+	return c.fetchTopLevelGroupsParallel(groups, int(resp.TotalPages))
 }
 
 // In this case take the cloneURL from the cloneTartet repo and just inject /snippets/:id before the .git
@@ -198,8 +198,10 @@ func (c Gitlab) createRootLevelSnippetCloneURL(snippetWebURL string) string {
 func (c Gitlab) getRepoSnippets(r Repo) []*gitlab.Snippet {
 	var allSnippets []*gitlab.Snippet
 	opt := &gitlab.ListProjectSnippetsOptions{
-		PerPage: perPage,
-		Page:    1,
+		ListOptions: gitlab.ListOptions{
+			PerPage: perPage,
+			Page:    1,
+		},
 	}
 
 	for {
@@ -307,7 +309,7 @@ func (c Gitlab) GetSnippets(cloneData []Repo, target string) ([]Repo, error) {
 	}
 
 	for _, snippet := range allSnippetsToClone {
-		snippetID := strconv.Itoa(snippet.ID)
+		snippetID := strconv.FormatInt(snippet.ID, 10)
 		snippetTitle := ToSlug(snippet.Title)
 		s := Repo{}
 		s.IsGitLabSnippet = true
@@ -324,7 +326,7 @@ func (c Gitlab) GetSnippets(cloneData []Repo, target string) ([]Repo, error) {
 		} else {
 			// Since this isn't a root level repo we want to find which repo the snippet is coming from
 			for _, cloneTarget := range cloneData {
-				if cloneTarget.ID == strconv.Itoa(snippet.ProjectID) {
+				if cloneTarget.ID == strconv.FormatInt(snippet.ProjectID, 10) {
 					s.CloneURL = c.createRepoSnippetCloneURL(cloneTarget.CloneURL, snippetID)
 					s.Path = cloneTarget.Path
 					s.GitLabSnippetInfo.URLOfRepo = cloneTarget.URL
@@ -365,7 +367,7 @@ func (c Gitlab) GetGroupRepos(targetGroup string) ([]Repo, error) {
 	}
 
 	// Multiple pages - fetch remaining pages in parallel
-	return c.fetchGroupReposParallel(targetGroup, ps, resp.TotalPages)
+	return c.fetchGroupReposParallel(targetGroup, ps, int(resp.TotalPages))
 }
 
 // GetUserRepos gets all of a users gitlab repos
@@ -520,7 +522,7 @@ func (c Gitlab) filter(group string, ps []*gitlab.Project) []Repo {
 		r := Repo{}
 
 		r.Name = p.Name
-		r.ID = strconv.Itoa(p.ID)
+		r.ID = strconv.FormatInt(p.ID, 10)
 
 		if os.Getenv("GHORG_BRANCH") == "" {
 			defaultBranch := p.DefaultBranch
