@@ -37,7 +37,7 @@ func (c Gitlab) fetchTopLevelGroupsParallel(firstPageGroups []*gitlab.Group, tot
 			opt := &gitlab.ListGroupsOptions{
 				ListOptions: gitlab.ListOptions{
 					PerPage: perPage,
-					Page:    pageNum,
+					Page:    int64(pageNum),
 				},
 				TopLevelOnly: &[]bool{true}[0],
 				AllAvailable: &[]bool{true}[0],
@@ -101,7 +101,7 @@ func (c Gitlab) fetchGroupReposParallel(targetGroup string, firstPageProjects []
 			opt := &gitlab.ListGroupProjectsOptions{
 				ListOptions: gitlab.ListOptions{
 					PerPage: perPage,
-					Page:    pageNum,
+					Page:    int64(pageNum),
 				},
 				IncludeSubGroups: gitlab.Ptr(true),
 			}

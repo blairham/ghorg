@@ -1,9 +1,10 @@
 go-colorful
 ===========
-A library for playing with colors in go (golang).
 
-[![Build Status](https://travis-ci.org/lucasb-eyer/go-colorful.svg?branch=master)](https://travis-ci.org/lucasb-eyer/go-colorful)
-[![Coverage Status](https://coveralls.io/repos/github/lucasb-eyer/go-colorful/badge.svg?branch=master)](https://coveralls.io/github/lucasb-eyer/go-colorful?branch=master)
+[![Go Reference](https://pkg.go.dev/badge/github.com/lucasb-eyer/go-colorful.svg)](https://pkg.go.dev/github.com/lucasb-eyer/go-colorful)
+[![go reportcard](https://goreportcard.com/badge/github.com/lucasb-eyer/go-colorful)](https://goreportcard.com/report/github.com/lucasb-eyer/go-colorful)
+
+A library for playing with colors in Go. Supports Go 1.13 onwards.
 
 Why?
 ====
@@ -29,7 +30,10 @@ Go-Colorful stores colors in RGB and provides methods from converting these to v
 - **CIE-xyY:** encodes chromacity in x and y and luminance in Y, all in [0..1]
 - **CIE-L\*a\*b\*:** A *perceptually uniform* color space, i.e. distances are meaningful. L\* in [0..1] and a\*, b\* almost in [-1..1].
 - **CIE-L\*u\*v\*:** Very similar to CIE-L\*a\*b\*, there is [no consensus](http://en.wikipedia.org/wiki/CIELUV#Historical_background) on which one is "better".
-- **CIE-L\*C\*h° (HCL):** This is generally the [most useful](http://vis4.net/blog/posts/avoid-equidistant-hsv-colors/) one; CIE-L\*a\*b\* space in polar coordinates, i.e. a *better* HSV. H° is in [0..360], C\* almost in [-1..1] and L\* as in CIE-L\*a\*b\*.
+- **CIE-L\*C\*h° (HCL):** This is generally the [most useful](http://vis4.net/blog/posts/avoid-equidistant-hsv-colors/) one; CIE-L\*a\*b\* space in polar coordinates, i.e. a *better* HSV. H° is in [0..360], C\* almost in [0..1] and L\* as in CIE-L\*a\*b\*.
+- **CIE LCh(uv):** Called `LuvLCh` in code, this is a cylindrical transformation of the CIE-L\*u\*v\* color space. Like HCL above: H° is in [0..360], C\* almost in [0..1] and L\* as in CIE-L\*u\*v\*.
+- **HSLuv:** The better alternative to HSL, see [here](https://www.hsluv.org/) and [here](https://www.kuon.ch/post/2020-03-08-hsluv/). Hue in [0..360], Saturation and Luminance in [0..1].
+- **HPLuv:** A variant of HSLuv. The color space is smoother, but only pastel colors can be included. Because the valid colors are limited, it's easy to get invalid Saturation values way above 1.0, indicating the color can't be represented in HPLuv because it's not pastel.
 
 For the colorspaces where it makes sense (XYZ, Lab, Luv, HCl), the
 [D65](http://en.wikipedia.org/wiki/Illuminant_D65) is used as reference white
@@ -48,14 +52,6 @@ Nice, but what's it useful for?
 - Blending (interpolating) between colors in a "natural" look by using the right colorspace.
 - Generating random colors under some constraints (e.g. colors of the same shade, or shades of one color.)
 - Generating gorgeous random palettes with distinct colors of a same temperature.
-
-What not (yet)?
-===============
-There are a few features which are currently missing and might be useful.
-I just haven't implemented them yet because I didn't have the need for it.
-Pull requests welcome.
-
-- Sorting colors (potentially using above mentioned distances)
 
 So which colorspace should I use?
 =================================
@@ -136,7 +132,7 @@ alpha colors, this means the RGB values are lost (set to 0) and it's impossible
 to recover them. In such a case `MakeColor` will return `false` as its second value.
 
 ### Comparing colors
-In the RGB color space, the Euclidian distance between colors *doesn't* correspond
+In the RGB color space, the Euclidean distance between colors *doesn't* correspond
 to visual/perceptual distance. This means that two pairs of colors which have the
 same distance in RGB space can look much further apart. This is fixed by the
 CIE-L\*a\*b\*, CIE-L\*u\*v\* and CIE-L\*C\*h° color spaces.
@@ -205,7 +201,7 @@ What you see is that HSV is really bad: it adds some green, which is not present
 in the original colors at all! RGB is much better, but it stays light a little
 too long. LUV and LAB both hit the right lightness but LAB has a little more
 color. HCL works in the same vein as HSV (both cylindrical interpolations) but
-it does it right in that there is no green appearing and the lighthness changes
+it does it right in that there is no green appearing and the lightness changes
 in a linear manner.
 
 While this seems all good, you need to know one thing: When interpolating in any
@@ -248,14 +244,14 @@ func main() {
     //c2, _ := colorful.Hex("#1E3140")
 
     for i := 0 ; i < blocks ; i++ {
-        draw.Draw(img, image.Rect(i*blockw,  0,(i+1)*blockw, 40), &image.Uniform{c1.BlendHsv(c2, float64(i)/float64(blocks-1))}, image.ZP, draw.Src)
-        draw.Draw(img, image.Rect(i*blockw, 40,(i+1)*blockw, 80), &image.Uniform{c1.BlendLuv(c2, float64(i)/float64(blocks-1))}, image.ZP, draw.Src)
-        draw.Draw(img, image.Rect(i*blockw, 80,(i+1)*blockw,120), &image.Uniform{c1.BlendRgb(c2, float64(i)/float64(blocks-1))}, image.ZP, draw.Src)
-        draw.Draw(img, image.Rect(i*blockw,120,(i+1)*blockw,160), &image.Uniform{c1.BlendLab(c2, float64(i)/float64(blocks-1))}, image.ZP, draw.Src)
-        draw.Draw(img, image.Rect(i*blockw,160,(i+1)*blockw,200), &image.Uniform{c1.BlendHcl(c2, float64(i)/float64(blocks-1))}, image.ZP, draw.Src)
+        draw.Draw(img, image.Rect(i*blockw,  0,(i+1)*blockw, 40), &image.Uniform{c1.BlendHsv(c2, float64(i)/float64(blocks-1))}, image.Point{}, draw.Src)
+        draw.Draw(img, image.Rect(i*blockw, 40,(i+1)*blockw, 80), &image.Uniform{c1.BlendLuv(c2, float64(i)/float64(blocks-1))}, image.Point{}, draw.Src)
+        draw.Draw(img, image.Rect(i*blockw, 80,(i+1)*blockw,120), &image.Uniform{c1.BlendRgb(c2, float64(i)/float64(blocks-1))}, image.Point{}, draw.Src)
+        draw.Draw(img, image.Rect(i*blockw,120,(i+1)*blockw,160), &image.Uniform{c1.BlendLab(c2, float64(i)/float64(blocks-1))}, image.Point{}, draw.Src)
+        draw.Draw(img, image.Rect(i*blockw,160,(i+1)*blockw,200), &image.Uniform{c1.BlendHcl(c2, float64(i)/float64(blocks-1))}, image.Point{}, draw.Src)
 
         // This can be used to "fix" invalid colors in the gradient.
-        //draw.Draw(img, image.Rect(i*blockw,160,(i+1)*blockw,200), &image.Uniform{c1.BlendHcl(c2, float64(i)/float64(blocks-1)).Clamped()}, image.ZP, draw.Src)
+        //draw.Draw(img, image.Rect(i*blockw,160,(i+1)*blockw,200), &image.Uniform{c1.BlendHcl(c2, float64(i)/float64(blocks-1)).Clamped()}, image.Point{}, draw.Src)
     }
 
     toimg, err := os.Create("colorblend.png")
@@ -313,11 +309,11 @@ generating this picture in `doc/colorgens/colorgens.go`.
 
 ### Getting random palettes
 As soon as you need to generate more than one random color, you probably want
-them to be distinguishible. Playing against an opponent which has almost the
+them to be distinguishable. Playing against an opponent which has almost the
 same blue as I do is not fun. This is where random palettes can help.
 
 These palettes are generated using an algorithm which ensures that all colors
-on the palette are as distinguishible as possible. Again, there is a `Fast`
+on the palette are as distinguishable as possible. Again, there is a `Fast`
 method which works in HSV and is less perceptually uniform and a non-`Fast`
 method which works in CIE spaces. For more theory on `SoftPalette`, check out
 [I want hue](http://tools.medialab.sciences-po.fr/iwanthue/theory.php). Yet
@@ -369,10 +365,18 @@ from top to bottom: `Warm`, `FastWarm`, `Happy`, `FastHappy`, `Soft`,
 Again, the code used for generating the above image is available as [doc/palettegens/palettegens.go](https://github.com/lucasb-eyer/go-colorful/blob/master/doc/palettegens/palettegens.go).
 
 ### Sorting colors
-TODO: Sort using dist fn.
+
+Sorting colors is not a well-defined operation.  For example, {dark blue, dark red, light blue, light red} is already sorted if darker colors should precede lighter colors but would need to be re-sorted as {dark red, light red, dark blue, light blue} if longer-wavelength colors should precede shorter-wavelength colors.
+
+Go-Colorful's `Sorted` function orders a list of colors so as to minimize the average distance between adjacent colors, including between the last and the first.  (`Sorted` does not necessarily find the true minimum, only a reasonably close approximation.)  The following picture, drawn by [doc/colorsort/colorsort.go](https://github.com/lucasb-eyer/go-colorful/blob/master/doc/colorsort/colorsort.go), illustrates `Sorted`'s behavior:
+
+![Sorting colors](doc/colorsort/colorsort.png)
+
+The first row represents the input: a slice of 512 randomly chosen colors.  The second row shows the colors sorted in CIE-L\*C\*h° space, ordered first by lightness (L), then by hue angle (h), and finally by chroma (C).  Note that distracting pinstripes permeate the colors.  Sorting using *any* color space and *any* ordering of the channels yields a similar pinstriped pattern.  The third row of the image was sorted using Go-Colorful's `Sorted` function.  Although the colors do not appear to be in any particular order, the sequence at least appears smoother than the one sorted by channel.
+
 
 ### Using linear RGB for computations
-There are two methods for transforming RGB<->Linear RGB: a fast and almost precise one,
+There are two methods for transforming RGB⟷Linear RGB: a fast and almost precise one,
 and a slow and precise one.
 
 ```go
@@ -468,25 +472,12 @@ section above.
 Who?
 ====
 
-This library has been developed by Lucas Beyer with contributions from
-Bastien Dejean (@baskerville), Phil Kulak (@pkulak) and Christian Muehlhaeuser (@muesli).
+This library was developed by Lucas Beyer with contributions from
+Bastien Dejean (@baskerville), Phil Kulak (@pkulak), Christian Muehlhaeuser (@muesli), and Scott Pakin (@spakin).
 
-Release Notes
-=============
+It is now maintained by makeworld (@makew0rld).
 
-### Version 1.0
-- API Breaking change in `MakeColor`: instead of `panic`ing when alpha is zero, it now returns a secondary, boolean return value indicating success. See [the color.Color interface](https://github.com/lucasb-eyer/go-colorful#the-colorcolor-interface) section and [this FAQ entry](https://github.com/lucasb-eyer/go-colorful#q-why-would-makecolor-ever-fail) for details.
 
-### Version 0.9
-- Initial version number after having ignored versioning for a long time :)
+## License
 
-License: MIT
-============
-Copyright (c) 2013 Lucas Beyer
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+This repo is under the MIT license, see [LICENSE](LICENSE) for details.
