@@ -105,7 +105,7 @@ func (c Bitbucket) fetchServerProjectReposParallel(projectKey string, firstPageR
 }
 
 // fetchServerUserReposParallel fetches remaining pages of Bitbucket Server user repos concurrently
-func (c Bitbucket) fetchServerUserReposParallel(username string, firstPageRepos []ServerRepository, totalSize int, limit int) ([]Repo, error) {
+func (c Bitbucket) fetchServerUserReposParallel(_ string, firstPageRepos []ServerRepository, totalSize int, limit int) ([]Repo, error) {
 	// Calculate total number of pages
 	totalPages := (totalSize + limit - 1) / limit // Ceiling division
 

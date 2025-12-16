@@ -50,7 +50,7 @@ func TestDefaultSettings(t *testing.T) {
 		}
 	}()
 
-	Execute()
+	InitConfig()
 	protocol := os.Getenv("GHORG_CLONE_PROTOCOL")
 	scm := os.Getenv("GHORG_SCM_TYPE")
 	cloneType := os.Getenv("GHORG_CLONE_TYPE")

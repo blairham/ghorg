@@ -1,4 +1,3 @@
-// Package configs sets up the environment. First it sets a number of default envs, then looks in the $HOME/.config/ghorg/conf.yaml to overwrite the defaults. These values will be superseded by any command line flags used
 package configs
 
 import (
@@ -15,8 +14,10 @@ import (
 	"github.com/blairham/ghorg/scm"
 	"github.com/blairham/ghorg/utils"
 
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 	"github.com/mitchellh/go-homedir"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -56,13 +57,18 @@ func Load() {}
 
 // GetRequiredString verifies env is set
 func GetRequiredString(key string) string {
-	value := viper.GetString(key)
-
-	if isZero(value) {
-		log.Fatalf("Fatal: '%s' ENV VAR is required", key)
+	// Create a temporary koanf instance to load the config
+	k := koanf.New(".")
+	configPath := DefaultConfFile()
+	if err := k.Load(file.Provider(configPath), yaml.Parser()); err == nil {
+		value := k.String(key)
+		if !isZero(value) {
+			return value
+		}
 	}
 
-	return value
+	log.Fatalf("Fatal: '%s' ENV VAR is required", key)
+	return ""
 }
 
 func isZero(value any) bool {

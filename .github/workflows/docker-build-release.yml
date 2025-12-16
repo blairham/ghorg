@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       is_release:
+        description: "Whether this is a release build"
         required: false
         type: boolean
         default: false

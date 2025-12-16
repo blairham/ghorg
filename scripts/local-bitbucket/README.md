@@ -15,7 +15,7 @@ These tests verify that ghorg can correctly:
 ## Prerequisites
 
 - Docker and Docker Compose installed and running
-- Go 1.24.6 or later
+- Go 1.24.11 or later
 - ghorg binary built and in PATH (will be rebuilt automatically)
 
 ## Running Tests
