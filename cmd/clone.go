@@ -19,8 +19,9 @@ import (
 	"github.com/blairham/ghorg/git"
 	"github.com/blairham/ghorg/scm"
 	"github.com/blairham/ghorg/utils"
+	"github.com/jessevdk/go-flags"
 	"github.com/korovkin/limiter"
-	"github.com/spf13/cobra"
+	"github.com/mitchellh/cli"
 )
 
 // Helper function to safely parse integer environment variables
@@ -56,277 +57,398 @@ func shouldAutoAdjustConcurrency() (int, bool, bool) {
 	return delaySeconds, true, true
 }
 
-var cloneCmd = &cobra.Command{
-	Use:   "clone [org/user]",
-	Short: "Clone user or org repos from GitHub, GitLab, Gitea or Bitbucket",
-	Long: `Clone user or org repos from GitHub, GitLab, Gitea or Bitbucket. See $HOME/.config/ghorg/conf.yaml for defaults, its likely you will need to update some of these values of use the flags to overwrite them. Values are set first by a default value, then based off what is set in $HOME/.config/ghorg/conf.yaml, finally the cli flags, which have the highest level of precedence.
-
-For complete examples of how to clone repos from each SCM provider, run one of the following examples commands:
-$ ghorg examples github
-$ ghorg examples gitlab
-$ ghorg examples bitbucket
-$ ghorg examples gitea
-
-Or see examples directory at https://github.com/blairham/ghorg/tree/master/examples
-`,
-	Run: cloneFunc,
+type CloneCommand struct {
+	UI cli.Ui
 }
 
-var cachedDirSizeMB float64
-var isDirSizeCached bool
-var commandStartTime time.Time
+type CloneFlags struct {
+	// Global flags (these were on rootCmd in the old cobra version)
+	Config string `long:"config" description:"GHORG_CONFIG - Manually set the path to your config file"`
+	Color  string `long:"color" description:"GHORG_COLOR - Toggles colorful output, enabled/disabled (default: disabled)"`
 
-func cloneFunc(cmd *cobra.Command, argz []string) {
+	// Path and protocol flags
+	Path     string `short:"p" long:"path" description:"GHORG_ABSOLUTE_PATH_TO_CLONE_TO - Absolute path to the home for ghorg clones. Must start with / (default $HOME/ghorg)"`
+	Protocol string `long:"protocol" description:"GHORG_CLONE_PROTOCOL - Protocol to clone with, ssh or https, (default https)"`
+
+	// Branch and sync flags
+	Branch            string `short:"b" long:"branch" description:"GHORG_BRANCH - Branch left checked out for each repo cloned (default master)"`
+	SyncDefaultBranch bool   `long:"sync-default-branch" description:"GHORG_SYNC_DEFAULT_BRANCH - Automatically keep the default branch in sync with the remote by performing a fetch and fast-forward merge before cloning"`
+
+	// Token and auth flags
+	Token             string `short:"t" long:"token" description:"GHORG_GITHUB_TOKEN/GHORG_GITLAB_TOKEN/GHORG_GITEA_TOKEN/GHORG_BITBUCKET_APP_PASSWORD/GHORG_BITBUCKET_OAUTH_TOKEN/GHORG_SOURCEHUT_TOKEN - scm token to clone with"`
+	BitbucketUsername string `long:"bitbucket-username" description:"GHORG_BITBUCKET_USERNAME - Bitbucket only: username associated with the app password"`
+	NoToken           bool   `long:"no-token" description:"GHORG_NO_TOKEN - Allows you to run ghorg with no token (GHORG_<SCM>_TOKEN), SCM server needs to specify no auth required for api calls"`
+
+	// SCM and clone type flags
+	SCMType   string `short:"s" long:"scm" description:"GHORG_SCM_TYPE - Type of scm used, github, gitlab, gitea, bitbucket or sourcehut (default github)"`
+	CloneType string `short:"c" long:"clone-type" description:"GHORG_CLONE_TYPE - Clone target type, user or org (default org)"`
+	BaseURL   string `long:"base-url" description:"GHORG_SCM_BASE_URL - Change SCM base url, for on self hosted instances (currently gitlab, gitea and github (use format of https://git.mydomain.com/api/v3))"`
+
+	// Filter flags
+	SkipArchived                 bool   `long:"skip-archived" description:"GHORG_SKIP_ARCHIVED - Skips archived repos, github/gitlab/gitea only"`
+	SkipForks                    bool   `long:"skip-forks" description:"GHORG_SKIP_FORKS - Skips repo if its a fork, github/gitlab/gitea only"`
+	Topics                       string `long:"topics" description:"GHORG_TOPICS - Comma separated list of github/gitea topics to filter for"`
+	MatchPrefix                  string `long:"match-prefix" description:"GHORG_MATCH_PREFIX - Only clone repos with matching prefix, can be a comma separated list"`
+	ExcludeMatchPrefix           string `long:"exclude-match-prefix" description:"GHORG_EXCLUDE_MATCH_PREFIX - Exclude cloning repos with matching prefix, can be a comma separated list"`
+	MatchRegex                   string `long:"match-regex" description:"GHORG_MATCH_REGEX - Only clone repos that match name to regex provided"`
+	ExcludeMatchRegex            string `long:"exclude-match-regex" description:"GHORG_EXCLUDE_MATCH_REGEX - Exclude cloning repos that match name to regex provided"`
+	GitlabGroupExcludeMatchRegex string `long:"gitlab-group-exclude-match-regex" description:"GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX - Exclude cloning gitlab groups that match name to regex provided"`
+	GhorgIgnorePath              string `long:"ghorgignore-path" description:"GHORG_IGNORE_PATH - If you want to set a path other than $HOME/.config/ghorg/ghorgignore for your ghorgignore"`
+	GhorgOnlyPath                string `long:"ghorgonly-path" description:"GHORG_ONLY_PATH - If you want to set a path other than $HOME/.config/ghorg/ghorgonly for your ghorgonly"`
+	TargetReposPath              string `long:"target-repos-path" description:"GHORG_TARGET_REPOS_PATH - Path to file with list of repo names to clone, file should contain one repo name per line"`
+
+	// Clone behavior flags
+	NoClean                 bool `long:"no-clean" description:"GHORG_NO_CLEAN - Only clones new repos and does not perform a git clean on existing repos"`
+	Prune                   bool `long:"prune" description:"GHORG_PRUNE - Deletes all files/directories found in your local clone directory that are not found on the remote (e.g., after remote deletion). With GHORG_SKIP_ARCHIVED set, archived repositories will also be pruned from your local clone. Will prompt before deleting any files unless used in combination with --prune-no-confirm"`
+	PruneNoConfirm          bool `long:"prune-no-confirm" description:"GHORG_PRUNE_NO_CONFIRM - Don't prompt on every prune candidate, just delete"`
+	PruneUntouched          bool `long:"prune-untouched" description:"GHORG_PRUNE_UNTOUCHED - Prune repositories that don't have any local changes, see sample-conf.yaml for more details"`
+	PruneUntouchedNoConfirm bool `long:"prune-untouched-no-confirm" description:"GHORG_PRUNE_UNTOUCHED_NO_CONFIRM - Automatically delete repos without showing an interactive confirmation prompt"`
+	FetchAll                bool `long:"fetch-all" description:"GHORG_FETCH_ALL - Fetches all remote branches for each repo by running a git fetch --all"`
+	DryRun                  bool `long:"dry-run" description:"GHORG_DRY_RUN - Perform a dry run of the clone; fetches repos but does not clone them"`
+	Backup                  bool `long:"backup" description:"GHORG_BACKUP - Backup mode, clone as mirror, no working copy (ignores branch parameter)"`
+	IncludeSubmodules       bool `long:"include-submodules" description:"GHORG_INCLUDE_SUBMODULES - Include submodules in all clone and pull operations"`
+
+	// Additional content flags
+	CloneWiki     bool `long:"clone-wiki" description:"GHORG_CLONE_WIKI - Additionally clone the wiki page for repo"`
+	CloneSnippets bool `long:"clone-snippets" description:"GHORG_CLONE_SNIPPETS - Additionally clone all snippets, gitlab only"`
+
+	// Insecure client flags
+	InsecureGitlabClient    bool `long:"insecure-gitlab-client" description:"GHORG_INSECURE_GITLAB_CLIENT - Skip TLS certificate verification for hosted gitlab instances"`
+	InsecureGiteaClient     bool `long:"insecure-gitea-client" description:"GHORG_INSECURE_GITEA_CLIENT - Must be set to clone from a Gitea instance using http"`
+	InsecureBitbucketClient bool `long:"insecure-bitbucket-client" description:"GHORG_INSECURE_BITBUCKET_CLIENT - Must be set to clone from a Bitbucket Server instance using http"`
+	InsecureSourcehutClient bool `long:"insecure-sourcehut-client" description:"GHORG_INSECURE_SOURCEHUT_CLIENT - Must be set to clone from a Sourcehut instance using http"`
+
+	// Directory and output flags
+	PreserveDir         bool   `long:"preserve-dir" description:"GHORG_PRESERVE_DIRECTORY_STRUCTURE - Clones repos in a directory structure that matches gitlab namespaces eg company/unit/subunit/app would clone into ghorg/unit/subunit/app, gitlab only"`
+	OutputDir           string `long:"output-dir" description:"GHORG_OUTPUT_DIR - Name of directory repos will be cloned into (default name of org/repo being cloned"`
+	NoDirSize           bool   `long:"no-dir-size" description:"GHORG_NO_DIR_SIZE - Skips the calculation of the output directory size at the end of a clone operation. This can save time, especially when cloning a large number of repositories"`
+	PreserveSCMHostname bool   `long:"preserve-scm-hostname" description:"GHORG_PRESERVE_SCM_HOSTNAME - Appends the scm hostname to the GHORG_ABSOLUTE_PATH_TO_CLONE_TO which will organize your clones into specific folders by the scm provider. e.g. /github.com/kubernetes"`
+
+	// Performance and control flags
+	Concurrency       string `long:"concurrency" description:"GHORG_CONCURRENCY - Max goroutines to spin up while cloning (default 25)"`
+	CloneDelaySeconds string `long:"clone-delay-seconds" description:"GHORG_CLONE_DELAY_SECONDS - Delay in seconds between cloning repos. Useful for rate limiting. Automatically sets concurrency to 1 when > 0 (default 0)"`
+	CloneDepth        string `long:"clone-depth" description:"GHORG_CLONE_DEPTH - Create a shallow clone with a history truncated to the specified number of commits"`
+	GitFilter         string `long:"git-filter" description:"GHORG_GIT_FILTER - Allows you to pass arguments to git's filter flag. Useful for filtering out binary objects from repos with --git-filter=blob:none, this requires git version 2.19 or greater"`
+
+	// Exit code flags
+	ExitCodeOnCloneInfos  string `long:"exit-code-on-clone-infos" description:"GHORG_EXIT_CODE_ON_CLONE_INFOS - Allows you to control the exit code when ghorg runs into a problem (info level message) cloning a repo from the remote. Info messages will appear after a clone is complete, similar to success messages. (default 0)"`
+	ExitCodeOnCloneIssues string `long:"exit-code-on-clone-issues" description:"GHORG_EXIT_CODE_ON_CLONE_ISSUES - Allows you to control the exit code when ghorg runs into a problem (issue level message) cloning a repo from the remote. Issue messages will appear after a clone is complete, similar to success messages (default 1)"`
+
+	// Logging and stats flags
+	Quiet        bool `long:"quiet" description:"GHORG_QUIET - Emit critical output only"`
+	StatsEnabled bool `long:"stats-enabled" description:"GHORG_STATS_ENABLED - Creates a CSV in the GHORG_ABSOLUTE_PATH_TO_CLONE_TO called _ghorg_stats.csv with info about each clone. This allows you to track clone data over time such as number of commits and size in megabytes of the clone directory"`
+
+	// GitHub specific flags
+	GitHubTokenFromGitHubApp string `long:"github-token-from-github-app" description:"GHORG_GITHUB_TOKEN_FROM_GITHUB_APP - Indicate that the Github token should be treated as an app token. Needed if you already obtained a github app token outside the context of ghorg"`
+	GitHubAppPemPath         string `long:"github-app-pem-path" description:"GHORG_GITHUB_APP_PEM_PATH - Path to your GitHub App PEM file, for authenticating with GitHub App"`
+	GitHubAppInstallationID  string `long:"github-app-installation-id" description:"GHORG_GITHUB_APP_INSTALLATION_ID - GitHub App Installation ID, for authenticating with GitHub App"`
+	GitHubAppID              string `long:"github-app-id" description:"GHORG_GITHUB_APP_ID - GitHub App ID, for authenticating with GitHub App"`
+	GitHubFilterLanguage     string `long:"github-filter-language" description:"GHORG_GITHUB_FILTER_LANGUAGE - Filter repos by a language. Can be a comma separated value with no spaces"`
+	GitHubUserOption         string `long:"github-user-option" description:"GHORG_GITHUB_USER_OPTION - Only available when also using GHORG_CLONE_TYPE: user e.g. --clone-type=user can be one of: all, owner, member (default: owner)"`
+}
+
+func (c *CloneCommand) Help() string {
+	return `Usage: ghorg clone [options] [org/user]
+
+Clone user or org repos from GitHub, GitLab, Gitea or Bitbucket.
+See $HOME/.config/ghorg/conf.yaml for defaults.
+
+For complete examples of how to clone repos from each SCM provider, run:
+  ghorg examples github
+  ghorg examples gitlab
+  ghorg examples bitbucket
+  ghorg examples gitea
+
+Or see examples directory at https://github.com/blairham/ghorg/tree/master/examples
+
+Options:
+  -p, --path                           Absolute path to clone repos to
+  --protocol                           Protocol to clone with (ssh or https)
+  -b, --branch                         Branch to checkout for each repo
+  -t, --token                          SCM token for authentication
+  -s, --scm                            SCM type (github, gitlab, gitea, bitbucket, sourcehut)
+  -c, --clone-type                     Clone target type (user or org)
+  --base-url                           SCM base URL for self-hosted instances
+  --skip-archived                      Skip archived repos
+  --skip-forks                         Skip forked repos
+  --no-clean                           Only clone new repos, don't clean existing
+  --prune                              Delete local repos not found on remote
+  --fetch-all                          Fetch all remote branches
+  --dry-run                            Perform a dry run
+  --backup                             Backup mode (clone as mirror)
+  --include-submodules                 Include submodules
+  --clone-wiki                         Clone wiki pages
+  --quiet                              Emit critical output only
+  --stats-enabled                      Create stats CSV file
+
+Examples:
+  ghorg clone kubernetes
+  ghorg clone --scm gitlab my-org
+  ghorg clone --clone-type user my-user
+  ghorg clone --branch develop my-org
+`
+}
+
+func (c *CloneCommand) Synopsis() string {
+	return "Clone user or org repos from GitHub, GitLab, Gitea or Bitbucket"
+}
+
+func (c *CloneCommand) Run(args []string) int {
 	// Record start time for the entire command duration including SCM API calls
 	commandStartTime = time.Now()
 
-	if cmd.Flags().Changed("path") {
-		absolutePath := configs.EnsureTrailingSlashOnFilePath((cmd.Flag("path").Value.String()))
+	var opts CloneFlags
+	parser := flags.NewParser(&opts, flags.Default)
+	remaining, err := parser.ParseArgs(args)
+	if err != nil {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			fmt.Println(c.Help())
+			return 0
+		}
+		colorlog.PrintError(fmt.Sprintf("Error parsing flags: %v", err))
+		return 1
+	}
+
+	// Handle config flag first - if set, reinitialize configuration
+	if opts.Config != "" {
+		os.Setenv("GHORG_CONFIG", opts.Config)
+		InitConfig()
+	}
+
+	// Handle color flag
+	if opts.Color != "" {
+		os.Setenv("GHORG_COLOR", opts.Color)
+	}
+
+	// Set environment variables from flags
+	if opts.Path != "" {
+		absolutePath := configs.EnsureTrailingSlashOnFilePath(opts.Path)
 		os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", absolutePath)
 	}
 
-	if cmd.Flags().Changed("protocol") {
-		protocol := cmd.Flag("protocol").Value.String()
-		os.Setenv("GHORG_CLONE_PROTOCOL", protocol)
+	if opts.Protocol != "" {
+		os.Setenv("GHORG_CLONE_PROTOCOL", opts.Protocol)
 	}
 
-	if cmd.Flags().Changed("branch") {
-		os.Setenv("GHORG_BRANCH", cmd.Flag("branch").Value.String())
+	if opts.Branch != "" {
+		os.Setenv("GHORG_BRANCH", opts.Branch)
 	}
 
-	if cmd.Flags().Changed("github-token-from-github-app") {
-		os.Setenv("GHORG_GITHUB_TOKEN_FROM_GITHUB_APP", cmd.Flag("github-token-from-github-app").Value.String())
+	if opts.GitHubTokenFromGitHubApp != "" {
+		os.Setenv("GHORG_GITHUB_TOKEN_FROM_GITHUB_APP", opts.GitHubTokenFromGitHubApp)
 	}
 
-	if cmd.Flags().Changed("github-app-pem-path") {
-		os.Setenv("GHORG_GITHUB_APP_PEM_PATH", cmd.Flag("github-app-pem-path").Value.String())
+	if opts.GitHubAppPemPath != "" {
+		os.Setenv("GHORG_GITHUB_APP_PEM_PATH", opts.GitHubAppPemPath)
 	}
 
-	if cmd.Flags().Changed("github-app-installation-id") {
-		os.Setenv("GHORG_GITHUB_APP_INSTALLATION_ID", cmd.Flag("github-app-installation-id").Value.String())
+	if opts.GitHubAppInstallationID != "" {
+		os.Setenv("GHORG_GITHUB_APP_INSTALLATION_ID", opts.GitHubAppInstallationID)
 	}
 
-	if cmd.Flags().Changed("github-filter-language") {
-		os.Setenv("GHORG_GITHUB_FILTER_LANGUAGE", cmd.Flag("github-filter-language").Value.String())
+	if opts.GitHubFilterLanguage != "" {
+		os.Setenv("GHORG_GITHUB_FILTER_LANGUAGE", opts.GitHubFilterLanguage)
 	}
 
-	if cmd.Flags().Changed("github-app-id") {
-		os.Setenv("GHORG_GITHUB_APP_ID", cmd.Flag("github-app-id").Value.String())
+	if opts.GitHubAppID != "" {
+		os.Setenv("GHORG_GITHUB_APP_ID", opts.GitHubAppID)
 	}
 
-	if cmd.Flags().Changed("bitbucket-username") {
-		os.Setenv("GHORG_BITBUCKET_USERNAME", cmd.Flag("bitbucket-username").Value.String())
+	if opts.BitbucketUsername != "" {
+		os.Setenv("GHORG_BITBUCKET_USERNAME", opts.BitbucketUsername)
 	}
 
-	if cmd.Flags().Changed("clone-type") {
-		cloneType := strings.ToLower(cmd.Flag("clone-type").Value.String())
+	if opts.CloneType != "" {
+		cloneType := strings.ToLower(opts.CloneType)
 		os.Setenv("GHORG_CLONE_TYPE", cloneType)
 	}
 
-	if cmd.Flags().Changed("scm") {
-		scmType := strings.ToLower(cmd.Flag("scm").Value.String())
+	if opts.SCMType != "" {
+		scmType := strings.ToLower(opts.SCMType)
 		os.Setenv("GHORG_SCM_TYPE", scmType)
 	}
 
-	if cmd.Flags().Changed("github-user-option") {
-		opt := cmd.Flag("github-user-option").Value.String()
-		os.Setenv("GHORG_GITHUB_USER_OPTION", opt)
+	if opts.GitHubUserOption != "" {
+		os.Setenv("GHORG_GITHUB_USER_OPTION", opts.GitHubUserOption)
 	}
 
-	if cmd.Flags().Changed("base-url") {
-		url := cmd.Flag("base-url").Value.String()
-		os.Setenv("GHORG_SCM_BASE_URL", url)
+	if opts.BaseURL != "" {
+		os.Setenv("GHORG_SCM_BASE_URL", opts.BaseURL)
 	}
 
-	if cmd.Flags().Changed("concurrency") {
-		f := cmd.Flag("concurrency").Value.String()
-		os.Setenv("GHORG_CONCURRENCY", f)
+	if opts.Concurrency != "" {
+		os.Setenv("GHORG_CONCURRENCY", opts.Concurrency)
 	}
 
-	if cmd.Flags().Changed("clone-delay-seconds") {
-		f := cmd.Flag("clone-delay-seconds").Value.String()
-		os.Setenv("GHORG_CLONE_DELAY_SECONDS", f)
+	if opts.CloneDelaySeconds != "" {
+		os.Setenv("GHORG_CLONE_DELAY_SECONDS", opts.CloneDelaySeconds)
 	}
 
-	if cmd.Flags().Changed("clone-depth") {
-		f := cmd.Flag("clone-depth").Value.String()
-		os.Setenv("GHORG_CLONE_DEPTH", f)
+	if opts.CloneDepth != "" {
+		os.Setenv("GHORG_CLONE_DEPTH", opts.CloneDepth)
 	}
 
-	if cmd.Flags().Changed("exit-code-on-clone-infos") {
-		f := cmd.Flag("exit-code-on-clone-infos").Value.String()
-		os.Setenv("GHORG_EXIT_CODE_ON_CLONE_INFOS", f)
+	if opts.ExitCodeOnCloneInfos != "" {
+		os.Setenv("GHORG_EXIT_CODE_ON_CLONE_INFOS", opts.ExitCodeOnCloneInfos)
 	}
 
-	if cmd.Flags().Changed("exit-code-on-clone-issues") {
-		f := cmd.Flag("exit-code-on-clone-issues").Value.String()
-		os.Setenv("GHORG_EXIT_CODE_ON_CLONE_ISSUES", f)
+	if opts.ExitCodeOnCloneIssues != "" {
+		os.Setenv("GHORG_EXIT_CODE_ON_CLONE_ISSUES", opts.ExitCodeOnCloneIssues)
 	}
 
-	if cmd.Flags().Changed("topics") {
-		topics := cmd.Flag("topics").Value.String()
-		os.Setenv("GHORG_TOPICS", topics)
+	if opts.Topics != "" {
+		os.Setenv("GHORG_TOPICS", opts.Topics)
 	}
 
-	if cmd.Flags().Changed("match-prefix") {
-		prefix := cmd.Flag("match-prefix").Value.String()
-		os.Setenv("GHORG_MATCH_PREFIX", prefix)
+	if opts.MatchPrefix != "" {
+		os.Setenv("GHORG_MATCH_PREFIX", opts.MatchPrefix)
 	}
 
-	if cmd.Flags().Changed("exclude-match-prefix") {
-		prefix := cmd.Flag("exclude-match-prefix").Value.String()
-		os.Setenv("GHORG_EXCLUDE_MATCH_PREFIX", prefix)
+	if opts.ExcludeMatchPrefix != "" {
+		os.Setenv("GHORG_EXCLUDE_MATCH_PREFIX", opts.ExcludeMatchPrefix)
 	}
 
-	if cmd.Flags().Changed("gitlab-group-exclude-match-regex") {
-		prefix := cmd.Flag("gitlab-group-exclude-match-regex").Value.String()
-		os.Setenv("GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX", prefix)
+	if opts.GitlabGroupExcludeMatchRegex != "" {
+		os.Setenv("GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX", opts.GitlabGroupExcludeMatchRegex)
 	}
 
-	if cmd.Flags().Changed("match-regex") {
-		regex := cmd.Flag("match-regex").Value.String()
-		os.Setenv("GHORG_MATCH_REGEX", regex)
+	if opts.MatchRegex != "" {
+		os.Setenv("GHORG_MATCH_REGEX", opts.MatchRegex)
 	}
 
-	if cmd.Flags().Changed("exclude-match-regex") {
-		regex := cmd.Flag("exclude-match-regex").Value.String()
-		os.Setenv("GHORG_EXCLUDE_MATCH_REGEX", regex)
+	if opts.ExcludeMatchRegex != "" {
+		os.Setenv("GHORG_EXCLUDE_MATCH_REGEX", opts.ExcludeMatchRegex)
 	}
 
-	if cmd.Flags().Changed("ghorgignore-path") {
-		path := cmd.Flag("ghorgignore-path").Value.String()
-		os.Setenv("GHORG_IGNORE_PATH", path)
+	if opts.GhorgIgnorePath != "" {
+		os.Setenv("GHORG_IGNORE_PATH", opts.GhorgIgnorePath)
 	}
 
-	if cmd.Flags().Changed("ghorgonly-path") {
-		path := cmd.Flag("ghorgonly-path").Value.String()
-		os.Setenv("GHORG_ONLY_PATH", path)
+	if opts.GhorgOnlyPath != "" {
+		os.Setenv("GHORG_ONLY_PATH", opts.GhorgOnlyPath)
 	}
 
-	if cmd.Flags().Changed("target-repos-path") {
-		path := cmd.Flag("target-repos-path").Value.String()
-		os.Setenv("GHORG_TARGET_REPOS_PATH", path)
+	if opts.TargetReposPath != "" {
+		os.Setenv("GHORG_TARGET_REPOS_PATH", opts.TargetReposPath)
 	}
 
-	if cmd.Flags().Changed("git-filter") {
-		filter := cmd.Flag("git-filter").Value.String()
-		os.Setenv("GHORG_GIT_FILTER", filter)
+	if opts.GitFilter != "" {
+		os.Setenv("GHORG_GIT_FILTER", opts.GitFilter)
 	}
 
-	if cmd.Flags().Changed("preserve-scm-hostname") {
+	if opts.PreserveSCMHostname {
 		os.Setenv("GHORG_PRESERVE_SCM_HOSTNAME", "true")
 	}
 
-	if cmd.Flags().Changed("skip-archived") {
+	if opts.SkipArchived {
 		os.Setenv("GHORG_SKIP_ARCHIVED", "true")
 	}
 
-	if cmd.Flags().Changed("stats-enabled") {
+	if opts.StatsEnabled {
 		os.Setenv("GHORG_STATS_ENABLED", "true")
 	}
 
-	if cmd.Flags().Changed("no-clean") {
+	if opts.NoClean {
 		os.Setenv("GHORG_NO_CLEAN", "true")
 	}
 
-	if cmd.Flags().Changed("prune") {
+	if opts.Prune {
 		os.Setenv("GHORG_PRUNE", "true")
 	}
 
-	if cmd.Flags().Changed("prune-no-confirm") {
+	if opts.PruneNoConfirm {
 		os.Setenv("GHORG_PRUNE_NO_CONFIRM", "true")
 	}
 
-	if cmd.Flags().Changed("prune-untouched") {
+	if opts.PruneUntouched {
 		os.Setenv("GHORG_PRUNE_UNTOUCHED", "true")
 	}
 
-	if cmd.Flags().Changed("prune-untouched-no-confirm") {
+	if opts.PruneUntouchedNoConfirm {
 		os.Setenv("GHORG_PRUNE_UNTOUCHED_NO_CONFIRM", "true")
 	}
 
-	if cmd.Flags().Changed("fetch-all") {
+	if opts.FetchAll {
 		os.Setenv("GHORG_FETCH_ALL", "true")
 	}
 
-	if cmd.Flags().Changed("include-submodules") {
+	if opts.IncludeSubmodules {
 		os.Setenv("GHORG_INCLUDE_SUBMODULES", "true")
 	}
 
-	if cmd.Flags().Changed("dry-run") {
+	if opts.DryRun {
 		os.Setenv("GHORG_DRY_RUN", "true")
 	}
 
-	if cmd.Flags().Changed("clone-wiki") {
+	if opts.CloneWiki {
 		os.Setenv("GHORG_CLONE_WIKI", "true")
 	}
 
-	if cmd.Flags().Changed("clone-snippets") {
+	if opts.CloneSnippets {
 		os.Setenv("GHORG_CLONE_SNIPPETS", "true")
 	}
 
-	if cmd.Flags().Changed("insecure-gitlab-client") {
+	if opts.InsecureGitlabClient {
 		os.Setenv("GHORG_INSECURE_GITLAB_CLIENT", "true")
 	}
 
-	if cmd.Flags().Changed("insecure-gitea-client") {
+	if opts.InsecureGiteaClient {
 		os.Setenv("GHORG_INSECURE_GITEA_CLIENT", "true")
 	}
 
-	if cmd.Flags().Changed("insecure-bitbucket-client") {
+	if opts.InsecureBitbucketClient {
 		os.Setenv("GHORG_INSECURE_BITBUCKET_CLIENT", "true")
 	}
 
-	if cmd.Flags().Changed("insecure-sourcehut-client") {
+	if opts.InsecureSourcehutClient {
 		os.Setenv("GHORG_INSECURE_SOURCEHUT_CLIENT", "true")
 	}
 
-	if cmd.Flags().Changed("skip-forks") {
+	if opts.SkipForks {
 		os.Setenv("GHORG_SKIP_FORKS", "true")
 	}
 
-	if cmd.Flags().Changed("quiet") {
+	if opts.Quiet {
 		os.Setenv("GHORG_QUIET", "true")
 	}
 
-	if cmd.Flags().Changed("no-token") {
+	if opts.NoToken {
 		os.Setenv("GHORG_NO_TOKEN", "true")
 	}
 
-	if cmd.Flags().Changed("no-dir-size") {
+	if opts.NoDirSize {
 		os.Setenv("GHORG_NO_DIR_SIZE", "true")
 	}
 
-	if cmd.Flags().Changed("preserve-dir") {
+	if opts.PreserveDir {
 		os.Setenv("GHORG_PRESERVE_DIRECTORY_STRUCTURE", "true")
 	}
 
-	if cmd.Flags().Changed("backup") {
+	if opts.Backup {
 		os.Setenv("GHORG_BACKUP", "true")
 	}
 
-	if cmd.Flags().Changed("sync-default-branch") {
+	if opts.SyncDefaultBranch {
 		os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
 	}
 
-	if cmd.Flags().Changed("output-dir") {
-		d := cmd.Flag("output-dir").Value.String()
-		os.Setenv("GHORG_OUTPUT_DIR", d)
+	if opts.OutputDir != "" {
+		os.Setenv("GHORG_OUTPUT_DIR", opts.OutputDir)
 	}
 
-	if len(argz) < 1 {
+	if len(remaining) < 1 {
 		if os.Getenv("GHORG_SCM_TYPE") == "github" && os.Getenv("GHORG_CLONE_TYPE") == "user" {
-			argz = append(argz, "")
+			remaining = append(remaining, "")
 		} else {
 			colorlog.PrintError("You must provide an org or user to clone")
-			os.Exit(1)
+			return 1
 		}
 	}
 
 	configs.GetOrSetToken()
 
-	if cmd.Flags().Changed("token") {
-		token := cmd.Flag("token").Value.String()
+	if opts.Token != "" {
+		token := opts.Token
 		if configs.IsFilePath(token) {
 			token = configs.GetTokenFromFile(token)
 		}
@@ -335,10 +457,10 @@ func cloneFunc(cmd *cobra.Command, argz []string) {
 		} else if os.Getenv("GHORG_SCM_TYPE") == "gitlab" {
 			os.Setenv("GHORG_GITLAB_TOKEN", token)
 		} else if os.Getenv("GHORG_SCM_TYPE") == "bitbucket" {
-			if cmd.Flags().Changed("bitbucket-username") {
-				os.Setenv("GHORG_BITBUCKET_APP_PASSWORD", cmd.Flag("token").Value.String())
+			if opts.BitbucketUsername != "" {
+				os.Setenv("GHORG_BITBUCKET_APP_PASSWORD", token)
 			} else {
-				os.Setenv("GHORG_BITBUCKET_OAUTH_TOKEN", cmd.Flag("token").Value.String())
+				os.Setenv("GHORG_BITBUCKET_OAUTH_TOKEN", token)
 			}
 		} else if os.Getenv("GHORG_SCM_TYPE") == "gitea" {
 			os.Setenv("GHORG_GITEA_TOKEN", token)
@@ -346,25 +468,25 @@ func cloneFunc(cmd *cobra.Command, argz []string) {
 			os.Setenv("GHORG_SOURCEHUT_TOKEN", token)
 		}
 	}
-	err := configs.VerifyTokenSet()
+	err = configs.VerifyTokenSet()
 	if err != nil {
 		colorlog.PrintError(err)
-		os.Exit(1)
+		return 1
 	}
 
 	err = configs.VerifyConfigsSetCorrectly()
 	if err != nil {
 		colorlog.PrintError(err)
-		os.Exit(1)
+		return 1
 	}
 
 	if os.Getenv("GHORG_PRESERVE_SCM_HOSTNAME") == "true" {
 		updateAbsolutePathToCloneToWithHostname()
 	}
 
-	setOutputDirName(argz)
+	setOutputDirName(remaining)
 	setOuputDirAbsolutePath()
-	targetCloneSource = argz[0]
+	targetCloneSource = remaining[0]
 
 	// Auto-adjust concurrency for clone delay before setup (silently)
 	if _, _, shouldAdjust := shouldAutoAdjustConcurrency(); shouldAdjust {
@@ -373,8 +495,8 @@ func cloneFunc(cmd *cobra.Command, argz []string) {
 	}
 
 	setupRepoClone()
+	return 0
 }
-
 func setupRepoClone() {
 	// Clear global slices and cached values at the start of each clone operation
 	// to prevent memory leaks in long-running processes like reclone-server
@@ -1383,5 +1505,5 @@ func filterByGhorgignore(cloneTargets []scm.Repo) []scm.Repo {
 }
 
 func isPathSegmentSafe(seg string) bool {
-	return strings.IndexByte(seg, '/') < 0 && strings.IndexRune(seg, filepath.Separator) < 0
+	return strings.IndexByte(seg, '/') < 0 && !strings.ContainsRune(seg, filepath.Separator)
 }

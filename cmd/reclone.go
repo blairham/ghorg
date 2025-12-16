@@ -8,15 +8,20 @@ import (
 
 	"github.com/blairham/ghorg/colorlog"
 	"github.com/blairham/ghorg/configs"
-	"github.com/spf13/cobra"
+	"github.com/jessevdk/go-flags"
+	"github.com/mitchellh/cli"
 	"gopkg.in/yaml.v2"
 )
 
-var reCloneCmd = &cobra.Command{
-	Use:   "reclone",
-	Short: "Reruns one, multiple, or all preconfigured clones from configuration set in $HOME/.config/ghorg/reclone.yaml",
-	Long:  `Allows you to set preconfigured clone commands for handling multiple users/orgs at once. See https://github.com/blairham/ghorg#reclone-command for setup and additional information.`,
-	Run:   reCloneFunc,
+type RecloneCommand struct {
+	UI cli.Ui
+}
+
+type RecloneFlags struct {
+	ReclonePath   string `long:"reclone-path" description:"GHORG_RECLONE_PATH - If you want to set a path other than $HOME/.config/ghorg/reclone.yaml for your reclone configuration"`
+	Quiet         bool   `long:"quiet" description:"GHORG_RECLONE_QUIET - Quiet logging output"`
+	List          bool   `long:"list" description:"Prints reclone commands and optional descriptions to stdout then will exit 0. Does not obsfucate tokens, and is only available as a commandline argument"`
+	EnvConfigOnly bool   `long:"env-config-only" description:"GHORG_RECLONE_ENV_CONFIG_ONLY - Only use environment variables to set the configuration for all reclones"`
 }
 
 type ReClone struct {
@@ -25,22 +30,53 @@ type ReClone struct {
 	PostExecScript string `yaml:"post_exec_script"` // optional
 }
 
-func isQuietReClone() bool {
-	return os.Getenv("GHORG_RECLONE_QUIET") == "true"
+func (c *RecloneCommand) Help() string {
+	return `Usage: ghorg reclone [options] [reclone-keys...]
+
+Reruns one, multiple, or all preconfigured clones from configuration set in $HOME/.config/ghorg/reclone.yaml.
+Allows you to set preconfigured clone commands for handling multiple users/orgs at once.
+
+Options:
+  --reclone-path          Path to reclone.yaml configuration file
+  --quiet                 Quiet logging output
+  --list                  List available reclone commands
+  --env-config-only       Only use environment variables for configuration
+
+Examples:
+  ghorg reclone                    # Run all configured reclones
+  ghorg reclone my-org            # Run specific reclone
+  ghorg reclone --list            # List all configured reclones
+
+See https://github.com/blairham/ghorg#reclone-command for setup and additional information.
+`
 }
 
-func reCloneFunc(cmd *cobra.Command, argz []string) {
+func (c *RecloneCommand) Synopsis() string {
+	return "Reruns one, multiple, or all preconfigured clones"
+}
 
-	if cmd.Flags().Changed("reclone-path") {
-		path := cmd.Flag("reclone-path").Value.String()
-		os.Setenv("GHORG_RECLONE_PATH", path)
+func (c *RecloneCommand) Run(args []string) int {
+	var opts RecloneFlags
+	parser := flags.NewParser(&opts, flags.Default)
+	remaining, err := parser.ParseArgs(args)
+	if err != nil {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			fmt.Println(c.Help())
+			return 0
+		}
+		colorlog.PrintError(fmt.Sprintf("Error parsing flags: %v", err))
+		return 1
 	}
 
-	if cmd.Flags().Changed("quiet") {
+	if opts.ReclonePath != "" {
+		os.Setenv("GHORG_RECLONE_PATH", opts.ReclonePath)
+	}
+
+	if opts.Quiet {
 		os.Setenv("GHORG_RECLONE_QUIET", "true")
 	}
 
-	if cmd.Flags().Changed("env-config-only") {
+	if opts.EnvConfigOnly {
 		os.Setenv("GHORG_RECLONE_ENV_CONFIG_ONLY", "true")
 	}
 
@@ -57,7 +93,7 @@ func reCloneFunc(cmd *cobra.Command, argz []string) {
 		colorlog.PrintErrorAndExit(fmt.Sprintf("ERROR: unmarshaling reclone.yaml, error:%v", err))
 	}
 
-	if cmd.Flags().Changed("list") {
+	if opts.List {
 		colorlog.PrintInfo("**************************************************************")
 		colorlog.PrintInfo("**** Available reclone commands and optional descriptions ****")
 		colorlog.PrintInfo("**************************************************************")
@@ -70,15 +106,15 @@ func reCloneFunc(cmd *cobra.Command, argz []string) {
 			colorlog.PrintSubtleInfo(fmt.Sprintf("    cmd: %s", value.Cmd))
 			fmt.Println("")
 		}
-		os.Exit(0)
+		return 0
 	}
 
-	if len(argz) == 0 {
+	if len(remaining) == 0 {
 		for rcIdentifier, reclone := range mapOfReClones {
 			runReClone(reclone, rcIdentifier)
 		}
 	} else {
-		for _, rcIdentifier := range argz {
+		for _, rcIdentifier := range remaining {
 			if _, ok := mapOfReClones[rcIdentifier]; !ok {
 				colorlog.PrintErrorAndExit(fmt.Sprintf("ERROR: The key %v was not found in reclone.yaml", rcIdentifier))
 			} else {
@@ -87,7 +123,12 @@ func reCloneFunc(cmd *cobra.Command, argz []string) {
 		}
 	}
 
-	printFinalOutput(argz, mapOfReClones)
+	printFinalOutput(remaining, mapOfReClones)
+	return 0
+}
+
+func isQuietReClone() bool {
+	return os.Getenv("GHORG_RECLONE_QUIET") == "true"
 }
 
 func printFinalOutput(argz []string, reCloneMap map[string]ReClone) {

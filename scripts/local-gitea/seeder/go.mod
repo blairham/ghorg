@@ -1,6 +1,6 @@
 module gitea-seeder
 
-go 1.24.6
+go 1.24.11
 
 require code.gitea.io/sdk/gitea v0.22.0
 

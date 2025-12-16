@@ -11,14 +11,17 @@ import (
 	"github.com/blairham/ghorg/colorlog"
 	"github.com/blairham/ghorg/utils"
 	"github.com/briandowns/spinner"
-	"github.com/spf13/cobra"
+	"github.com/jessevdk/go-flags"
+	"github.com/mitchellh/cli"
 )
 
-var lsCmd = &cobra.Command{
-	Use:   "ls [dir]",
-	Short: "List contents of your ghorg home or ghorg directories",
-	Long:  `If no dir is specified it will list contents of GHORG_ABSOLUTE_PATH_TO_CLONE_TO`,
-	Run:   lsFunc,
+type LsCommand struct {
+	UI cli.Ui
+}
+
+type LsFlags struct {
+	Long  bool `short:"l" long:"long" description:"Display detailed information about each clone directory, including size and number of repositories. Note: This may take longer depending on the number and size of the cloned organizations."`
+	Total bool `short:"t" long:"total" description:"Display total amounts of all repos cloned. Note: This may take longer depending on the number and size of the cloned organizations."`
 }
 
 var spinningSpinner *spinner.Spinner
@@ -27,35 +30,57 @@ func init() {
 	spinningSpinner = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 }
 
-func lsFunc(cmd *cobra.Command, argz []string) {
-	if len(argz) == 0 {
-		listGhorgHome()
+func (c *LsCommand) Help() string {
+	return `Usage: ghorg ls [options] [dir]
+
+List contents of your ghorg home or ghorg directories.
+If no dir is specified it will list contents of GHORG_ABSOLUTE_PATH_TO_CLONE_TO.
+
+Options:
+  -l, --long   Display detailed information about each clone directory
+  -t, --total  Display total amounts of all repos cloned
+
+Examples:
+  ghorg ls
+  ghorg ls -l
+  ghorg ls -t my-org
+`
+}
+
+func (c *LsCommand) Synopsis() string {
+	return "List contents of your ghorg home or ghorg directories"
+}
+
+func (c *LsCommand) Run(args []string) int {
+	var opts LsFlags
+	parser := flags.NewParser(&opts, flags.Default)
+	remaining, err := parser.ParseArgs(args)
+	if err != nil {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			fmt.Println(c.Help())
+			return 0
+		}
+		colorlog.PrintError(fmt.Sprintf("Error parsing flags: %v", err))
+		return 1
 	}
 
-	if len(argz) >= 1 {
-		for _, arg := range argz {
-			listGhorgDir(arg)
+	if len(remaining) == 0 {
+		listGhorgHome(opts.Long, opts.Total)
+	} else {
+		for _, arg := range remaining {
+			listGhorgDir(arg, opts.Long, opts.Total)
 		}
 	}
 
+	return 0
 }
 
-func listGhorgHome() {
+func listGhorgHome(longFormat, totalFormat bool) {
 	path := os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO")
 	files, err := os.ReadDir(path)
 	if err != nil {
 		colorlog.PrintError("No clones found. Please clone some and try again.")
-	}
-
-	longFormat := false
-	totalFormat := false
-	for _, arg := range os.Args {
-		if arg == "-l" || arg == "--long" {
-			longFormat = true
-		}
-		if arg == "-t" || arg == "--total" {
-			totalFormat = true
-		}
+		return
 	}
 
 	if !longFormat && !totalFormat {
@@ -150,7 +175,7 @@ func listGhorgHome() {
 	}
 }
 
-func listGhorgDir(arg string) {
+func listGhorgDir(arg string, longFormat, totalFormat bool) {
 
 	path := os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO") + arg
 
@@ -165,17 +190,7 @@ func listGhorgDir(arg string) {
 	files, err := os.ReadDir(path)
 	if err != nil {
 		colorlog.PrintError("No clones found. Please clone some and try again.")
-	}
-
-	longFormat := false
-	totalFormat := false
-	for _, arg := range os.Args {
-		if arg == "-l" || arg == "--long" {
-			longFormat = true
-		}
-		if arg == "-t" || arg == "--total" {
-			totalFormat = true
-		}
+		return
 	}
 
 	if !longFormat && !totalFormat {

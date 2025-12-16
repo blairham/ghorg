@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -9,7 +10,8 @@ import (
 	"time"
 
 	"github.com/blairham/ghorg/colorlog"
-	"github.com/spf13/cobra"
+	"github.com/jessevdk/go-flags"
+	"github.com/mitchellh/cli"
 )
 
 var (
@@ -17,17 +19,53 @@ var (
 	recloneMutex   sync.Mutex
 )
 
-var recloneCronCmd = &cobra.Command{
-	Use:   "reclone-cron",
-	Short: "Simple cron that will trigger your reclone command at a specified minute intervals indefinitely",
-	Long:  `Read the documentation and examples in the Readme under Reclone Server heading`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if cmd.Flags().Changed("minutes") {
-			os.Setenv("GHORG_CRON_TIMER_MINUTES", cmd.Flag("minutes").Value.String())
-		}
+type RecloneCronCommand struct {
+	UI cli.Ui
+}
 
-		startReCloneCron()
-	},
+type RecloneCronFlags struct {
+	Minutes string `short:"m" long:"minutes" description:"GHORG_CRON_TIMER_MINUTES - Number of minutes to run the reclone command on a cron"`
+}
+
+func (c *RecloneCronCommand) Help() string {
+	return `Usage: ghorg reclone-cron [options]
+
+Simple cron that will trigger your reclone command at specified minute intervals indefinitely.
+
+Options:
+  -m, --minutes    Number of minutes between reclone runs
+
+Examples:
+  ghorg reclone-cron --minutes 60
+  ghorg reclone-cron -m 30
+
+Read the documentation and examples in the Readme under Reclone Server heading.
+`
+}
+
+func (c *RecloneCronCommand) Synopsis() string {
+	return "Simple cron that triggers reclone at specified intervals"
+}
+
+func (c *RecloneCronCommand) Run(args []string) int {
+	var opts RecloneCronFlags
+	parser := flags.NewParser(&opts, flags.Default)
+	_, err := parser.ParseArgs(args)
+	if err != nil {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			fmt.Println(c.Help())
+			return 0
+		}
+		colorlog.PrintError(fmt.Sprintf("Error parsing flags: %v", err))
+		return 1
+	}
+
+	if opts.Minutes != "" {
+		os.Setenv("GHORG_CRON_TIMER_MINUTES", opts.Minutes)
+	}
+
+	startReCloneCron()
+	return 0
 }
 
 func startReCloneCron() {

@@ -6,7 +6,7 @@ import (
 
 	gtm "github.com/MichaelMure/go-term-markdown"
 	"github.com/blairham/ghorg/colorlog"
-	"github.com/spf13/cobra"
+	"github.com/mitchellh/cli"
 )
 
 var (
@@ -14,30 +14,45 @@ var (
 	examples embed.FS
 )
 
-var examplesCmd = &cobra.Command{
-	Use:   "examples [github, gitlab, bitbucket, gitea]",
-	Short: "Documentation and examples for each SCM provider",
-	Long:  `Get documentation and examples for each SCM provider in the terminal`,
-	Run:   examplesFunc,
+type ExamplesCommand struct {
+	UI cli.Ui
 }
 
-func examplesFunc(cmd *cobra.Command, argz []string) {
-	if len(argz) == 0 {
-		colorlog.PrintErrorAndExit("Please additionally provide a SCM provider: github, gitlab, bitbucket, or gitea")
+func (c *ExamplesCommand) Help() string {
+	return `Usage: ghorg examples [github|gitlab|bitbucket|gitea|sourcehut]
+
+Get documentation and examples for each SCM provider in the terminal.
+
+Examples:
+  ghorg examples github
+  ghorg examples gitlab
+  ghorg examples bitbucket
+`
+}
+
+func (c *ExamplesCommand) Synopsis() string {
+	return "Documentation and examples for each SCM provider"
+}
+
+func (c *ExamplesCommand) Run(args []string) int {
+	if len(args) == 0 {
+		colorlog.PrintErrorAndExit("Please additionally provide a SCM provider: github, gitlab, bitbucket, gitea, or sourcehut")
 	}
 
 	// TODO: fix the examples-copy directory mess
-	filePath := fmt.Sprintf("examples-copy/%s.md", argz[0])
+	filePath := fmt.Sprintf("examples-copy/%s.md", args[0])
 	input := getFileContents(filePath)
 	result := gtm.Render(string(input), 80, 6)
 	fmt.Println(string(result))
+
+	return 0
 }
 
 func getFileContents(filepath string) []byte {
 
 	contents, err := examples.ReadFile(filepath)
 	if err != nil {
-		colorlog.PrintErrorAndExit("Only supported SCM providers are available for examples, please use one of the following: github, gitlab, bitbucket, or gitea")
+		colorlog.PrintErrorAndExit("Only supported SCM providers are available for examples, please use one of the following: github, gitlab, bitbucket, gitea, or sourcehut")
 	}
 
 	return contents

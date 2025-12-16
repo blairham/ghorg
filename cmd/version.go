@@ -3,18 +3,26 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
+	"github.com/mitchellh/cli"
 )
 
 const ghorgVersion = "v1.11.8"
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the version number of Ghorg",
-	Long:  `All software has versions. This is Ghorg's`,
-	Run: func(cmd *cobra.Command, args []string) {
-		PrintVersion()
-	},
+type VersionCommand struct {
+	UI cli.Ui
+}
+
+func (c *VersionCommand) Help() string {
+	return "Print the version number of Ghorg"
+}
+
+func (c *VersionCommand) Synopsis() string {
+	return "Print the version number of Ghorg"
+}
+
+func (c *VersionCommand) Run(args []string) int {
+	fmt.Println(ghorgVersion)
+	return 0
 }
 
 func PrintVersion() {
