@@ -1,0 +1,61 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+version: 2
+project_name: ghorg
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    - go mod vendor
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+archives:
+  - id: ghorg
+    name_template: >-
+      {{- .ProjectName }}_ {{- .Version }}_ {{- title .Os }}_ {{- if eq .Arch "amd64" }}x86_64 {{- else if eq .Arch "386" }}i386 {{- else }}{{ .Arch }}{{ end }} {{- if .Arm }}v{{ .Arm }}{{ end -}}
+checksum:
+  name_template: "checksums.txt"
+changelog:
+  disable: true
+brews:
+  - repository:
+      owner: blairham
+      name: homebrew-utils
+
+      # Optionally a branch can be provided.
+      # Defaults to the default repository branch.
+      branch: master
+
+    # The project name and current git tag are used in the format string.
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    homepage: "https://github.com/blairham/ghorg"
+
+    description: "Quickly clone an entire org/users repositories into one directory"
+
+    license: "Apache-2.0"
+
+    # Packages your package depends on.
+    # dependencies:
+    #   - name: git
+
+    test: |
+      system "#{bin}/ghorg version"
+
+    post_install: |
+      ohai ""
+      ohai "***************************"
+      ohai "For examples on how to use ghorg see: https://github.com/blairham/ghorg/tree/master/examples"
+      ohai ""
+      ohai "Remember to set your $HOME/.config/ghorg/conf.yaml"
+      ohai ""
+      ohai "Here's all you need to do..."
+      ohai "1) mkdir -p $HOME/.config/ghorg"
+      ohai "2) curl https://raw.githubusercontent.com/blairham/ghorg/master/sample-conf.yaml > $HOME/.config/ghorg/conf.yaml"
+      ohai "***************************"
+      ohai ""
