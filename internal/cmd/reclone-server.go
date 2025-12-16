@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/blairham/ghorg/colorlog"
+	"github.com/blairham/ghorg/internal/colorlog"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/cli"
 )

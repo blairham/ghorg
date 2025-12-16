@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blairham/ghorg/colorlog"
+	"github.com/blairham/ghorg/internal/colorlog"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 

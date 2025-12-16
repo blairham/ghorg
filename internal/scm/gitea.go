@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/blairham/ghorg/colorlog"
+	"github.com/blairham/ghorg/internal/colorlog"
 )
 
 var (

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 func TestShouldLowerRegularString(t *testing.T) {

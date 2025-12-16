@@ -8,7 +8,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	err := exec.Command("go", "run", "main.go", "version").Run()
+	err := exec.Command("go", "run", "./cmd/ghorg", "version").Run()
 	if err != nil {
 		log.Fatal(err)
 	}

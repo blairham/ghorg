@@ -11,7 +11,7 @@ WORKDIR /go/src/github.com/blairham/ghorg
 COPY . .
 
 RUN go get -d -v ./... \
-    && go build -a --mod vendor -o ghorg .
+    && go build -a --mod vendor -o ghorg ./cmd/ghorg
 
 # ==================================================
 # Runtime image

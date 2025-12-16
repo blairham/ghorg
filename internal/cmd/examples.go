@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	gtm "github.com/MichaelMure/go-term-markdown"
-	"github.com/blairham/ghorg/colorlog"
+	"github.com/blairham/ghorg/internal/colorlog"
 	"github.com/mitchellh/cli"
 )
 

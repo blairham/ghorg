@@ -10,9 +10,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/blairham/ghorg/colorlog"
-	"github.com/blairham/ghorg/scm"
-	"github.com/blairham/ghorg/utils"
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/scm"
+	"github.com/blairham/ghorg/internal/utils"
 
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"

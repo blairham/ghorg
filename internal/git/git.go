@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/scm"
 	"github.com/davecgh/go-spew/spew"
 )
 

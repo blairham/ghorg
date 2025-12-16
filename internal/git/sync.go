@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/blairham/ghorg/colorlog"
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 // SyncDefaultBranch synchronizes the local default branch with the remote

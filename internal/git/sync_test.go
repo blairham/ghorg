@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 func TestSyncDefaultBranch(t *testing.T) {

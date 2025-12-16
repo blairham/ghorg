@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/blairham/ghorg/colorlog"
+	"github.com/blairham/ghorg/internal/colorlog"
 	"github.com/ktrysmt/go-bitbucket"
 )
 
