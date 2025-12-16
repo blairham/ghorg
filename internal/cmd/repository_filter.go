@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/blairham/ghorg/colorlog"
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 // RepositoryFilter handles filtering of repositories based on various criteria

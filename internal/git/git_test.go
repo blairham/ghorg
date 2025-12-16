@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 // createTestGitRepo creates a test git repository with a single commit

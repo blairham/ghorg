@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/blairham/ghorg/configs"
+	"github.com/blairham/ghorg/internal/configs"
 )
 
 func TestVerifyTokenSet(t *testing.T) {

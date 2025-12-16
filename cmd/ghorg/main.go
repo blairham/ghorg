@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/blairham/ghorg/cmd"
+	"github.com/blairham/ghorg/internal/cmd"
 	"github.com/mitchellh/cli"
 )
 

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/blairham/ghorg/colorlog"
-	"github.com/blairham/ghorg/utils"
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/utils"
 	"github.com/briandowns/spinner"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/cli"

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/blairham/ghorg/colorlog"
-	"github.com/blairham/ghorg/git"
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/git"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 // Helper function to apply clone delay if configured

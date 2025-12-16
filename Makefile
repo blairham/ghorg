@@ -21,7 +21,7 @@ test:
 
 .PHONY: test-git
 test-git:
-		go test ./git -v
+		go test ./internal/git -v
 
 .PHONY: test-coverage
 test-coverage:
@@ -31,7 +31,7 @@ test-coverage:
 
 .PHONY: test-coverage-func
 test-coverage-func:
-		@cd git && go test -coverprofile=../coverage.out -covermode=atomic
+		@cd internal/git && go test -coverprofile=../../coverage.out -covermode=atomic
 		@go tool cover -func=coverage.out
 		@echo ""
 		@echo "=== New Git Helper Functions Coverage ==="
@@ -44,11 +44,11 @@ test-all: test
 
 .PHONY: test-sync
 test-sync:
-		go test ./git -v -run "TestSync"
+		go test ./internal/git -v -run "TestSync"
 
 .PHONY: test-helpers
 test-helpers:
-		go test ./git -v -run "^Test(GetRemoteURL|HasLocalChanges|HasUnpushedCommits|GetCurrentBranch|HasCommitsNotOnDefaultBranch|IsDefaultBranchBehindHead|MergeIntoDefaultBranch|UpdateRef)"
+		go test ./internal/git -v -run "^Test(GetRemoteURL|HasLocalChanges|HasUnpushedCommits|GetCurrentBranch|HasCommitsNotOnDefaultBranch|IsDefaultBranchBehindHead|MergeIntoDefaultBranch|UpdateRef)"
 
 .PHONY: release
 release:
@@ -57,4 +57,4 @@ release:
 
 .PHONY: examples
 examples:
-		cp -rf examples/* cmd/examples-copy/
+		cp -rf examples/* internal/cmd/examples-copy/

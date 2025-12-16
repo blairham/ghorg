@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/blairham/ghorg/colorlog"
-	"github.com/blairham/ghorg/configs"
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/configs"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
@@ -139,11 +139,12 @@ func getOrSetDefaults(envVar string) {
 		koanfResult := k.String(envVar)
 		if koanfResult != "" {
 			// Handle path-related env vars that need special formatting
-			if envVar == "GHORG_SCM_BASE_URL" {
+			switch envVar {
+			case "GHORG_SCM_BASE_URL":
 				os.Setenv(envVar, configs.EnsureTrailingSlashOnURL(koanfResult))
-			} else if envVar == "GHORG_ABSOLUTE_PATH_TO_CLONE_TO" {
+			case "GHORG_ABSOLUTE_PATH_TO_CLONE_TO":
 				os.Setenv(envVar, configs.EnsureTrailingSlashOnFilePath(koanfResult))
-			} else {
+			default:
 				os.Setenv(envVar, koanfResult)
 			}
 		} else {
@@ -168,7 +169,7 @@ func getOrSetDefaults(envVar string) {
 func InitConfig() {
 	// Reset koanf instance for testing
 	k = koanf.New(".")
-	
+
 	curDir, _ := os.Getwd()
 	localConfig := filepath.Join(curDir, "ghorg.yaml")
 

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 // ExtendedMockGitClient extends the existing MockGitClient with additional methods needed for RepositoryProcessor

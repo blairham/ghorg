@@ -15,7 +15,7 @@ jobs:
       - name: Compare folders
         run: |
           shopt -s dotglob
-          if ! diff -r examples/ cmd/examples-copy; then
+          if ! diff -r examples/ internal/cmd/examples-copy; then
             echo "Examples folder is not up to date. Please run 'make examples' and commit the changes."
             exit 1
           fi

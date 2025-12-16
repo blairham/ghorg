@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/blairham/ghorg/colorlog"
-	"github.com/blairham/ghorg/configs"
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/configs"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/cli"
 	"gopkg.in/yaml.v2"

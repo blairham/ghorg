@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blairham/ghorg/scm"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 func TestRepositoryFilter_FilterByRegexMatch(t *testing.T) {
