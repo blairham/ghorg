@@ -15,11 +15,11 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/korovkin/limiter v0.0.0-20220422174850-01f593e64cf7
-	github.com/ktrysmt/go-bitbucket v0.9.87
+	github.com/ktrysmt/go-bitbucket v0.9.88
 	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/go-homedir v1.1.0
 	gitlab.com/gitlab-org/api/client-go v0.157.1
-	golang.org/x/oauth2 v0.32.0
+	golang.org/x/oauth2 v0.33.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
