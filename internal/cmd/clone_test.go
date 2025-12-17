@@ -196,6 +196,46 @@ func (g MockGitClient) SyncDefaultBranch(repo scm.Repo) error {
 	return nil
 }
 
+// GetRemoteURL returns the URL for the given remote name.
+func (g MockGitClient) GetRemoteURL(repo scm.Repo, remote string) (string, error) {
+	return "https://github.com/mock/repo.git", nil
+}
+
+// HasLocalChanges returns true if there are uncommitted changes in the working tree.
+func (g MockGitClient) HasLocalChanges(repo scm.Repo) (bool, error) {
+	return false, nil
+}
+
+// HasUnpushedCommits returns true if there are commits present locally that are not pushed to upstream.
+func (g MockGitClient) HasUnpushedCommits(repo scm.Repo) (bool, error) {
+	return false, nil
+}
+
+// GetCurrentBranch returns the currently checked-out branch name.
+func (g MockGitClient) GetCurrentBranch(repo scm.Repo) (string, error) {
+	return "main", nil
+}
+
+// HasCommitsNotOnDefaultBranch returns true if currentBranch contains commits not present on the default branch.
+func (g MockGitClient) HasCommitsNotOnDefaultBranch(repo scm.Repo, currentBranch string) (bool, error) {
+	return false, nil
+}
+
+// IsDefaultBranchBehindHead returns true if the default branch is an ancestor of the current branch.
+func (g MockGitClient) IsDefaultBranchBehindHead(repo scm.Repo, currentBranch string) (bool, error) {
+	return false, nil
+}
+
+// MergeIntoDefaultBranch attempts a fast-forward merge of currentBranch into the default branch locally.
+func (g MockGitClient) MergeIntoDefaultBranch(repo scm.Repo, currentBranch string) error {
+	return nil
+}
+
+// UpdateRef updates a local ref to point to the given remote ref.
+func (g MockGitClient) UpdateRef(repo scm.Repo, refName string, commitRef string) error {
+	return nil
+}
+
 func TestInitialClone(t *testing.T) {
 	defer UnsetEnv("GHORG_")()
 	dir, err := os.MkdirTemp("", "ghorg_test_initial")

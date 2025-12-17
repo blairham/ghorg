@@ -39,12 +39,26 @@ func (g GitClient) SyncDefaultBranch(repo scm.Repo) error {
 		return fmt.Errorf("failed to check working directory status: %w", err)
 	}
 
+	// Skip sync if working directory has uncommitted changes
+	if hasWorkingDirChanges {
+		m := fmt.Sprintf("Skipping sync for %s: working directory has uncommitted changes\n", repo.Name)
+		colorlog.PrintInfo(m)
+		return nil
+	}
+
 	// Check if the current branch has unpushed commits
 	hasUnpushedCommits, err := g.HasUnpushedCommits(repo)
 	if err != nil {
 		m := fmt.Sprintf("Failed to check for unpushed commits for %s: %v", repo.Name, err)
 		colorlog.PrintError(m)
 		return fmt.Errorf("failed to check for unpushed commits: %w", err)
+	}
+
+	// Skip sync if there are unpushed commits
+	if hasUnpushedCommits {
+		m := fmt.Sprintf("Skipping sync for %s: branch has unpushed commits\n", repo.Name)
+		colorlog.PrintInfo(m)
+		return nil
 	}
 
 	// Check if we're on the correct branch
@@ -69,25 +83,6 @@ func (g GitClient) SyncDefaultBranch(repo scm.Repo) error {
 		m := fmt.Sprintf("Failed to check if default branch is behind HEAD for %s: %v", repo.Name, err)
 		colorlog.PrintError(m)
 		return fmt.Errorf("failed to check if default branch is behind HEAD: %w", err)
-	}
-
-	// Only sync if:
-	// 1. Working directory is clean (no uncommitted changes)
-	// 2. No unpushed commits on the current branch
-	// 3. Either:
-	//    a. No commits on current branch that aren't on the default branch, OR
-	//    b. Default branch is behind HEAD (we can fast-forward merge)
-	// 4. We're on the target branch or can safely switch to it
-	if hasWorkingDirChanges {
-		m := fmt.Sprintf("Skipping sync for %s: working directory has uncommitted changes\n", repo.Name)
-		colorlog.PrintInfo(m)
-		return nil
-	}
-
-	if hasUnpushedCommits {
-		m := fmt.Sprintf("Skipping sync for %s: branch has unpushed commits\n", repo.Name)
-		colorlog.PrintInfo(m)
-		return nil
 	}
 
 	// Allow sync if default branch is behind HEAD (can fast-forward merge)

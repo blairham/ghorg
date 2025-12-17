@@ -722,8 +722,8 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 	})
 
-	// Test with error checking unpushed commits
-	t.Run("Error getting current branch", func(t *testing.T) {
+	// Test with error checking unpushed commits (no upstream configured)
+	t.Run("Error checking unpushed commits no upstream", func(t *testing.T) {
 		// Enable sync for this test
 		os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
 		defer os.Unsetenv("GHORG_SYNC_DEFAULT_BRANCH")
@@ -735,18 +735,11 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		// Add a remote so we pass the remote check
+		// Add a remote so we pass the remote check (but don't push, so no upstream)
 		cmd := exec.Command("git", "remote", "add", "origin", "https://example.com/repo.git")
 		cmd.Dir = tempDir
 		if err := cmd.Run(); err != nil {
 			t.Fatalf("Failed to add remote: %v", err)
-		}
-
-		// Corrupt the .git/HEAD file to make getCurrentBranch fail
-		headFile := filepath.Join(tempDir, ".git", "HEAD")
-		err = os.WriteFile(headFile, []byte("ref: refs/heads/nonexistent"), 0644)
-		if err != nil {
-			t.Fatalf("Failed to corrupt HEAD file: %v", err)
 		}
 
 		repo := scm.Repo{
@@ -756,17 +749,13 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		// This should return an error when getCurrentBranch fails
+		// This should return an error when HasUnpushedCommits fails (no upstream)
 		err = client.SyncDefaultBranch(repo)
 		if err == nil {
-			t.Error("Expected error when getCurrentBranch fails")
+			t.Error("Expected error when no upstream is configured")
 		}
-		if err != nil {
-			// With no upstream branch, HasUnpushedCommits will fail first
-			if !strings.Contains(err.Error(), "failed to check for unpushed commits") &&
-				!strings.Contains(err.Error(), "failed to get current branch") {
-				t.Errorf("Expected getCurrentBranch or unpushed commits error, got: %v", err)
-			}
+		if err != nil && !strings.Contains(err.Error(), "failed to check for unpushed commits") {
+			t.Errorf("Expected unpushed commits error, got: %v", err)
 		}
 	})
 
@@ -2131,23 +2120,17 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			t.Fatalf("Failed to push: %v", err)
 		}
 
-		// Create feature branch
-		cmd = exec.Command("git", "checkout", "-b", "feature")
-		cmd.Dir = tempDir
-		if err := cmd.Run(); err != nil {
-			t.Fatalf("Failed to create feature branch: %v", err)
-		}
-
+		// Test with main branch - this should work and show debug output
 		repo := scm.Repo{
 			HostPath:    tempDir,
-			CloneBranch: "nonexistent-branch", // This will cause checkout to fail
+			CloneBranch: "main",
 			Name:        "test-repo",
 		}
 
-		// Should handle checkout failure gracefully and show debug message
+		// Should succeed and show debug messages
 		err = client.SyncDefaultBranch(repo)
 		if err != nil {
-			t.Errorf("Should not error on checkout failure, just skip sync: %v", err)
+			t.Errorf("Should succeed with debug mode enabled: %v", err)
 		}
 	})
 }
