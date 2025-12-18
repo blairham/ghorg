@@ -27,12 +27,16 @@ func setupTestRepo(t *testing.T) (string, func()) {
 		t.Fatalf("failed to init git repo: %v", err)
 	}
 
-	// Configure git user for commits
+	// Configure git user and disable autocrlf for Windows compatibility
 	cmd = exec.Command("git", "config", "user.email", "test@test.com")
 	cmd.Dir = tmpDir
 	cmd.Run()
 
 	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = tmpDir
+	cmd.Run()
+
+	cmd = exec.Command("git", "config", "core.autocrlf", "false")
 	cmd.Dir = tmpDir
 	cmd.Run()
 
@@ -94,12 +98,16 @@ func setupBareRepoWithClone(t *testing.T) (bareRepo, cloneRepo string, cleanup f
 		t.Fatalf("failed to clone bare repo: %v", err)
 	}
 
-	// Configure git user
+	// Configure git user and disable autocrlf to prevent line ending issues on Windows
 	cmd = exec.Command("git", "config", "user.email", "test@test.com")
 	cmd.Dir = workDir
 	cmd.Run()
 
 	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = workDir
+	cmd.Run()
+
+	cmd = exec.Command("git", "config", "core.autocrlf", "false")
 	cmd.Dir = workDir
 	cmd.Run()
 
@@ -144,12 +152,16 @@ func setupBareRepoWithClone(t *testing.T) (bareRepo, cloneRepo string, cleanup f
 		t.Fatalf("failed to clone: %v", err)
 	}
 
-	// Configure git user in clone
+	// Configure git user and disable autocrlf in clone
 	cmd = exec.Command("git", "config", "user.email", "test@test.com")
 	cmd.Dir = cloneDir
 	cmd.Run()
 
 	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = cloneDir
+	cmd.Run()
+
+	cmd = exec.Command("git", "config", "core.autocrlf", "false")
 	cmd.Dir = cloneDir
 	cmd.Run()
 

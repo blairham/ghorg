@@ -47,6 +47,7 @@ jobs:
           git config --global user.name "Test User"
           git config --global user.email "test@example.com"
           git config --global init.defaultBranch main
+          git config --global core.autocrlf false
       - name: Build
         run: env GOOS=windows GOARCH=386 go build -v -o ghorg.exe ./cmd/ghorg
       - name: Test
