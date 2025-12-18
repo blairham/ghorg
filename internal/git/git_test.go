@@ -82,7 +82,7 @@ func TestGetRemoteURL(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 	repo := scm.Repo{
 		HostPath:    repoPath,
 		CloneBranch: "main",
@@ -133,7 +133,7 @@ func TestHasLocalChanges(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 	repo := scm.Repo{
 		HostPath:    repoPath,
 		CloneBranch: "main",
@@ -196,7 +196,7 @@ func TestHasUnpushedCommits(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 	repo := scm.Repo{
 		HostPath:    repoPath,
 		CloneBranch: "main",
@@ -278,7 +278,7 @@ func TestGetCurrentBranch(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 	repo := scm.Repo{
 		HostPath:    repoPath,
 		CloneBranch: "main",
@@ -323,7 +323,7 @@ func TestHasCommitsNotOnDefaultBranch(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 	repo := scm.Repo{
 		HostPath:    repoPath,
 		CloneBranch: "main",
@@ -386,7 +386,7 @@ func TestIsDefaultBranchBehindHead(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 	repo := scm.Repo{
 		HostPath:    repoPath,
 		CloneBranch: "main",
@@ -508,7 +508,7 @@ func TestMergeIntoDefaultBranch(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 	repo := scm.Repo{
 		HostPath:    repoPath,
 		CloneBranch: "main",
@@ -573,7 +573,7 @@ func TestUpdateRef(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 	repo := scm.Repo{
 		HostPath:    repoPath,
 		CloneBranch: "main",
@@ -644,7 +644,7 @@ func TestErrorHandlingEdgeCases(t *testing.T) {
 	repoPath, cleanup := createTestGitRepo(t)
 	defer cleanup()
 
-	client := NewGit()
+	client := NewExecGit()
 
 	t.Run("GetRemoteURL with invalid repo path", func(t *testing.T) {
 		repo := scm.Repo{
