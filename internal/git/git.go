@@ -60,6 +60,13 @@ const (
 	envBackup            = "GHORG_BACKUP"
 	envOutputDir         = "GHORG_OUTPUT_DIR"
 	envAbsolutePathTo    = "GHORG_ABSOLUTE_PATH_TO_CLONE_TO"
+	envGitBackend        = "GHORG_GIT_BACKEND"
+)
+
+// Git backend types
+const (
+	BackendExec   = "exec"
+	BackendGolang = "golang"
 )
 
 // isDebugMode returns true if debug mode is enabled
@@ -117,11 +124,24 @@ func runGitCommandWithOutput(cmd *exec.Cmd, repo scm.Repo) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// GitClient implements the Gitter interface for executing git commands.
+// GitClient implements the Gitter interface for executing git commands via exec.
 type GitClient struct{}
 
-// NewGit creates a new GitClient instance.
-func NewGit() GitClient {
+// NewGit creates a new Gitter instance based on the GHORG_GIT_BACKEND environment variable.
+// Supported backends: "golang" (default) uses pure Go implementation, "exec" uses system git binary.
+func NewGit() Gitter {
+	backend := os.Getenv(envGitBackend)
+	switch backend {
+	case BackendExec:
+		return GitClient{}
+	default:
+		return GoGitClient()
+	}
+}
+
+// NewExecGit creates a GitClient that uses exec to run git commands.
+// This is useful when you specifically need the exec-based implementation.
+func NewExecGit() GitClient {
 	return GitClient{}
 }
 

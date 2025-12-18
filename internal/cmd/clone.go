@@ -129,6 +129,7 @@ type CloneFlags struct {
 	CloneDelaySeconds string `long:"clone-delay-seconds" description:"GHORG_CLONE_DELAY_SECONDS - Delay in seconds between cloning repos. Useful for rate limiting. Automatically sets concurrency to 1 when > 0 (default 0)"`
 	CloneDepth        string `long:"clone-depth" description:"GHORG_CLONE_DEPTH - Create a shallow clone with a history truncated to the specified number of commits"`
 	GitFilter         string `long:"git-filter" description:"GHORG_GIT_FILTER - Allows you to pass arguments to git's filter flag. Useful for filtering out binary objects from repos with --git-filter=blob:none, this requires git version 2.19 or greater"`
+	GitBackend        string `long:"git-backend" description:"GHORG_GIT_BACKEND - Git backend to use: 'golang' (default, pure Go implementation) or 'exec' (uses system git)"`
 
 	// Exit code flags
 	ExitCodeOnCloneInfos  string `long:"exit-code-on-clone-infos" description:"GHORG_EXIT_CODE_ON_CLONE_INFOS - Allows you to control the exit code when ghorg runs into a problem (info level message) cloning a repo from the remote. Info messages will appear after a clone is complete, similar to success messages. (default 0)"`
@@ -334,6 +335,10 @@ func (c *CloneCommand) Run(args []string) int {
 
 	if opts.GitFilter != "" {
 		os.Setenv("GHORG_GIT_FILTER", opts.GitFilter)
+	}
+
+	if opts.GitBackend != "" {
+		os.Setenv("GHORG_GIT_BACKEND", opts.GitBackend)
 	}
 
 	if opts.PreserveSCMHostname {

@@ -53,6 +53,12 @@ GHORG_PRESERVE_SCM_HOSTNAME: false
 # flag (--git-filter) eg: --git-filter=blob:none
 GHORG_GIT_FILTER:
 
+# Git backend to use for git operations
+# exec: Uses system git binary via exec.Command (requires git installed)
+# golang: Uses go-git library (pure Go implementation, no git binary required, default)
+# flag (--git-backend) eg: --git-backend=exec
+GHORG_GIT_BACKEND: golang
+
 # Deletes all files/directories found in your local clone directory that are not found on the remote (e.g., after remote deletion).  With GHORG_SKIP_ARCHIVED set, archived repositories will also be pruned from your local clone.
 # Will prompt before deleting any files unless used in combination with --prune-no-confirm
 # flag (--prune)
