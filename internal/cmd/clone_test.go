@@ -192,8 +192,8 @@ func (g MockGitClient) ShortStatus(repo scm.Repo) (string, error) {
 	return "", nil
 }
 
-func (g MockGitClient) SyncDefaultBranch(repo scm.Repo) error {
-	return nil
+func (g MockGitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
+	return false, nil
 }
 
 // GetRemoteURL returns the URL for the given remote name.
@@ -898,7 +898,7 @@ type DelayedMockGit struct {
 	MockGitClient
 }
 
-func (g DelayedMockGit) SyncDefaultBranch(repo scm.Repo) error {
+func (g DelayedMockGit) SyncDefaultBranch(repo scm.Repo) (bool, error) {
 	return g.MockGitClient.SyncDefaultBranch(repo)
 }
 
@@ -973,7 +973,7 @@ func TestWriteGhorgStats_WithTiming(t *testing.T) {
 	// Call writeGhorgStats with timing data
 	err = writeGhorgStats(date, allReposToCloneCount, cloneCount, pulledCount,
 		cloneInfosCount, cloneErrorsCount, updateRemoteCount, newCommits,
-		pruneCount, totalDurationSeconds, hasCollisions)
+		0, pruneCount, totalDurationSeconds, hasCollisions)
 
 	if err != nil {
 		t.Fatalf("writeGhorgStats returned error: %v", err)
@@ -1011,8 +1011,8 @@ func TestWriteGhorgStats_WithTiming(t *testing.T) {
 		t.Errorf("Header and data should have same number of commas. Header: %d, Data: %d", headerCommas, dataCommas)
 	}
 
-	// Should have 18 commas (19 fields total including the new timing field)
-	expectedCommas := 18
+	// Should have 19 commas (20 fields total including timing and syncedCount)
+	expectedCommas := 19
 	if headerCommas != expectedCommas {
 		t.Errorf("Expected %d commas in header, got %d", expectedCommas, headerCommas)
 	}
@@ -1071,6 +1071,7 @@ func TestPrintCloneStatsMessage_WithTiming(t *testing.T) {
 		pulledCount       int
 		updateRemoteCount int
 		newCommits        int
+		syncedCount       int
 		untouchedPrunes   int
 		durationSeconds   int
 		expectedText      string
@@ -1132,7 +1133,7 @@ func TestPrintCloneStatsMessage_WithTiming(t *testing.T) {
 
 			// This should not panic and should execute successfully
 			printCloneStatsMessage(tc.cloneCount, tc.pulledCount, tc.updateRemoteCount,
-				tc.newCommits, tc.untouchedPrunes, tc.durationSeconds)
+				tc.newCommits, tc.syncedCount, tc.untouchedPrunes, tc.durationSeconds)
 
 			// The expectedText should be present in the output (in a real test with output capture)
 			// For now, we'll just verify the function runs without error
@@ -1160,4 +1161,307 @@ func TestPrintFinishedWithDirSize_NoTiming(t *testing.T) {
 	printFinishedWithDirSize()
 
 	// The function should complete without error and not include timing info
+}
+
+// SyncTrackingMockGit tracks whether sync was called and what it returned
+type SyncTrackingMockGit struct {
+	MockGitClient
+	syncCalled     bool
+	syncWasUpdated bool
+	syncError      error
+}
+
+func (g *SyncTrackingMockGit) SyncDefaultBranch(repo scm.Repo) (bool, error) {
+	g.syncCalled = true
+	return g.syncWasUpdated, g.syncError
+}
+
+func TestSyncDefaultBranch_Enabled(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+	dir, err := os.MkdirTemp("", "ghorg_test_sync_enabled")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	outputDirAbsolutePath = dir
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+	os.Setenv("GHORG_NO_CLEAN", "true") // Use no-clean mode
+
+	// Create a mock repo directory to simulate existing repo
+	repoDir := filepath.Join(dir, "testRepo")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	mockGit := &SyncTrackingMockGit{
+		syncWasUpdated: true, // Simulate that sync made changes
+	}
+	processor := NewRepositoryProcessor(mockGit)
+
+	repo := scm.Repo{
+		Name: "testRepo",
+		URL:  "https://github.com/test/testRepo",
+	}
+
+	processor.ProcessRepository(&repo, nil, false, "testRepo", 0)
+
+	if !mockGit.syncCalled {
+		t.Error("Expected SyncDefaultBranch to be called when GHORG_SYNC_DEFAULT_BRANCH=true")
+	}
+
+	stats := processor.GetStats()
+	if stats.SyncedCount != 1 {
+		t.Errorf("Expected SyncedCount to be 1, got %d", stats.SyncedCount)
+	}
+}
+
+func TestSyncDefaultBranch_Disabled(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+	dir, err := os.MkdirTemp("", "ghorg_test_sync_disabled")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	outputDirAbsolutePath = dir
+	// GHORG_SYNC_DEFAULT_BRANCH not set - should default to disabled
+	os.Setenv("GHORG_NO_CLEAN", "true")
+
+	// Create a mock repo directory to simulate existing repo
+	repoDir := filepath.Join(dir, "testRepo")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	mockGit := &SyncTrackingMockGit{}
+	processor := NewRepositoryProcessor(mockGit)
+
+	repo := scm.Repo{
+		Name: "testRepo",
+		URL:  "https://github.com/test/testRepo",
+	}
+
+	processor.ProcessRepository(&repo, nil, false, "testRepo", 0)
+
+	// Sync should be called even when disabled, but returns false
+	// The actual sync function checks the env var and returns early
+	if mockGit.syncCalled {
+		t.Error("SyncDefaultBranch should not be called when GHORG_SYNC_DEFAULT_BRANCH is not set")
+	}
+
+	stats := processor.GetStats()
+	if stats.SyncedCount != 0 {
+		t.Errorf("Expected SyncedCount to be 0, got %d", stats.SyncedCount)
+	}
+}
+
+// CountingMockGit tracks call counts and can return different results per call
+type CountingMockGit struct {
+	MockGitClient
+	syncCallCount int
+	syncResults   []bool
+}
+
+func (g *CountingMockGit) SyncDefaultBranch(repo scm.Repo) (bool, error) {
+	if g.syncCallCount >= len(g.syncResults) {
+		return false, nil
+	}
+	result := g.syncResults[g.syncCallCount]
+	g.syncCallCount++
+	return result, nil
+}
+
+func TestSyncDefaultBranch_CountsOnlyWhenUpdated(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+	dir, err := os.MkdirTemp("", "ghorg_test_sync_count")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	outputDirAbsolutePath = dir
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+	os.Setenv("GHORG_NO_CLEAN", "true")
+
+	// Create mock repos
+	for _, name := range []string{"repo1", "repo2", "repo3"} {
+		repoDir := filepath.Join(dir, name)
+		if err := os.MkdirAll(repoDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Mock returns: repo1 updated, repo2 not updated, repo3 updated
+	mockGit := &CountingMockGit{
+		syncResults: []bool{true, false, true},
+	}
+	processor := NewRepositoryProcessor(mockGit)
+
+	for _, name := range []string{"repo1", "repo2", "repo3"} {
+		repo := scm.Repo{
+			Name: name,
+			URL:  "https://github.com/test/" + name,
+		}
+		processor.ProcessRepository(&repo, nil, false, name, 0)
+	}
+
+	stats := processor.GetStats()
+	// Should only count repo1 and repo3 (the ones that were updated)
+	if stats.SyncedCount != 2 {
+		t.Errorf("Expected SyncedCount to be 2 (only repos that were updated), got %d", stats.SyncedCount)
+	}
+}
+
+func TestSyncDefaultBranch_WithStandardPullMode(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+	dir, err := os.MkdirTemp("", "ghorg_test_sync_standard")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	outputDirAbsolutePath = dir
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+	// Not setting GHORG_NO_CLEAN or GHORG_BACKUP - should use standard pull mode
+
+	repoDir := filepath.Join(dir, "testRepo")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	mockGit := &SyncTrackingMockGit{
+		syncWasUpdated: true,
+	}
+	processor := NewRepositoryProcessor(mockGit)
+
+	repo := scm.Repo{
+		Name: "testRepo",
+		URL:  "https://github.com/test/testRepo",
+	}
+
+	processor.ProcessRepository(&repo, nil, false, "testRepo", 0)
+
+	if !mockGit.syncCalled {
+		t.Error("Expected SyncDefaultBranch to be called in standard pull mode")
+	}
+}
+
+func TestSyncDefaultBranch_WithBackupMode(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+	dir, err := os.MkdirTemp("", "ghorg_test_sync_backup")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	outputDirAbsolutePath = dir
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+	os.Setenv("GHORG_BACKUP", "true") // Backup mode
+
+	repoDir := filepath.Join(dir, "testRepo")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	mockGit := &SyncTrackingMockGit{
+		syncWasUpdated: false,
+	}
+	processor := NewRepositoryProcessor(mockGit)
+
+	repo := scm.Repo{
+		Name: "testRepo",
+		URL:  "https://github.com/test/testRepo",
+	}
+
+	processor.ProcessRepository(&repo, nil, false, "testRepo", 0)
+
+	// Backup mode uses UpdateRemote, which doesn't call sync
+	// Just verify it doesn't crash
+}
+
+func TestSyncDefaultBranch_OnlyForExistingRepos(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+	dir, err := os.MkdirTemp("", "ghorg_test_sync_new")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	outputDirAbsolutePath = dir
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+
+	// Don't create the directory - this simulates a new repo being cloned
+	mockGit := &SyncTrackingMockGit{}
+	processor := NewRepositoryProcessor(mockGit)
+
+	repo := scm.Repo{
+		Name: "newRepo",
+		URL:  "https://github.com/test/newRepo",
+	}
+
+	processor.ProcessRepository(&repo, nil, false, "newRepo", 0)
+
+	// Sync should not be called for new repos (only existing ones)
+	// The repo will be cloned, not pulled
+	if mockGit.syncCalled {
+		t.Error("SyncDefaultBranch should not be called for new repos being cloned")
+	}
+
+	stats := processor.GetStats()
+	if stats.CloneCount != 1 {
+		t.Errorf("Expected CloneCount to be 1, got %d", stats.CloneCount)
+	}
+	if stats.SyncedCount != 0 {
+		t.Errorf("Expected SyncedCount to be 0, got %d", stats.SyncedCount)
+	}
+}
+
+func TestSyncDefaultBranch_StatsReporting(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+	dir, err := os.MkdirTemp("", "ghorg_test_sync_stats")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	outputDirAbsolutePath = dir
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+	os.Setenv("GHORG_NO_CLEAN", "true")
+
+	// Create multiple repos
+	numRepos := 5
+	for i := 0; i < numRepos; i++ {
+		repoName := "repo" + string(rune('0'+i))
+		repoDir := filepath.Join(dir, repoName)
+		if err := os.MkdirAll(repoDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Mock returns true for repos 0, 2, 4 (3 total)
+	mockGit := &CountingMockGit{
+		syncResults: []bool{true, false, true, false, true},
+	}
+	processor := NewRepositoryProcessor(mockGit)
+
+	for i := 0; i < numRepos; i++ {
+		repoName := "repo" + string(rune('0'+i))
+		repo := scm.Repo{
+			Name: repoName,
+			URL:  "https://github.com/test/" + repoName,
+		}
+		processor.ProcessRepository(&repo, nil, false, repoName, 0)
+	}
+
+	stats := processor.GetStats()
+	// Should track that 3 repos were synced
+	if stats.SyncedCount != 3 {
+		t.Errorf("Expected SyncedCount to be 3, got %d", stats.SyncedCount)
+	}
+
+	// Verify other stats are also updated
+	if stats.PulledCount != numRepos {
+		t.Errorf("Expected PulledCount to be %d, got %d", numRepos, stats.PulledCount)
+	}
 }

@@ -46,7 +46,7 @@ type Gitter interface {
 	IsDefaultBranchBehindHead(scm.Repo, string) (bool, error)
 
 	// Sync and merge operations
-	SyncDefaultBranch(scm.Repo) error
+	SyncDefaultBranch(scm.Repo) (bool, error)
 	MergeIntoDefaultBranch(scm.Repo, string) error
 	UpdateRef(scm.Repo, string, string) error
 }
@@ -359,6 +359,49 @@ func (g GitClient) RepoCommitCount(repo scm.Repo) (int, error) {
 	return count, nil
 }
 
+// GetRemoteDefaultBranch returns the default branch name from the remote (e.g., "main" or "master").
+func (g GitClient) GetRemoteDefaultBranch(repo scm.Repo) (string, error) {
+	// Try symbolic-ref first (fast, doesn't require network)
+	cmd := exec.Command("git", "symbolic-ref", "refs/remotes/origin/HEAD")
+	cmd.Dir = repo.HostPath
+
+	output, err := runGitCommandWithOutput(cmd, repo)
+	if err == nil {
+		// Output will be like "refs/remotes/origin/main", extract just "main"
+		parts := strings.Split(strings.TrimSpace(output), "/")
+		if len(parts) > 0 {
+			return parts[len(parts)-1], nil
+		}
+	}
+
+	// Fallback to git ls-remote (works with local and remote repos)
+	cmd = exec.Command("git", "ls-remote", "--symref", "origin", "HEAD")
+	cmd.Dir = repo.HostPath
+
+	output, err = runGitCommandWithOutput(cmd, repo)
+	if err != nil {
+		return "", err
+	}
+
+	// Parse output for "ref: refs/heads/<branch-name> HEAD"
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "ref:") && strings.Contains(trimmed, "refs/heads/") {
+			// Extract branch name between "refs/heads/" and whitespace
+			parts := strings.Fields(trimmed)
+			if len(parts) >= 2 {
+				refPath := parts[1]
+				if strings.HasPrefix(refPath, "refs/heads/") {
+					return strings.TrimPrefix(refPath, "refs/heads/"), nil
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("could not determine default branch from ls-remote output")
+}
+
 // GetRemoteURL returns the URL for the given remote name (e.g., "origin").
 func (g GitClient) GetRemoteURL(repo scm.Repo, remote string) (string, error) {
 	cmd := exec.Command("git", "remote", "get-url", remote)
@@ -395,6 +438,13 @@ func (g GitClient) HasUnpushedCommits(repo scm.Repo) (bool, error) {
 // GetCurrentBranch returns the currently checked-out branch name.
 func (g GitClient) GetCurrentBranch(repo scm.Repo) (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd.Dir = repo.HostPath
+	return runGitCommandWithOutput(cmd, repo)
+}
+
+// GetRefHash returns the commit hash for the given ref.
+func (g GitClient) GetRefHash(repo scm.Repo, ref string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", ref)
 	cmd.Dir = repo.HostPath
 	return runGitCommandWithOutput(cmd, repo)
 }
@@ -457,6 +507,15 @@ func (g GitClient) MergeIntoDefaultBranch(repo scm.Repo, currentBranch string) e
 	mergeCmd := exec.Command("git", "merge", "--ff-only", currentBranch)
 	mergeCmd.Dir = repo.HostPath
 	return runGitCommand(mergeCmd, repo)
+}
+
+// MergeFastForward merges the remote branch into the current branch using fast-forward only.
+// This is used during sync to update the local branch with remote changes.
+func (g GitClient) MergeFastForward(repo scm.Repo) error {
+	remoteBranch := fmt.Sprintf("origin/%s", repo.CloneBranch)
+	cmd := exec.Command("git", "merge", "--ff-only", remoteBranch)
+	cmd.Dir = repo.HostPath
+	return runGitCommand(cmd, repo)
 }
 
 // UpdateRef updates a local ref to point to the given remote ref (by resolving the remote ref SHA first).

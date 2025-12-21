@@ -60,8 +60,8 @@ func (g *ExtendedMockGitClient) RepoCommitCount(repo scm.Repo) (int, error) {
 	return g.postCommitCount, nil
 }
 
-func (g *ExtendedMockGitClient) SyncDefaultBranch(repo scm.Repo) error {
-	return nil
+func (g *ExtendedMockGitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
+	return false, nil
 }
 
 func TestRepositoryProcessor_NewRepositoryProcessor(t *testing.T) {

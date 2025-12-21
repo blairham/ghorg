@@ -42,6 +42,7 @@ type CloneStats struct {
 	UpdateRemoteCount    int
 	NewCommits           int
 	UntouchedPrunes      int
+	SyncedCount          int
 	TotalDurationSeconds int
 	CloneInfos           []string
 	CloneErrors          []string
@@ -383,6 +384,19 @@ func (rp *RepositoryProcessor) handleNoCleanMode(repo *scm.Repo) bool {
 		}
 	}
 
+	// If enabled, attempt to synchronize default branch to HEAD
+	if os.Getenv("GHORG_SYNC_DEFAULT_BRANCH") == "true" {
+		wasUpdated, err := rp.git.SyncDefaultBranch(*repo)
+		if err != nil {
+			rp.addError(fmt.Sprintf("Could not sync default branch for %s: %v", repo.URL, err))
+		} else if wasUpdated {
+			// Only increment if sync actually made changes
+			rp.mutex.Lock()
+			rp.stats.SyncedCount++
+			rp.mutex.Unlock()
+		}
+	}
+
 	return true
 }
 
@@ -480,8 +494,14 @@ func (rp *RepositoryProcessor) handleStandardPull(repo *scm.Repo) bool {
 
 	// If enabled, attempt to synchronize default branch to HEAD
 	if os.Getenv("GHORG_SYNC_DEFAULT_BRANCH") == "true" {
-		if err := rp.git.SyncDefaultBranch(*repo); err != nil {
+		wasUpdated, err := rp.git.SyncDefaultBranch(*repo)
+		if err != nil {
 			rp.addError(fmt.Sprintf("Could not sync default branch for %s: %v", repo.URL, err))
+		} else if wasUpdated {
+			// Only increment if sync actually made changes
+			rp.mutex.Lock()
+			rp.stats.SyncedCount++
+			rp.mutex.Unlock()
 		}
 	}
 
@@ -513,6 +533,7 @@ func (rp *RepositoryProcessor) GetStats() CloneStats {
 		UpdateRemoteCount:    rp.stats.UpdateRemoteCount,
 		NewCommits:           rp.stats.NewCommits,
 		UntouchedPrunes:      rp.stats.UntouchedPrunes,
+		SyncedCount:          rp.stats.SyncedCount,
 		TotalDurationSeconds: rp.stats.TotalDurationSeconds,
 		CloneInfos:           append([]string(nil), rp.stats.CloneInfos...),
 		CloneErrors:          append([]string(nil), rp.stats.CloneErrors...),
