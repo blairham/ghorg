@@ -96,7 +96,13 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 	}
 
 	// Print unified success message (matching original behavior)
-	if repoWillBePulled && repo.Commits.CountDiff > 0 {
+	if repo.SyncedDefaultBranch {
+		if repo.Commits.CountDiff > 0 {
+			colorlog.PrintSuccess(fmt.Sprintf("Success syncing default branch for %s, branch: %s, new commits: %d", repo.URL, repo.CloneBranch, repo.Commits.CountDiff))
+		} else {
+			colorlog.PrintSuccess(fmt.Sprintf("Success syncing default branch for %s, branch: %s", repo.URL, repo.CloneBranch))
+		}
+	} else if repoWillBePulled && repo.Commits.CountDiff > 0 {
 		colorlog.PrintSuccess(fmt.Sprintf("Success %s %s, branch: %s, new commits: %d", action, repo.URL, repo.CloneBranch, repo.Commits.CountDiff))
 	} else {
 		colorlog.PrintSuccess(fmt.Sprintf("Success %s %s, branch: %s", action, repo.URL, repo.CloneBranch))
@@ -391,6 +397,7 @@ func (rp *RepositoryProcessor) handleNoCleanMode(repo *scm.Repo) bool {
 			rp.addError(fmt.Sprintf("Could not sync default branch for %s: %v", repo.URL, err))
 		} else if wasUpdated {
 			// Only increment if sync actually made changes
+			repo.SyncedDefaultBranch = true
 			rp.mutex.Lock()
 			rp.stats.SyncedCount++
 			rp.mutex.Unlock()
@@ -499,6 +506,7 @@ func (rp *RepositoryProcessor) handleStandardPull(repo *scm.Repo) bool {
 			rp.addError(fmt.Sprintf("Could not sync default branch for %s: %v", repo.URL, err))
 		} else if wasUpdated {
 			// Only increment if sync actually made changes
+			repo.SyncedDefaultBranch = true
 			rp.mutex.Lock()
 			rp.stats.SyncedCount++
 			rp.mutex.Unlock()

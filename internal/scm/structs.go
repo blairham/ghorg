@@ -25,6 +25,8 @@ type Repo struct {
 	// GitLabSnippetInfo provides additional information when the thing we are cloning is a gitlab snippet
 	GitLabSnippetInfo GitLabSnippet
 	Commits           RepoCommits
+	// SyncedDefaultBranch is set to true when the default branch was successfully synced
+	SyncedDefaultBranch bool
 }
 
 type RepoCommits struct {
