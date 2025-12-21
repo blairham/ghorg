@@ -892,7 +892,7 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	cloneErrors = stats.CloneErrors
 
 	printRemainingMessages()
-	printCloneStatsMessage(stats.CloneCount, stats.PulledCount, stats.UpdateRemoteCount, stats.NewCommits, untouchedPrunes, stats.TotalDurationSeconds)
+	printCloneStatsMessage(stats.CloneCount, stats.PulledCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, untouchedPrunes, stats.TotalDurationSeconds)
 
 	if hasCollisions {
 		fmt.Println("")
@@ -928,7 +928,7 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	// This needs to be called after printFinishedWithDirSize()
 	if os.Getenv("GHORG_STATS_ENABLED") == "true" {
 		date := time.Now().Format("2006-01-02 15:04:05")
-		writeGhorgStats(date, allReposToCloneCount, stats.CloneCount, stats.PulledCount, cloneInfosCount, cloneErrorsCount, stats.UpdateRemoteCount, stats.NewCommits, pruneCount, stats.TotalDurationSeconds, hasCollisions)
+		writeGhorgStats(date, allReposToCloneCount, stats.CloneCount, stats.PulledCount, cloneInfosCount, cloneErrorsCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, pruneCount, stats.TotalDurationSeconds, hasCollisions)
 	}
 
 	if os.Getenv("GHORG_DONT_EXIT_UNDER_TEST") != "true" {
@@ -971,7 +971,7 @@ func getGhorgStatsFilePath() string {
 	return statsFilePath
 }
 
-func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount, cloneInfosCount, cloneErrorsCount, updateRemoteCount, newCommits, pruneCount, totalDurationSeconds int, hasCollisions bool) error {
+func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount, cloneInfosCount, cloneErrorsCount, updateRemoteCount, newCommits, syncedCount, pruneCount, totalDurationSeconds int, hasCollisions bool) error {
 
 	statsFilePath := getGhorgStatsFilePath()
 	fileExists := true
@@ -980,7 +980,7 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 		fileExists = false
 	}
 
-	header := "datetime,clonePath,scm,cloneType,cloneTarget,totalCount,newClonesCount,existingResourcesPulledCount,dirSizeInMB,newCommits,cloneInfosCount,cloneErrorsCount,updateRemoteCount,pruneCount,hasCollisions,ghorgignore,ghorgonly,totalDurationSeconds,ghorgVersion\n"
+	header := "datetime,clonePath,scm,cloneType,cloneTarget,totalCount,newClonesCount,existingResourcesPulledCount,dirSizeInMB,newCommits,syncedCount,cloneInfosCount,cloneErrorsCount,updateRemoteCount,pruneCount,hasCollisions,ghorgignore,ghorgonly,totalDurationSeconds,ghorgVersion\n"
 
 	var file *os.File
 	var err error
@@ -1029,7 +1029,7 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 	}
 	defer file.Close()
 
-	data := fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%.2f,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v\n",
+	data := fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%.2f,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v\n",
 		date,
 		outputDirAbsolutePath,
 		os.Getenv("GHORG_SCM_TYPE"),
@@ -1040,6 +1040,7 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 		pulledCount,
 		cachedDirSizeMB,
 		newCommits,
+		syncedCount,
 		cloneInfosCount,
 		cloneErrorsCount,
 		updateRemoteCount,
@@ -1237,25 +1238,41 @@ func formatDurationText(durationSeconds int) string {
 	}
 }
 
-func printCloneStatsMessage(cloneCount, pulledCount, updateRemoteCount, newCommits, untouchedPrunes, durationSeconds int) {
+func printCloneStatsMessage(cloneCount, pulledCount, updateRemoteCount, newCommits, syncedCount, untouchedPrunes, durationSeconds int) {
 	durationText := formatDurationText(durationSeconds)
 
 	if updateRemoteCount > 0 {
-		colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v, remotes updated: %v%s", cloneCount, pulledCount, newCommits, updateRemoteCount, durationText))
+		if syncedCount > 0 {
+			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v, remotes updated: %v, default branches synced: %v%s", cloneCount, pulledCount, newCommits, updateRemoteCount, syncedCount, durationText))
+		} else {
+			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v, remotes updated: %v%s", cloneCount, pulledCount, newCommits, updateRemoteCount, durationText))
+		}
 		return
 	}
 
 	if newCommits > 0 {
-		colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v%s", cloneCount, pulledCount, newCommits, durationText))
+		if syncedCount > 0 {
+			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v, default branches synced: %v%s", cloneCount, pulledCount, newCommits, syncedCount, durationText))
+		} else {
+			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v%s", cloneCount, pulledCount, newCommits, durationText))
+		}
 		return
 	}
 
 	if untouchedPrunes > 0 {
-		colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total prunes: %v%s", cloneCount, pulledCount, untouchedPrunes, durationText))
+		if syncedCount > 0 {
+			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total prunes: %v, default branches synced: %v%s", cloneCount, pulledCount, untouchedPrunes, syncedCount, durationText))
+		} else {
+			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total prunes: %v%s", cloneCount, pulledCount, untouchedPrunes, durationText))
+		}
 		return
 	}
 
-	colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v%s", cloneCount, pulledCount, durationText))
+	if syncedCount > 0 {
+		colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, default branches synced: %v%s", cloneCount, pulledCount, syncedCount, durationText))
+	} else {
+		colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v%s", cloneCount, pulledCount, durationText))
+	}
 }
 
 func interactiveYesNoPrompt(prompt string) bool {

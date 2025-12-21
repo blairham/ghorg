@@ -48,7 +48,7 @@ func TestSyncDefaultBranch(t *testing.T) {
 		}
 
 		// SyncDefaultBranch should work since working directory is clean
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch failed: %v", err)
 		}
@@ -90,7 +90,7 @@ func TestSyncDefaultBranch(t *testing.T) {
 		}
 
 		// Now sync should NOT work since there are local changes
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch failed: %v", err)
 		}
@@ -151,7 +151,7 @@ func TestSyncDefaultBranchErrorCases(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch should work in debug mode: %v", err)
 		}
@@ -251,7 +251,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch should not fail when no remote: %v", err)
 		}
@@ -310,7 +310,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch should not fail with unpushed commits: %v", err)
 		}
@@ -340,7 +340,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch should not fail with local changes: %v", err)
 		}
@@ -403,7 +403,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch should not fail with unpushed commits: %v", err)
 		}
@@ -437,7 +437,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch should not fail when switching branches: %v", err)
 		}
@@ -468,7 +468,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch should not fail when checkout fails: %v", err)
 		}
@@ -713,7 +713,7 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 
 		// This should return an error when checking for local changes
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err == nil {
 			t.Error("Expected error when checking local changes fails")
 		}
@@ -749,13 +749,13 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		// This should return an error when HasUnpushedCommits fails (no upstream)
-		err = client.SyncDefaultBranch(repo)
-		if err == nil {
-			t.Error("Expected error when no upstream is configured")
+		// This should skip sync when HasUnpushedCommits fails (no upstream)
+		wasUpdated, err := client.SyncDefaultBranch(repo)
+		if err != nil {
+			t.Errorf("Expected no error (graceful skip), got: %v", err)
 		}
-		if err != nil && !strings.Contains(err.Error(), "failed to check for unpushed commits") {
-			t.Errorf("Expected unpushed commits error, got: %v", err)
+		if wasUpdated {
+			t.Error("Expected no update when unpushed commits status cannot be verified")
 		}
 	})
 
@@ -802,7 +802,7 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 
 		// This should return an error due to detached HEAD state
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err == nil {
 			t.Error("Expected error when in detached HEAD state")
 		}
@@ -842,7 +842,7 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 
 		// Should skip sync and output debug message
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("Should not error, just skip sync: %v", err)
 		}
@@ -894,7 +894,7 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 
 		// Should skip sync and output debug message
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("Should not error, just skip sync: %v", err)
 		}
@@ -1000,7 +1000,7 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 
 		// Should skip sync and output debug message about divergent commits
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("Should not error, just skip sync: %v", err)
 		}
@@ -1034,7 +1034,7 @@ func TestSyncDefaultBranchConfiguration(t *testing.T) {
 		}
 
 		// Should return immediately without doing any sync operations
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("SyncDefaultBranch should not error when disabled: %v", err)
 		}
@@ -1059,7 +1059,7 @@ func TestSyncDefaultBranchConfiguration(t *testing.T) {
 		}
 
 		// Should return immediately without doing any sync operations
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("SyncDefaultBranch should not error when disabled: %v", err)
 		}
@@ -1105,7 +1105,7 @@ func TestSyncDefaultBranchConfiguration(t *testing.T) {
 		}
 
 		// Should proceed with sync logic (won't skip due to configuration)
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("SyncDefaultBranch should work when enabled: %v", err)
 		}
@@ -1134,7 +1134,7 @@ func TestSyncDefaultBranchConfiguration(t *testing.T) {
 		}
 
 		// Should output debug message about sync being disabled
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("SyncDefaultBranch should not error when disabled: %v", err)
 		}
@@ -1169,7 +1169,7 @@ func TestSyncDefaultBranchComprehensiveCoverage(t *testing.T) {
 		}
 
 		// Should return early without error
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("SyncDefaultBranch should not error when disabled: %v", err)
 		}
@@ -1199,7 +1199,7 @@ func TestSyncDefaultBranchComprehensiveCoverage(t *testing.T) {
 		}
 
 		// Should return without error when remote doesn't exist
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("SyncDefaultBranch should not error when remote doesn't exist: %v", err)
 		}
@@ -1241,7 +1241,7 @@ func TestSyncDefaultBranchComprehensiveCoverage(t *testing.T) {
 		}
 
 		// Should skip sync due to working directory changes and show debug message
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("SyncDefaultBranch should not error with working directory changes: %v", err)
 		}
@@ -1309,7 +1309,7 @@ func TestSyncDefaultBranchComprehensiveCoverage(t *testing.T) {
 		}
 
 		// Should skip sync due to unpushed commits and show debug message
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("SyncDefaultBranch should not error with unpushed commits: %v", err)
 		}
@@ -1414,7 +1414,7 @@ func TestSyncDefaultBranchComprehensiveCoverage(t *testing.T) {
 		}
 
 		// Should skip sync and output debug message about divergent commits
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("Should not error, just skip sync: %v", err)
 		}
@@ -1511,7 +1511,7 @@ func TestSyncActuallyAppliesChanges(t *testing.T) {
 		}
 
 		// Run sync - this should fetch and apply the changes
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Fatalf("SyncDefaultBranch failed: %v", err)
 		}
@@ -1574,7 +1574,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 		}
 
 		// Should handle the error gracefully
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		// The function should handle errors in internal methods gracefully
 		if err != nil {
 			// With no upstream branch, HasUnpushedCommits will fail first
@@ -1621,7 +1621,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			// With no upstream branch, HasUnpushedCommits will fail first
 			if !strings.Contains(err.Error(), "failed to check for unpushed commits") &&
@@ -1727,7 +1727,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("Fast-forward merge should succeed: %v", err)
 		}
@@ -1778,7 +1778,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err == nil || !strings.Contains(err.Error(), "failed to fetch default branch") {
 			t.Errorf("Expected error about fetch failure, got: %v", err)
 		}
@@ -1862,7 +1862,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 		}
 
 		// Run sync - this might succeed or fail depending on exact conditions
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		// We don't assert error/success here since the exact behavior depends on git state
 		_ = err
 	})
@@ -1910,7 +1910,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		// This may or may not fail depending on exact git state - the important thing is we're exercising the path
 		_ = err
 	})
@@ -1952,7 +1952,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 		}
 
 		// Try to sync - this should go through the UpdateRef+Reset path
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			// Check if it's the expected error
 			if !strings.Contains(err.Error(), "failed to reset working directory") {
@@ -2074,7 +2074,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			Name:        "test-repo",
 		}
 
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("Sync should succeed with UpdateRef+Reset path: %v", err)
 		}
@@ -2128,9 +2128,689 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 		}
 
 		// Should succeed and show debug messages
-		err = client.SyncDefaultBranch(repo)
+		_, err = client.SyncDefaultBranch(repo)
 		if err != nil {
 			t.Errorf("Should succeed with debug mode enabled: %v", err)
 		}
 	})
+}
+
+// TestSyncOnDefaultBranch tests syncing while on the default branch
+func TestSyncOnDefaultBranch(t *testing.T) {
+	_, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git CLI not available, skipping test")
+	}
+
+	// Enable sync
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+	defer os.Unsetenv("GHORG_SYNC_DEFAULT_BRANCH")
+
+	// Create a bare repository to act as remote
+	bareDir, err := os.MkdirTemp("", "ghorg-sync-bare")
+	if err != nil {
+		t.Fatalf("Failed to create bare repo: %v", err)
+	}
+	defer os.RemoveAll(bareDir)
+
+	cmd := exec.Command("git", "init", "--bare")
+	cmd.Dir = bareDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to init bare repo: %v", err)
+	}
+
+	// Create initial repository
+	sourceDir, err := os.MkdirTemp("", "ghorg-sync-source")
+	if err != nil {
+		t.Fatalf("Failed to create source repo: %v", err)
+	}
+	defer os.RemoveAll(sourceDir)
+
+	// Initialize and create initial commit
+	cmd = exec.Command("git", "init")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to init source repo: %v", err)
+	}
+
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = sourceDir
+	cmd.Run()
+
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = sourceDir
+	cmd.Run()
+
+	// Create initial file
+	err = os.WriteFile(filepath.Join(sourceDir, "file1.txt"), []byte("initial content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create file: %v", err)
+	}
+
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to add files: %v", err)
+	}
+
+	cmd = exec.Command("git", "-c", "commit.gpgsign=false", "commit", "-m", "Initial commit")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to commit: %v", err)
+	}
+
+	// Push to bare repo
+	cmd = exec.Command("git", "remote", "add", "origin", bareDir)
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to add remote: %v", err)
+	}
+
+	cmd = exec.Command("git", "push", "-u", "origin", "main")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to push: %v", err)
+	}
+
+	// Clone the repository
+	cloneDir, err := os.MkdirTemp("", "ghorg-sync-clone")
+	if err != nil {
+		t.Fatalf("Failed to create clone dir: %v", err)
+	}
+	defer os.RemoveAll(cloneDir)
+
+	cmd = exec.Command("git", "clone", bareDir, cloneDir)
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to clone: %v", err)
+	}
+
+	// Get initial commit hash
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = cloneDir
+	output, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get HEAD: %v", err)
+	}
+	initialCommit := strings.TrimSpace(string(output))
+
+	// Now add a new commit to the source repo and push
+	err = os.WriteFile(filepath.Join(sourceDir, "file2.txt"), []byte("new content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create new file: %v", err)
+	}
+
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to add new file: %v", err)
+	}
+
+	cmd = exec.Command("git", "-c", "commit.gpgsign=false", "commit", "-m", "Second commit")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to commit: %v", err)
+	}
+
+	cmd = exec.Command("git", "push", "origin", "main")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to push: %v", err)
+	}
+
+	// Get the new commit hash from source
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = sourceDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get new HEAD: %v", err)
+	}
+	newCommit := strings.TrimSpace(string(output))
+
+	if initialCommit == newCommit {
+		t.Fatal("New commit should be different from initial")
+	}
+
+	// Verify clone is still at old commit
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = cloneDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get clone HEAD: %v", err)
+	}
+	cloneCommit := strings.TrimSpace(string(output))
+
+	if cloneCommit != initialCommit {
+		t.Fatal("Clone should still be at initial commit")
+	}
+
+	// Now sync - we're on main branch
+	client := GitClient{}
+	repo := scm.Repo{
+		HostPath:    cloneDir,
+		CloneBranch: "main",
+		Name:        "test-repo",
+	}
+
+	_, err = client.SyncDefaultBranch(repo)
+	if err != nil {
+		t.Fatalf("Sync failed: %v", err)
+	}
+
+	// Verify we're still on main
+	cmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd.Dir = cloneDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get current branch: %v", err)
+	}
+	currentBranch := strings.TrimSpace(string(output))
+
+	if currentBranch != "main" {
+		t.Errorf("Should still be on main, got: %s", currentBranch)
+	}
+
+	// Verify HEAD is now at new commit
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = cloneDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get HEAD after sync: %v", err)
+	}
+	syncedCommit := strings.TrimSpace(string(output))
+
+	if syncedCommit != newCommit {
+		t.Errorf("After sync on main branch, HEAD should be at %s, got: %s", newCommit, syncedCommit)
+	}
+
+	// Verify file2.txt exists
+	if _, err := os.Stat(filepath.Join(cloneDir, "file2.txt")); os.IsNotExist(err) {
+		t.Error("file2.txt should exist after sync")
+	}
+}
+
+// TestSyncOnFeatureBranch tests syncing while on a feature branch
+func TestSyncOnFeatureBranch(t *testing.T) {
+	_, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git CLI not available, skipping test")
+	}
+
+	// Enable sync
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+	defer os.Unsetenv("GHORG_SYNC_DEFAULT_BRANCH")
+
+	// Create a bare repository to act as remote
+	bareDir, err := os.MkdirTemp("", "ghorg-sync-bare")
+	if err != nil {
+		t.Fatalf("Failed to create bare repo: %v", err)
+	}
+	defer os.RemoveAll(bareDir)
+
+	cmd := exec.Command("git", "init", "--bare")
+	cmd.Dir = bareDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to init bare repo: %v", err)
+	}
+
+	// Create initial repository
+	sourceDir, err := os.MkdirTemp("", "ghorg-sync-source")
+	if err != nil {
+		t.Fatalf("Failed to create source repo: %v", err)
+	}
+	defer os.RemoveAll(sourceDir)
+
+	// Initialize and create initial commit
+	cmd = exec.Command("git", "init")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to init source repo: %v", err)
+	}
+
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = sourceDir
+	cmd.Run()
+
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = sourceDir
+	cmd.Run()
+
+	// Create initial file
+	err = os.WriteFile(filepath.Join(sourceDir, "file1.txt"), []byte("initial content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create file: %v", err)
+	}
+
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to add files: %v", err)
+	}
+
+	cmd = exec.Command("git", "-c", "commit.gpgsign=false", "commit", "-m", "Initial commit")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to commit: %v", err)
+	}
+
+	// Push to bare repo
+	cmd = exec.Command("git", "remote", "add", "origin", bareDir)
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to add remote: %v", err)
+	}
+
+	cmd = exec.Command("git", "push", "-u", "origin", "main")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to push: %v", err)
+	}
+
+	// Clone the repository
+	cloneDir, err := os.MkdirTemp("", "ghorg-sync-clone")
+	if err != nil {
+		t.Fatalf("Failed to create clone dir: %v", err)
+	}
+	defer os.RemoveAll(cloneDir)
+
+	cmd = exec.Command("git", "clone", bareDir, cloneDir)
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to clone: %v", err)
+	}
+
+	// Create a feature branch and check it out
+	cmd = exec.Command("git", "checkout", "-b", "feature-branch")
+	cmd.Dir = cloneDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to create feature branch: %v", err)
+	}
+
+	// Add a commit on feature branch
+	err = os.WriteFile(filepath.Join(cloneDir, "feature.txt"), []byte("feature work"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create feature file: %v", err)
+	}
+
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = cloneDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to add feature file: %v", err)
+	}
+
+	cmd = exec.Command("git", "-c", "commit.gpgsign=false", "commit", "-m", "Feature work")
+	cmd.Dir = cloneDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to commit feature: %v", err)
+	}
+
+	// Get initial main commit hash from clone
+	cmd = exec.Command("git", "rev-parse", "main")
+	cmd.Dir = cloneDir
+	output, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get main ref: %v", err)
+	}
+	initialMainCommit := strings.TrimSpace(string(output))
+
+	// Now add a new commit to the source repo main branch and push
+	err = os.WriteFile(filepath.Join(sourceDir, "file2.txt"), []byte("new content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create new file: %v", err)
+	}
+
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to add new file: %v", err)
+	}
+
+	cmd = exec.Command("git", "-c", "commit.gpgsign=false", "commit", "-m", "Second commit")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to commit: %v", err)
+	}
+
+	cmd = exec.Command("git", "push", "origin", "main")
+	cmd.Dir = sourceDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to push: %v", err)
+	}
+
+	// Get the new commit hash from source
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = sourceDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get new HEAD: %v", err)
+	}
+	newMainCommit := strings.TrimSpace(string(output))
+
+	if initialMainCommit == newMainCommit {
+		t.Fatal("New commit should be different from initial")
+	}
+
+	// Verify we're on feature branch
+	cmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd.Dir = cloneDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get current branch: %v", err)
+	}
+	currentBranch := strings.TrimSpace(string(output))
+
+	if currentBranch != "feature-branch" {
+		t.Fatalf("Should be on feature-branch, got: %s", currentBranch)
+	}
+
+	// Now sync - we're on feature branch
+	client := GitClient{}
+	repo := scm.Repo{
+		HostPath:    cloneDir,
+		CloneBranch: "main",
+		Name:        "test-repo",
+	}
+
+	_, err = client.SyncDefaultBranch(repo)
+	if err != nil {
+		t.Fatalf("Sync failed: %v", err)
+	}
+
+	// Verify we're still on feature branch
+	cmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd.Dir = cloneDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get current branch after sync: %v", err)
+	}
+	currentBranch = strings.TrimSpace(string(output))
+
+	if currentBranch != "feature-branch" {
+		t.Errorf("Should still be on feature-branch after sync, got: %s", currentBranch)
+	}
+
+	// Verify main branch ref is now at new commit
+	cmd = exec.Command("git", "rev-parse", "main")
+	cmd.Dir = cloneDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get main ref after sync: %v", err)
+	}
+	syncedMainCommit := strings.TrimSpace(string(output))
+
+	if syncedMainCommit != newMainCommit {
+		t.Errorf("After sync, main branch should be at %s, got: %s", newMainCommit, syncedMainCommit)
+	}
+
+	// Verify file2.txt does NOT exist in working directory (we're on feature branch)
+	if _, err := os.Stat(filepath.Join(cloneDir, "file2.txt")); !os.IsNotExist(err) {
+		t.Error("file2.txt should NOT exist in working directory (on feature branch)")
+	}
+
+	// But verify feature.txt DOES exist
+	if _, err := os.Stat(filepath.Join(cloneDir, "feature.txt")); os.IsNotExist(err) {
+		t.Error("feature.txt should exist in working directory")
+	}
+
+	// Now checkout main and verify file2.txt is there
+	cmd = exec.Command("git", "checkout", "main")
+	cmd.Dir = cloneDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to checkout main: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(cloneDir, "file2.txt")); os.IsNotExist(err) {
+		t.Error("After checking out main, file2.txt should exist")
+	}
+
+	// Verify HEAD matches the new commit
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = cloneDir
+	output, err = cmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to get HEAD: %v", err)
+	}
+	headCommit := strings.TrimSpace(string(output))
+
+	if headCommit != newMainCommit {
+		t.Errorf("After checkout main, HEAD should be at %s, got: %s", newMainCommit, headCommit)
+	}
+}
+
+// TestGetRemoteDefaultBranch tests detection of the remote's default branch
+func TestGetRemoteDefaultBranch(t *testing.T) {
+	// Create a bare repository
+	bareRepoPath, err := os.MkdirTemp("", "ghorg-bare-repo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(bareRepoPath)
+
+	cmd := exec.Command("git", "init", "--bare")
+	cmd.Dir = bareRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a local repository
+	localRepoPath, err := os.MkdirTemp("", "ghorg-test-repo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(localRepoPath)
+
+	// Clone from bare repo
+	cmd = exec.Command("git", "clone", bareRepoPath, localRepoPath)
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Make a commit on master branch
+	cmd = exec.Command("git", "checkout", "-b", "master")
+	cmd.Dir = localRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a file and commit
+	testFile := localRepoPath + "/test.txt"
+	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "add", "test.txt")
+	cmd.Dir = localRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "commit", "-m", "initial commit")
+	cmd.Dir = localRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Push to bare repo
+	cmd = exec.Command("git", "push", "-u", "origin", "master")
+	cmd.Dir = localRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set the default branch in the bare repo to master
+	cmd = exec.Command("git", "symbolic-ref", "HEAD", "refs/heads/master")
+	cmd.Dir = bareRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Now test GetRemoteDefaultBranch
+	client := GitClient{}
+	repo := scm.Repo{
+		Name:     "test-repo",
+		HostPath: localRepoPath,
+	}
+
+	defaultBranch, err := client.GetRemoteDefaultBranch(repo)
+	if err != nil {
+		t.Fatalf("GetRemoteDefaultBranch failed: %v", err)
+	}
+
+	if defaultBranch != "master" {
+		t.Errorf("Expected default branch 'master', got '%s'", defaultBranch)
+	}
+}
+
+// TestSyncWithActualDefaultBranchDetection tests that sync correctly detects and uses the remote's default branch
+func TestSyncWithActualDefaultBranchDetection(t *testing.T) {
+	// Setup: Create bare repo
+	bareRepoPath, err := os.MkdirTemp("", "ghorg-bare-master-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(bareRepoPath)
+
+	cmd := exec.Command("git", "init", "--bare")
+	cmd.Dir = bareRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Setup: Create local clone
+	localRepoPath, err := os.MkdirTemp("", "ghorg-clone-master-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(localRepoPath)
+
+	cmd = exec.Command("git", "clone", bareRepoPath, localRepoPath)
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Setup: Create and push first commit on master branch
+	cmd = exec.Command("git", "checkout", "-b", "master")
+	cmd.Dir = localRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create initial commit
+	testFile := localRepoPath + "/file1.txt"
+	if err := os.WriteFile(testFile, []byte("content1"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = localRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "commit", "-m", "first commit")
+	cmd.Dir = localRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "push", "-u", "origin", "master")
+	cmd.Dir = localRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set the default branch in the bare repo to master
+	cmd = exec.Command("git", "symbolic-ref", "HEAD", "refs/heads/master")
+	cmd.Dir = bareRepoPath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Get the first commit SHA
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = localRepoPath
+	firstCommitBytes, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstCommitSHA := string(firstCommitBytes)[:7]
+
+	// Make a second commit in the bare repo (simulate remote update)
+	tempClonePath, err := os.MkdirTemp("", "ghorg-temp-clone-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempClonePath)
+
+	cmd = exec.Command("git", "clone", bareRepoPath, tempClonePath)
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	testFile2 := tempClonePath + "/file2.txt"
+	if err := os.WriteFile(testFile2, []byte("content2"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = tempClonePath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "commit", "-m", "second commit")
+	cmd.Dir = tempClonePath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "push")
+	cmd.Dir = tempClonePath
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Get the second commit SHA
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = tempClonePath
+	secondCommitBytes, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondCommitSHA := string(secondCommitBytes)[:7]
+
+	// Test: Now our local repo is one commit behind
+	// Create a repo object with WRONG CloneBranch (to test auto-detection)
+	client := GitClient{}
+	repo := scm.Repo{
+		Name:        "test-repo",
+		HostPath:    localRepoPath,
+		CloneBranch: "main", // Intentionally wrong! Should auto-detect "master"
+	}
+
+	// Enable sync
+	os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
+	defer os.Unsetenv("GHORG_SYNC_DEFAULT_BRANCH")
+
+	// Run sync
+	_, err = client.SyncDefaultBranch(repo)
+	if err != nil {
+		t.Fatalf("Sync failed: %v", err)
+	}
+
+	// Verify: Local HEAD should now match remote (second commit)
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = localRepoPath
+	localHeadBytes, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	localHeadSHA := string(localHeadBytes)[:7]
+
+	if localHeadSHA != secondCommitSHA {
+		t.Errorf("Sync did not update local branch. Expected %s, got %s", secondCommitSHA, localHeadSHA)
+		t.Logf("First commit: %s", firstCommitSHA)
+		t.Logf("Second commit (remote): %s", secondCommitSHA)
+		t.Logf("Local HEAD after sync: %s", localHeadSHA)
+	}
+
+	t.Logf("✓ Sync successfully updated from %s to %s (detected master branch despite CloneBranch=main)", firstCommitSHA, secondCommitSHA)
 }

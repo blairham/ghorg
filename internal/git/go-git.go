@@ -639,6 +639,55 @@ func (g goGitClient) GetRemoteURL(repo scm.Repo, remote string) (string, error) 
 	return cfg.URLs[0], nil
 }
 
+// GetRemoteDefaultBranch returns the default branch name for the remote repository
+func (g goGitClient) GetRemoteDefaultBranch(repo scm.Repo) (string, error) {
+	g.debugLog("GetRemoteDefaultBranch", repo)
+
+	r, err := gogit.PlainOpen(repo.HostPath)
+	if err != nil {
+		return "", err
+	}
+
+	// Try to get the symbolic reference for origin/HEAD
+	headRef, err := r.Reference(plumbing.NewRemoteHEADReferenceName("origin"), true)
+	if err == nil && headRef.Type() == plumbing.SymbolicReference {
+		// Extract branch name from refs/remotes/origin/<branch>
+		target := headRef.Target().Short()
+		// The target will be like "origin/main", extract just "main"
+		parts := strings.Split(target, "/")
+		if len(parts) > 0 {
+			return parts[len(parts)-1], nil
+		}
+	}
+
+	// Fallback: query the remote directly using go-git
+	rem, err := r.Remote("origin")
+	if err != nil {
+		return "", fmt.Errorf("failed to get origin remote: %w", err)
+	}
+
+	// List remote references
+	refs, err := rem.List(&gogit.ListOptions{
+		Auth: g.getAuth(repo.URL),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to list remote references: %w", err)
+	}
+
+	// Look for the HEAD symbolic reference
+	for _, ref := range refs {
+		if ref.Type() == plumbing.SymbolicReference && ref.Name() == plumbing.HEAD {
+			// The target will be like "refs/heads/main"
+			target := ref.Target().String()
+			if strings.HasPrefix(target, "refs/heads/") {
+				return strings.TrimPrefix(target, "refs/heads/"), nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("could not determine default branch from remote")
+}
+
 // HasLocalChanges returns true if there are uncommitted changes in the working tree.
 func (g goGitClient) HasLocalChanges(repo scm.Repo) (bool, error) {
 	status, err := g.ShortStatus(repo)
@@ -680,13 +729,14 @@ func (g goGitClient) HasUnpushedCommits(repo scm.Repo) (bool, error) {
 
 	upstreamCommit, err := r.CommitObject(upstream.Hash())
 	if err != nil {
-		return false, err
+		// Object not found or other error - can't determine, return error
+		return false, fmt.Errorf("failed to get upstream commit object: %w", err)
 	}
 
 	// Check if HEAD is ahead of upstream
 	isAncestor, err := upstreamCommit.IsAncestor(headCommit)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to check ancestor relationship: %w", err)
 	}
 
 	// If upstream is ancestor of HEAD, there are unpushed commits
@@ -713,6 +763,23 @@ func (g goGitClient) GetCurrentBranch(repo scm.Repo) (string, error) {
 
 	// Detached HEAD - return the hash
 	return head.Hash().String()[:7], nil
+}
+
+// GetRefHash returns the commit hash for the given ref.
+func (g goGitClient) GetRefHash(repo scm.Repo, ref string) (string, error) {
+	g.debugLog("GetRefHash", repo, fmt.Sprintf("Ref: %s", ref))
+
+	r, err := gogit.PlainOpen(repo.HostPath)
+	if err != nil {
+		return "", err
+	}
+
+	refObj, err := r.Reference(plumbing.ReferenceName(ref), true)
+	if err != nil {
+		return "", err
+	}
+
+	return refObj.Hash().String(), nil
 }
 
 // HasCommitsNotOnDefaultBranch returns true if currentBranch contains commits not present on the default branch.
@@ -833,6 +900,35 @@ func (g goGitClient) MergeIntoDefaultBranch(repo scm.Repo, currentBranch string)
 	})
 }
 
+// MergeFastForward merges the remote branch into the current branch using fast-forward only.
+// This is used during sync to update the local branch with remote changes.
+func (g goGitClient) MergeFastForward(repo scm.Repo) error {
+	g.debugLog("MergeFastForward", repo, fmt.Sprintf("Target: origin/%s", repo.CloneBranch))
+
+	r, err := gogit.PlainOpen(repo.HostPath)
+	if err != nil {
+		return err
+	}
+
+	// Get the remote branch reference
+	remoteBranch := fmt.Sprintf("refs/remotes/origin/%s", repo.CloneBranch)
+	remoteRef, err := r.Reference(plumbing.ReferenceName(remoteBranch), true)
+	if err != nil {
+		return fmt.Errorf("failed to get remote branch: %w", err)
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
+
+	// Fast-forward by resetting to the remote branch commit
+	return w.Reset(&gogit.ResetOptions{
+		Commit: remoteRef.Hash(),
+		Mode:   gogit.HardReset,
+	})
+}
+
 // UpdateRef updates a local ref to point to the given remote ref.
 func (g goGitClient) UpdateRef(repo scm.Repo, refName string, commitRef string) error {
 	g.debugLog("UpdateRef", repo, fmt.Sprintf("Ref: %s, Target: %s", refName, commitRef))
@@ -854,20 +950,18 @@ func (g goGitClient) UpdateRef(repo scm.Repo, refName string, commitRef string) 
 }
 
 // SyncDefaultBranch synchronizes the local default branch with the remote.
-// This implementation delegates to the shared sync logic.
-func (g goGitClient) SyncDefaultBranch(repo scm.Repo) error {
+// Returns (wasUpdated, error) where wasUpdated indicates if the branch was actually changed
+func (g goGitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
 	// Check if sync is disabled via configuration
 	syncEnabled := os.Getenv("GHORG_SYNC_DEFAULT_BRANCH")
 	if syncEnabled != "true" {
-		m := fmt.Sprintf("Skipping sync for %s: GHORG_SYNC_DEFAULT_BRANCH is not set to true\n", repo.Name)
-		colorlog.PrintInfo(m)
-		return nil
+		return false, nil
 	}
 
 	// First check if the remote exists and is accessible
 	_, err := g.GetRemoteURL(repo, "origin")
 	if err != nil {
-		return nil
+		return false, nil
 	}
 
 	// Check if the working directory has any uncommitted changes
@@ -875,115 +969,93 @@ func (g goGitClient) SyncDefaultBranch(repo scm.Repo) error {
 	if err != nil {
 		m := fmt.Sprintf("Failed to check working directory status for %s: %v", repo.Name, err)
 		colorlog.PrintError(m)
-		return fmt.Errorf("failed to check working directory status: %w", err)
+		return false, fmt.Errorf("failed to check working directory status: %w", err)
 	}
 
 	if hasWorkingDirChanges {
-		m := fmt.Sprintf("Skipping sync for %s: working directory has uncommitted changes\n", repo.Name)
-		colorlog.PrintInfo(m)
-		return nil
+		return false, nil
 	}
 
-	// Check if the current branch has unpushed commits
-	hasUnpushedCommits, err := g.HasUnpushedCommits(repo)
-	if err != nil {
-		m := fmt.Sprintf("Failed to check for unpushed commits for %s: %v", repo.Name, err)
-		colorlog.PrintError(m)
-		return fmt.Errorf("failed to check for unpushed commits: %w", err)
-	}
-
-	if hasUnpushedCommits {
-		m := fmt.Sprintf("Skipping sync for %s: branch has unpushed commits\n", repo.Name)
-		colorlog.PrintInfo(m)
-		return nil
-	}
-
-	// Check if we're on the correct branch
+	// Check what branch we're currently on first
 	currentBranch, err := g.GetCurrentBranch(repo)
 	if err != nil {
 		m := fmt.Sprintf("Failed to get current branch for %s: %v", repo.Name, err)
 		colorlog.PrintError(m)
-		return fmt.Errorf("failed to get current branch: %w", err)
+		return false, fmt.Errorf("failed to get current branch: %w", err)
 	}
 
-	// Check if current branch has commits not on the default branch
-	hasCommitsNotOnDefault, err := g.HasCommitsNotOnDefaultBranch(repo, currentBranch)
+	// Get the actual default branch from the remote
+	defaultBranch, err := g.GetRemoteDefaultBranch(repo)
 	if err != nil {
-		m := fmt.Sprintf("Failed to check for commits not on default branch for %s: %v", repo.Name, err)
-		colorlog.PrintError(m)
-		return fmt.Errorf("failed to check for commits not on default branch: %w", err)
-	}
-
-	// Check if the default branch is behind HEAD
-	isDefaultBehindHead, err := g.IsDefaultBranchBehindHead(repo, currentBranch)
-	if err != nil {
-		m := fmt.Sprintf("Failed to check if default branch is behind HEAD for %s: %v", repo.Name, err)
-		colorlog.PrintError(m)
-		return fmt.Errorf("failed to check if default branch is behind HEAD: %w", err)
-	}
-
-	if hasCommitsNotOnDefault && !isDefaultBehindHead {
-		m := fmt.Sprintf("Skipping sync for %s: current branch has commits not on default branch and default is not behind\n", repo.Name)
-		colorlog.PrintInfo(m)
-		return nil
-	}
-
-	// Switch to the target branch if we're not already on it
-	if currentBranch != repo.CloneBranch {
-		err := g.Checkout(repo)
-		if err != nil {
-			m := fmt.Sprintf("Could not checkout %s for %s: %v", repo.CloneBranch, repo.Name, err)
+		defaultBranch = repo.CloneBranch
+		if defaultBranch == "" {
+			m := fmt.Sprintf("Failed to determine default branch for %s: %v", repo.Name, err)
 			colorlog.PrintError(m)
-			return nil
+			return false, fmt.Errorf("failed to determine default branch: %w", err)
 		}
 	}
 
-	// Fetch the latest changes from the remote
+	// Only check for unpushed commits if we're on the default branch
+	if currentBranch == defaultBranch {
+		hasUnpushedCommits, err := g.HasUnpushedCommits(repo)
+		if err != nil {
+			// If we can't check for unpushed commits (e.g., no tracking branch set up),
+			// skip the sync to be safe - we don't want to potentially lose commits
+			return false, nil
+		}
+
+		if hasUnpushedCommits {
+			return false, nil
+		}
+	}
+
+	// Get the commit hash before sync to check if changes were made
+	refName := fmt.Sprintf("refs/heads/%s", defaultBranch)
+	beforeHash, err := g.GetRefHash(repo, refName)
+	if err != nil {
+		// Ref might not exist yet, that's okay
+		beforeHash = ""
+	}
+
+	// Fetch the latest changes from the remote using the detected default branch
+	originalCloneBranch := repo.CloneBranch
+	repo.CloneBranch = defaultBranch
 	err = g.FetchCloneBranch(repo)
 	if err != nil {
+		repo.CloneBranch = originalCloneBranch
 		m := fmt.Sprintf("Failed to fetch default branch for %s: %v", repo.Name, err)
 		colorlog.PrintError(m)
-		return fmt.Errorf("failed to fetch default branch: %w", err)
+		return false, fmt.Errorf("failed to fetch default branch: %w", err)
 	}
 
-	// If the default branch is behind HEAD and we have commits to merge,
-	// perform a fast-forward merge
-	if isDefaultBehindHead && hasCommitsNotOnDefault {
-		m := fmt.Sprintf("Default branch is behind HEAD for %s, performing fast-forward merge", repo.Name)
-		colorlog.PrintInfo(m)
-
-		err = g.MergeIntoDefaultBranch(repo, currentBranch)
+	// If we're on the default branch, merge the remote changes
+	if currentBranch == defaultBranch {
+		err = g.MergeFastForward(repo)
+		repo.CloneBranch = originalCloneBranch
 		if err != nil {
-			m := fmt.Sprintf("Failed to merge into default branch for %s: %v", repo.Name, err)
+			m := fmt.Sprintf("Failed to merge remote changes for %s: %v", repo.Name, err)
 			colorlog.PrintError(m)
-			return fmt.Errorf("failed to merge into default branch: %w", err)
+			return false, fmt.Errorf("failed to merge remote changes: %w", err)
 		}
-
-		m = fmt.Sprintf("Successfully updated default branch %s by merging %s for %s", repo.CloneBranch, currentBranch, repo.Name)
-		colorlog.PrintSuccess(m)
-		return nil
+	} else {
+		repo.CloneBranch = originalCloneBranch
+		// If we're on a different branch, just update the default branch ref without checking it out
+		commitRef := fmt.Sprintf("refs/remotes/origin/%s", defaultBranch)
+		err = g.UpdateRef(repo, refName, commitRef)
+		if err != nil {
+			m := fmt.Sprintf("Failed to update branch reference for %s: %v", repo.Name, err)
+			colorlog.PrintError(m)
+			return false, fmt.Errorf("failed to update branch reference: %w", err)
+		}
 	}
 
-	// Update the local branch reference to match the remote
-	refName := fmt.Sprintf("refs/heads/%s", repo.CloneBranch)
-	commitRef := fmt.Sprintf("refs/remotes/origin/%s", repo.CloneBranch)
-	err = g.UpdateRef(repo, refName, commitRef)
+	// Check if the hash changed
+	afterHash, err := g.GetRefHash(repo, refName)
 	if err != nil {
-		m := fmt.Sprintf("Failed to update branch reference for %s: %v", repo.Name, err)
-		colorlog.PrintError(m)
-		return fmt.Errorf("failed to update branch reference: %w", err)
+		// If we can't verify, assume it changed
+		return true, nil
 	}
 
-	// Reset the working directory to match the updated branch
-	err = g.Reset(repo)
-	if err != nil {
-		m := fmt.Sprintf("Failed to reset working directory to remote branch for %s: %v", repo.Name, err)
-		colorlog.PrintError(m)
-		return fmt.Errorf("failed to reset working directory to remote branch: %w", err)
-	}
-
-	m := fmt.Sprintf("Successfully updated default branch %s for %s", repo.CloneBranch, repo.Name)
-	colorlog.PrintSuccess(m)
-
-	return nil
+	wasUpdated := beforeHash != afterHash
+	return wasUpdated, nil
 }
