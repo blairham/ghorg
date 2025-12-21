@@ -98,9 +98,9 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 	// Print unified success message (matching original behavior)
 	if repo.SyncedDefaultBranch {
 		if repo.Commits.CountDiff > 0 {
-			colorlog.PrintSuccess(fmt.Sprintf("Success syncing default branch for %s, branch: %s, new commits: %d", repo.URL, repo.CloneBranch, repo.Commits.CountDiff))
+			colorlog.PrintSuccess(fmt.Sprintf("Success pull %s, branch: %s, new commits: %d", repo.URL, repo.CloneBranch, repo.Commits.CountDiff))
 		} else {
-			colorlog.PrintSuccess(fmt.Sprintf("Success syncing default branch for %s, branch: %s", repo.URL, repo.CloneBranch))
+			colorlog.PrintSuccess(fmt.Sprintf("Success pull %s, branch: %s", repo.URL, repo.CloneBranch))
 		}
 	} else if repoWillBePulled && repo.Commits.CountDiff > 0 {
 		colorlog.PrintSuccess(fmt.Sprintf("Success %s %s, branch: %s, new commits: %d", action, repo.URL, repo.CloneBranch, repo.Commits.CountDiff))
