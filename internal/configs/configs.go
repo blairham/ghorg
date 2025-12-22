@@ -22,21 +22,27 @@ import (
 
 var (
 	// ErrNoGitHubToken error message when token is not found
+	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
 	ErrNoGitHubToken = errors.New("Could not find a valid github token. GHORG_GITHUB_TOKEN or (--token, -t) flag must be set. Create a personal access token, then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'GitHub Setup' in README.md")
 
 	// ErrNoGitLabToken error message when token is not found
+	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
 	ErrNoGitLabToken = errors.New("Could not find a valid gitlab token. GHORG_GITLAB_TOKEN or (--token, -t) flag must be set. Create a token from gitlab then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'GitLab Setup' in README.md")
 
 	// ErrNoGiteaToken error message when token is not found
+	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
 	ErrNoGiteaToken = errors.New("Could not find a valid gitea token. GHORG_GITEA_TOKEN or (--token, -t) flag must be set. Create a token from gitea then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'Gitea Setup' in README.md")
 
 	// ErrNoSourcehutToken error message when token is not found
+	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
 	ErrNoSourcehutToken = errors.New("Could not find a valid sourcehut token. GHORG_SOURCEHUT_TOKEN or (--token, -t) flag must be set. Create a token from sourcehut then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'Sourcehut Setup' in README.md")
 
 	// ErrNoBitbucketUsername error message when no username found
+	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
 	ErrNoBitbucketUsername = errors.New("Could not find bitbucket username. GHORG_BITBUCKET_USERNAME or (--bitbucket-username) must be set to clone repos from bitbucket, see 'BitBucket Setup' in README.md")
 
 	// ErrNoBitbucketAppPassword error message when no app password found
+	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
 	ErrNoBitbucketAppPassword = errors.New("Could not find a valid bitbucket app password. GHORG_BITBUCKET_APP_PASSWORD or (--token, -t) must be set to clone repos from bitbucket, see 'BitBucket Setup' in README.md")
 
 	// ErrIncorrectScmType indicates an unsupported scm type being used
@@ -163,11 +169,7 @@ func GhorgConfDir() string {
 
 // XConfigHomeSet checks for XDG_CONFIG_HOME env set
 func XConfigHomeSet() bool {
-	if os.Getenv("XDG_CONFIG_HOME") != "" {
-		return true
-	}
-
-	return false
+	return os.Getenv("XDG_CONFIG_HOME") != ""
 }
 
 func DefaultConfFile() string {

@@ -180,7 +180,7 @@ func (rp *RepositoryProcessor) shouldPruneUntouched(repo *scm.Repo) bool {
 	}
 
 	// Fetch and check branches
-	rp.git.FetchCloneBranch(*repo)
+	_ = rp.git.FetchCloneBranch(*repo)
 
 	branches, err := rp.git.Branch(*repo)
 	if err != nil {
@@ -290,9 +290,9 @@ func (rp *RepositoryProcessor) handleNewRepository(repo *scm.Repo, action *strin
 
 	// Checkout specific branch if specified
 	if os.Getenv("GHORG_BRANCH") != "" {
-		err := rp.git.Checkout(*repo)
-		if err != nil {
-			rp.addInfo(fmt.Sprintf("Could not checkout out %s, branch may not exist or may not have any contents/commits, no changes to: %s Error: %v", repo.CloneBranch, repo.URL, err))
+		checkoutErr := rp.git.Checkout(*repo)
+		if checkoutErr != nil {
+			rp.addInfo(fmt.Sprintf("Could not checkout out %s, branch may not exist or may not have any contents/commits, no changes to: %s Error: %v", repo.CloneBranch, repo.URL, checkoutErr))
 			return false
 		}
 	}
@@ -438,7 +438,7 @@ func (rp *RepositoryProcessor) handleStandardPull(repo *scm.Repo) bool {
 	// Checkout branch
 	err := rp.git.Checkout(*repo)
 	if err != nil {
-		rp.git.FetchCloneBranch(*repo)
+		_ = rp.git.FetchCloneBranch(*repo)
 
 		// Retry checkout
 		errRetry := rp.git.Checkout(*repo)

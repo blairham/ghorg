@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -56,7 +57,8 @@ func (c *LsCommand) Run(args []string) int {
 	parser := flags.NewParser(&opts, flags.Default)
 	remaining, err := parser.ParseArgs(args)
 	if err != nil {
-		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+		var flagsErr *flags.Error
+		if errors.As(err, &flagsErr) && flagsErr.Type == flags.ErrHelp {
 			fmt.Println(c.Help())
 			return 0
 		}

@@ -269,7 +269,7 @@ When enabled, the sync feature performs the following operations on each existin
 1. **Checks for local changes**: Skips sync if there are uncommitted changes in the working directory
 2. **Checks for unpushed commits**: Skips sync if there are commits not yet pushed to the remote
 3. **Fetches latest changes**: Retrieves the latest commits from the remote default branch
-4. **Intelligently merges**: 
+4. **Intelligently merges**:
    - If you're on the default branch: performs a fast-forward merge
    - If you're on a different branch: updates the default branch reference without checking it out
 5. **Preserves your work**: Never overwrites your current branch or uncommitted changes

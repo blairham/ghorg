@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -286,7 +287,7 @@ func (g goGitClient) UpdateRemote(repo scm.Repo) error {
 		}
 
 		err := remote.Fetch(fetchOpts)
-		if err != nil && err != gogit.NoErrAlreadyUpToDate {
+		if err != nil && !errors.Is(err, gogit.NoErrAlreadyUpToDate) {
 			return err
 		}
 	}
@@ -328,14 +329,14 @@ func (g goGitClient) Pull(repo scm.Repo) error {
 
 	// Handle depth
 	if depth := getCloneDepth(); depth != "" {
-		d, err := strconv.Atoi(depth)
-		if err == nil && d > 0 {
-			pullOpts.Depth = d
+		depthInt, convErr := strconv.Atoi(depth)
+		if convErr == nil && depthInt > 0 {
+			pullOpts.Depth = depthInt
 		}
 	}
 
 	err = w.Pull(pullOpts)
-	if err == gogit.NoErrAlreadyUpToDate {
+	if errors.Is(err, gogit.NoErrAlreadyUpToDate) {
 		return nil
 	}
 	return err
@@ -391,14 +392,14 @@ func (g goGitClient) FetchAll(repo scm.Repo) error {
 
 	// Handle depth
 	if depth := getCloneDepth(); depth != "" {
-		d, err := strconv.Atoi(depth)
-		if err == nil && d > 0 {
-			fetchOpts.Depth = d
+		depthInt, convErr := strconv.Atoi(depth)
+		if convErr == nil && depthInt > 0 {
+			fetchOpts.Depth = depthInt
 		}
 	}
 
 	err = r.Fetch(fetchOpts)
-	if err == gogit.NoErrAlreadyUpToDate {
+	if errors.Is(err, gogit.NoErrAlreadyUpToDate) {
 		return nil
 	}
 	return err
@@ -479,9 +480,9 @@ func (g goGitClient) RevListCompare(repo scm.Repo, localBranch string, remoteBra
 
 	err = iter.ForEach(func(c *object.Commit) error {
 		// Check if this commit is an ancestor of the remote branch
-		isAncestor, err := c.IsAncestor(remoteCommit)
-		if err != nil {
-			return err
+		isAncestor, ancestorErr := c.IsAncestor(remoteCommit)
+		if ancestorErr != nil {
+			return ancestorErr
 		}
 		if !isAncestor && c.Hash != remoteCommit.Hash {
 			result.WriteString(c.Hash.String())
@@ -518,14 +519,14 @@ func (g goGitClient) FetchCloneBranch(repo scm.Repo) error {
 
 	// Handle depth
 	if depth := getCloneDepth(); depth != "" {
-		d, err := strconv.Atoi(depth)
-		if err == nil && d > 0 {
-			fetchOpts.Depth = d
+		depthInt, convErr := strconv.Atoi(depth)
+		if convErr == nil && depthInt > 0 {
+			fetchOpts.Depth = depthInt
 		}
 	}
 
 	err = r.Fetch(fetchOpts)
-	if err == gogit.NoErrAlreadyUpToDate {
+	if errors.Is(err, gogit.NoErrAlreadyUpToDate) {
 		return nil
 	}
 	return err
@@ -718,7 +719,7 @@ func (g goGitClient) HasUnpushedCommits(repo scm.Repo) (bool, error) {
 	upstream, err := r.Reference(upstreamRef, true)
 	if err != nil {
 		// No upstream, could mean unpushed or just not set
-		return false, nil
+		return false, nil //nolint:nilerr // No upstream tracking branch is not an error, just means no tracking
 	}
 
 	// Count commits between HEAD and upstream
@@ -961,7 +962,7 @@ func (g goGitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
 	// First check if the remote exists and is accessible
 	_, err := g.GetRemoteURL(repo, "origin")
 	if err != nil {
-		return false, nil
+		return false, nil //nolint:nilerr // Remote doesn't exist, nothing to sync
 	}
 
 	// Check if the working directory has any uncommitted changes
@@ -997,11 +998,11 @@ func (g goGitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
 
 	// Only check for unpushed commits if we're on the default branch
 	if currentBranch == defaultBranch {
-		hasUnpushedCommits, err := g.HasUnpushedCommits(repo)
-		if err != nil {
+		hasUnpushedCommits, unpushedErr := g.HasUnpushedCommits(repo)
+		if unpushedErr != nil {
 			// If we can't check for unpushed commits (e.g., no tracking branch set up),
 			// skip the sync to be safe - we don't want to potentially lose commits
-			return false, nil
+			return false, nil //nolint:nilerr // Cannot check unpushed commits, skip sync to be safe
 		}
 
 		if hasUnpushedCommits {
@@ -1053,7 +1054,7 @@ func (g goGitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
 	afterHash, err := g.GetRefHash(repo, refName)
 	if err != nil {
 		// If we can't verify, assume it changed
-		return true, nil
+		return true, nil //nolint:nilerr // Cannot verify hash, optimistically assume it changed
 	}
 
 	wasUpdated := beforeHash != afterHash

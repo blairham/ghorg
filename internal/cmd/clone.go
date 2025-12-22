@@ -4,6 +4,7 @@ package cmd
 import (
 	"bufio"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -202,7 +203,8 @@ func (c *CloneCommand) Run(args []string) int {
 	parser := flags.NewParser(&opts, flags.Default)
 	remaining, err := parser.ParseArgs(args)
 	if err != nil {
-		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+		var flagsErr *flags.Error
+		if errors.As(err, &flagsErr) && flagsErr.Type == flags.ErrHelp {
 			fmt.Println(c.Help())
 			return 0
 		}
@@ -845,6 +847,7 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 			log.Fatal("Unsafe path segment found in SCM output")
 		}
 
+		//nolint:errcheck // Error handling is done inside the goroutine via addError/addInfo
 		limit.Execute(func() {
 			if repo.Path != "" && os.Getenv("GHORG_PRESERVE_DIRECTORY_STRUCTURE") == "true" {
 				repoSlug = repo.Path
@@ -873,7 +876,7 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 			for _, repoPath := range untouchedReposToPrune {
 				colorlog.PrintInfo(fmt.Sprintf("- %s", repoPath))
 			}
-			fmt.Scanln()
+			_, _ = fmt.Scanln()
 		}
 
 		for _, repoPath := range untouchedReposToPrune {
@@ -928,7 +931,7 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	// This needs to be called after printFinishedWithDirSize()
 	if os.Getenv("GHORG_STATS_ENABLED") == "true" {
 		date := time.Now().Format("2006-01-02 15:04:05")
-		writeGhorgStats(date, allReposToCloneCount, stats.CloneCount, stats.PulledCount, cloneInfosCount, cloneErrorsCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, pruneCount, stats.TotalDurationSeconds, hasCollisions)
+		_ = writeGhorgStats(date, allReposToCloneCount, stats.CloneCount, stats.PulledCount, cloneInfosCount, cloneErrorsCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, pruneCount, stats.TotalDurationSeconds, hasCollisions)
 	}
 
 	if os.Getenv("GHORG_DONT_EXIT_UNDER_TEST") != "true" {
@@ -952,8 +955,6 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 			}
 			os.Exit(exitCode)
 		}
-	} else {
-		cloneErrorsCount = 0
 	}
 
 }
@@ -987,10 +988,10 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 
 	if fileExists {
 		// Read the existing header
-		existingHeader, err := readFirstLine(statsFilePath)
-		if err != nil {
-			colorlog.PrintError(fmt.Sprintf("Error reading header from stats file: %v", err))
-			return err
+		existingHeader, readErr := readFirstLine(statsFilePath)
+		if readErr != nil {
+			colorlog.PrintError(fmt.Sprintf("Error reading header from stats file: %v", readErr))
+			return readErr
 		}
 
 		// Check if the existing header is different from the new header, need to add a newline
@@ -1003,9 +1004,9 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 				colorlog.PrintError(fmt.Sprintf("Error creating new header stats file: %v", err))
 				return err
 			}
-			if _, err := file.WriteString(header); err != nil {
-				colorlog.PrintError(fmt.Sprintf("Error writing new header to GHORG_STATS file: %v", err))
-				return err
+			if _, writeErr := file.WriteString(header); writeErr != nil {
+				colorlog.PrintError(fmt.Sprintf("Error writing new header to GHORG_STATS file: %v", writeErr))
+				return writeErr
 			}
 		} else {
 			// Open the existing file in append mode
@@ -1106,6 +1107,9 @@ func getCachedOrCalculatedOutputDirSizeInMb() (float64, error) {
 	return cachedDirSizeMB, nil
 }
 
+// filterByTargetReposPath is used by tests - main code uses RepositoryFilter.FilterByTargetReposPath
+//
+//nolint:unused // Used by clone_test.go
 func filterByTargetReposPath(cloneTargets []scm.Repo) []scm.Repo {
 
 	_, err := os.Stat(os.Getenv("GHORG_TARGET_REPOS_PATH"))
@@ -1491,7 +1495,9 @@ func setOutputDirName(argz []string) {
 	}
 }
 
-// filter repos down based on ghorgignore if one exists
+// filterByGhorgignore is used by tests - main code uses RepositoryFilter.FilterByGhorgIgnore
+//
+//nolint:unused // Used by clone_test.go
 func filterByGhorgignore(cloneTargets []scm.Repo) []scm.Repo {
 
 	_, err := os.Stat(configs.GhorgIgnoreLocation())
