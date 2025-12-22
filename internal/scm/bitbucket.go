@@ -24,6 +24,7 @@ func init() {
 type Bitbucket struct {
 	// extend the bitbucket client
 	*bitbucket.Client
+
 	// Fields for Bitbucket Server support
 	isServer   bool
 	serverURL  string
@@ -32,7 +33,7 @@ type Bitbucket struct {
 	password   string
 }
 
-func (_ Bitbucket) GetType() string {
+func (Bitbucket) GetType() string {
 	return "bitbucket"
 }
 
@@ -70,7 +71,7 @@ func (c Bitbucket) GetUserRepos(targetUser string) ([]Repo, error) {
 }
 
 // NewClient create new bitbucket scm client
-func (_ Bitbucket) NewClient() (Client, error) {
+func (Bitbucket) NewClient() (Client, error) {
 	user := os.Getenv("GHORG_BITBUCKET_USERNAME")
 	password := os.Getenv("GHORG_BITBUCKET_APP_PASSWORD")
 	oAuth := os.Getenv("GHORG_BITBUCKET_OAUTH")
@@ -126,7 +127,7 @@ func (_ Bitbucket) NewClient() (Client, error) {
 	}, nil
 }
 
-// Bitbucket Server API structures
+// ServerRepository represents the Bitbucket Server API repository structure
 type ServerRepository struct {
 	Name    string         `json:"name"`
 	Slug    string         `json:"slug"`
@@ -152,7 +153,7 @@ func (c Bitbucket) getServerProjectRepos(projectKey string) ([]Repo, error) {
 	url := fmt.Sprintf("%s?start=0&limit=%d", apiURL, limit)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.SetBasicAuth(c.username, c.password)
@@ -160,7 +161,7 @@ func (c Bitbucket) getServerProjectRepos(projectKey string) ([]Repo, error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make API request: %v", err)
+		return nil, fmt.Errorf("failed to make API request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -172,7 +173,7 @@ func (c Bitbucket) getServerProjectRepos(projectKey string) ([]Repo, error) {
 
 	var response ServerProjectResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode API response: %v", err)
+		return nil, fmt.Errorf("failed to decode API response: %w", err)
 	}
 
 	// If only one page, return immediately
@@ -283,10 +284,8 @@ func (c Bitbucket) filterServerRepos(repos []ServerRepository) []Repo {
 					r.CloneURL = c.addCredentialsToURL(href)
 					cloneData = append(cloneData, r)
 					// Added HTTPS clone URL
-				} else {
-					// Log unmatched protocols for debugging
-					// Skipping incompatible clone link
 				}
+				// Skip clone links that don't match the requested protocol
 			}
 		}
 	}
@@ -308,14 +307,15 @@ func (c Bitbucket) addCredentialsToURL(cloneURL string) string {
 	return cloneURL
 }
 
-func (_ Bitbucket) filter(resp []bitbucket.Repository) (repoData []Repo, err error) {
+func (Bitbucket) filter(resp []bitbucket.Repository) (repoData []Repo, err error) {
 	cloneData := []Repo{}
 
 	for _, a := range resp {
-		links := a.Links["clone"].([]any)
+		links, _ := a.Links["clone"].([]any)
 		for _, l := range links {
-			link := l.(map[string]any)["href"]
-			linkType := l.(map[string]any)["name"]
+			linkMap, _ := l.(map[string]any)
+			link, _ := linkMap["href"].(string)
+			linkType, _ := linkMap["name"].(string)
 
 			if os.Getenv("GHORG_TOPICS") != "" {
 				colorlog.PrintError("WARNING: Filtering by topics is not supported for Bitbucket SCM")
@@ -331,12 +331,12 @@ func (_ Bitbucket) filter(resp []bitbucket.Repository) (repoData []Repo, err err
 			}
 
 			if os.Getenv("GHORG_CLONE_PROTOCOL") == "ssh" && linkType == "ssh" {
-				r.URL = link.(string)
-				r.CloneURL = link.(string)
+				r.URL = link
+				r.CloneURL = link
 				cloneData = append(cloneData, r)
 			} else if os.Getenv("GHORG_CLONE_PROTOCOL") == "https" && linkType == "https" {
-				r.URL = link.(string)
-				r.CloneURL = link.(string)
+				r.URL = link
+				r.CloneURL = link
 				if os.Getenv("GHORG_BITBUCKET_OAUTH") != "" {
 					// TODO
 				} else {

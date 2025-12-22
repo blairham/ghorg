@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -52,7 +53,8 @@ func (c *RecloneCronCommand) Run(args []string) int {
 	parser := flags.NewParser(&opts, flags.Default)
 	_, err := parser.ParseArgs(args)
 	if err != nil {
-		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+		var flagsErr *flags.Error
+		if errors.As(err, &flagsErr) && flagsErr.Type == flags.ErrHelp {
 			fmt.Println(c.Help())
 			return 0
 		}

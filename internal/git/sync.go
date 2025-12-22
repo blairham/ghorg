@@ -27,7 +27,7 @@ func (g GitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
 	_, err := g.GetRemoteURL(repo, "origin")
 	if err != nil {
 		// Remote doesn't exist or isn't accessible, skip sync
-		return false, nil
+		return false, nil //nolint:nilerr // Remote doesn't exist, nothing to sync
 	}
 
 	// Get the actual default branch from the remote
@@ -67,11 +67,11 @@ func (g GitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
 	// Only check for unpushed commits if we're on the default branch
 	// (feature branches might not have a remote tracking branch)
 	if currentBranch == defaultBranch {
-		hasUnpushedCommits, err := g.HasUnpushedCommits(repo)
-		if err != nil {
+		hasUnpushedCommits, unpushedErr := g.HasUnpushedCommits(repo)
+		if unpushedErr != nil {
 			// If we can't check for unpushed commits (e.g., no tracking branch set up),
 			// skip the sync to be safe - we don't want to potentially lose commits
-			return false, nil
+			return false, nil //nolint:nilerr // Cannot check unpushed commits, skip sync to be safe
 		}
 
 		// Skip sync if there are unpushed commits
@@ -122,10 +122,10 @@ func (g GitClient) SyncDefaultBranch(repo scm.Repo) (bool, error) {
 	}
 
 	// Check if the hash changed
-	afterHash, err := g.GetRefHash(repo, refName)
-	if err != nil {
+	afterHash, hashErr := g.GetRefHash(repo, refName)
+	if hashErr != nil {
 		// If we can't verify, assume it changed
-		return true, nil
+		return true, nil //nolint:nilerr // Cannot verify hash, assume update occurred
 	}
 
 	wasUpdated := beforeHash != afterHash

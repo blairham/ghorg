@@ -31,7 +31,7 @@ type Sourcehut struct {
 
 type sourcehutCursor string
 
-func (_ Sourcehut) GetType() string {
+func (Sourcehut) GetType() string {
 	return "sourcehut"
 }
 
@@ -87,7 +87,7 @@ func (c Sourcehut) GetUserRepos(targetUsername string) ([]Repo, error) {
 }
 
 // NewClient create new sourcehut scm client
-func (_ Sourcehut) NewClient() (Client, error) {
+func (Sourcehut) NewClient() (Client, error) {
 	baseURL := os.Getenv("GHORG_SCM_BASE_URL")
 	token := os.Getenv("GHORG_SOURCEHUT_TOKEN")
 
@@ -103,7 +103,7 @@ func (_ Sourcehut) NewClient() (Client, error) {
 
 	var hc *http.Client
 	if os.Getenv("GHORG_INSECURE_SOURCEHUT_CLIENT") == "true" {
-		defaultTransport := http.DefaultTransport.(*http.Transport)
+		defaultTransport, _ := http.DefaultTransport.(*http.Transport)
 		// Create new Transport that ignores self-signed SSL
 		customTransport := &http.Transport{
 			Proxy:                 defaultTransport.Proxy,
@@ -197,8 +197,8 @@ func (c Sourcehut) queryRepositoriesPage(cursor sourcehutCursor, apiUsername str
 	if err != nil {
 		return nil, "", err
 	}
-	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, "", err
+	if unmarshalErr := json.Unmarshal(body, &response); unmarshalErr != nil {
+		return nil, "", unmarshalErr
 	}
 	if response.Errors != nil {
 		return nil, "", fmt.Errorf("sourcehut api returned errors while listing repos: %s", string(response.Errors))

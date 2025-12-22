@@ -27,11 +27,12 @@ func init() {
 type Github struct {
 	// extend the github client
 	*github.Client
+
 	// perPage contain the pagination item limit
 	perPage int
 }
 
-func (_ Github) GetType() string {
+func (Github) GetType() string {
 	return "github"
 }
 
@@ -120,7 +121,7 @@ func (c Github) GetUserRepos(targetUser string) ([]Repo, error) {
 }
 
 // NewClient create new github scm client
-func (_ Github) NewClient() (Client, error) {
+func (Github) NewClient() (Client, error) {
 	ctx := context.Background()
 	var tc *http.Client
 
@@ -181,7 +182,7 @@ func (_ Github) NewClient() (Client, error) {
 	return client, nil
 }
 
-func (_ Github) addTokenToHTTPSCloneURL(url string, token string) string {
+func (Github) addTokenToHTTPSCloneURL(url string, token string) string {
 	splitURL := strings.Split(url, "https://")
 	return "https://" + tokenUsername + ":" + token + "@" + splitURL[1]
 }
@@ -266,7 +267,7 @@ func (c Github) filter(allRepos []*github.Repository) []Repo {
 	return repoData
 }
 
-// Sets the GitHub username tied to the github token to the package variable tokenUsername
+// SetTokensUsername sets the GitHub username tied to the github token to the package variable tokenUsername.
 // Then if https clone method is used the clone url will be https://username:token@github.com/org/repo.git
 // The username is now needed when using the new fine-grained tokens for github
 func (c Github) SetTokensUsername() {

@@ -14,7 +14,7 @@ func (c Gitlab) fetchTopLevelGroupsParallel(firstPageGroups []*gitlab.Group, tot
 
 	// Add first page groups
 	for _, g := range firstPageGroups {
-		allGroups = append(allGroups, strconv.FormatInt(int64(g.ID), 10))
+		allGroups = append(allGroups, strconv.FormatInt(g.ID, 10))
 	}
 
 	// Channel to collect results from parallel fetches
@@ -67,7 +67,7 @@ func (c Gitlab) fetchTopLevelGroupsParallel(firstPageGroups []*gitlab.Group, tot
 	for page := 2; page <= totalPages; page++ {
 		if groups, ok := pageResults[page]; ok {
 			for _, g := range groups {
-				allGroups = append(allGroups, strconv.FormatInt(int64(g.ID), 10))
+				allGroups = append(allGroups, strconv.FormatInt(g.ID, 10))
 			}
 		}
 	}

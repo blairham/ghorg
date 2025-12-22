@@ -416,4 +416,3 @@ func TestSourcehutUsernameHandling(t *testing.T) {
 		}
 	})
 }
-

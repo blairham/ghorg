@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -53,7 +54,8 @@ func (c *RecloneServerCommand) Run(args []string) int {
 	parser := flags.NewParser(&opts, flags.Default)
 	_, err := parser.ParseArgs(args)
 	if err != nil {
-		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+		var flagsErr *flags.Error
+		if errors.As(err, &flagsErr) && flagsErr.Type == flags.ErrHelp {
 			fmt.Println(c.Help())
 			return 0
 		}
@@ -157,7 +159,7 @@ func startReCloneServer() {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
+			_, _ = w.Write(jsonBytes)
 			return
 		}
 
