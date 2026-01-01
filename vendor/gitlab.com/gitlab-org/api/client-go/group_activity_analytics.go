@@ -56,19 +56,12 @@ type GetRecentlyCreatedIssuesCountOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/group_activity_analytics/#get-count-of-recently-created-issues-for-group
 func (s *GroupActivityAnalyticsService) GetRecentlyCreatedIssuesCount(opt *GetRecentlyCreatedIssuesCountOptions, options ...RequestOptionFunc) (*IssuesCount, *Response, error) {
-	u := "analytics/group_activity/issues_count"
-	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	res := new(IssuesCount)
-	resp, err := s.client.Do(req, res)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return res, resp, nil
+	return do[*IssuesCount](s.client,
+		withMethod(http.MethodGet),
+		withPath("analytics/group_activity/issues_count"),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // MergeRequestsCount represents the total count of recently created merge requests
@@ -95,19 +88,12 @@ type GetRecentlyCreatedMergeRequestsCountOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/group_activity_analytics/#get-count-of-recently-created-merge-requests-for-group
 func (s *GroupActivityAnalyticsService) GetRecentlyCreatedMergeRequestsCount(opt *GetRecentlyCreatedMergeRequestsCountOptions, options ...RequestOptionFunc) (*MergeRequestsCount, *Response, error) {
-	u := "analytics/group_activity/merge_requests_count"
-	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	res := new(MergeRequestsCount)
-	resp, err := s.client.Do(req, res)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return res, resp, nil
+	return do[*MergeRequestsCount](s.client,
+		withMethod(http.MethodGet),
+		withPath("analytics/group_activity/merge_requests_count"),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // NewMembersCount represents the total count of recently added members to a group.
@@ -132,17 +118,10 @@ type GetRecentlyAddedMembersCountOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/group_activity_analytics/#get-count-of-members-recently-added-to-group
 func (s *GroupActivityAnalyticsService) GetRecentlyAddedMembersCount(opt *GetRecentlyAddedMembersCountOptions, options ...RequestOptionFunc) (*NewMembersCount, *Response, error) {
-	u := "analytics/group_activity/new_members_count"
-	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	res := new(NewMembersCount)
-	resp, err := s.client.Do(req, res)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return res, resp, nil
+	return do[*NewMembersCount](s.client,
+		withMethod(http.MethodGet),
+		withPath("analytics/group_activity/new_members_count"),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }

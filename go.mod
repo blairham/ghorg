@@ -9,6 +9,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/log v0.4.2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+	github.com/go-git/go-git/v5 v5.16.4
 	github.com/google/go-github/v72 v72.0.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/knadh/koanf/parsers/yaml v1.1.0
@@ -18,7 +19,7 @@ require (
 	github.com/ktrysmt/go-bitbucket v0.9.88
 	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/go-homedir v1.1.0
-	gitlab.com/gitlab-org/api/client-go v1.9.0
+	gitlab.com/gitlab-org/api/client-go v1.10.0
 	golang.org/x/oauth2 v0.34.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -47,7 +48,6 @@ require (
 	github.com/go-fed/httpsig v1.1.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
-	github.com/go-git/go-git/v5 v5.16.4 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
