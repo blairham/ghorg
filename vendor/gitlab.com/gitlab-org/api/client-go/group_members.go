@@ -17,7 +17,6 @@
 package gitlab
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -127,24 +126,11 @@ type ListGroupMembersOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#list-all-members-of-a-group-or-project
 func (s *GroupsService) ListGroupMembers(gid any, opt *ListGroupMembersOptions, options ...RequestOptionFunc) ([]*GroupMember, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/members", PathEscape(group))
-
-	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var gm []*GroupMember
-	resp, err := s.client.Do(req, &gm)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return gm, resp, nil
+	return do[[]*GroupMember](s.client,
+		withPath("groups/%s/members", GroupID{gid}),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // ListAllGroupMembers get a list of group members viewable by the authenticated
@@ -153,24 +139,11 @@ func (s *GroupsService) ListGroupMembers(gid any, opt *ListGroupMembersOptions, 
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#list-all-members-of-a-group-or-project-including-inherited-and-invited-members
 func (s *GroupsService) ListAllGroupMembers(gid any, opt *ListGroupMembersOptions, options ...RequestOptionFunc) ([]*GroupMember, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/members/all", PathEscape(group))
-
-	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var gm []*GroupMember
-	resp, err := s.client.Do(req, &gm)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return gm, resp, nil
+	return do[[]*GroupMember](s.client,
+		withPath("groups/%s/members/all", GroupID{gid}),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // AddGroupMemberOptions represents the available AddGroupMember() options.
@@ -190,24 +163,10 @@ type AddGroupMemberOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#get-a-member-of-a-group-or-project
 func (s *GroupMembersService) GetGroupMember(gid any, user int64, options ...RequestOptionFunc) (*GroupMember, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/members/%d", PathEscape(group), user)
-
-	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	gm := new(GroupMember)
-	resp, err := s.client.Do(req, gm)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return gm, resp, nil
+	return do[*GroupMember](s.client,
+		withPath("groups/%s/members/%d", GroupID{gid}, user),
+		withRequestOpts(options...),
+	)
 }
 
 // GetInheritedGroupMember get a member of a group or project, including
@@ -216,24 +175,10 @@ func (s *GroupMembersService) GetGroupMember(gid any, user int64, options ...Req
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#get-a-member-of-a-group-or-project-including-inherited-and-invited-members
 func (s *GroupMembersService) GetInheritedGroupMember(gid any, user int64, options ...RequestOptionFunc) (*GroupMember, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/members/all/%d", PathEscape(group), user)
-
-	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	gm := new(GroupMember)
-	resp, err := s.client.Do(req, gm)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return gm, resp, err
+	return do[*GroupMember](s.client,
+		withPath("groups/%s/members/all/%d", GroupID{gid}, user),
+		withRequestOpts(options...),
+	)
 }
 
 // ListBillableGroupMembersOptions represents the available
@@ -253,24 +198,11 @@ type ListBillableGroupMembersOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#list-all-billable-members-of-a-group
 func (s *GroupsService) ListBillableGroupMembers(gid any, opt *ListBillableGroupMembersOptions, options ...RequestOptionFunc) ([]*BillableGroupMember, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/billable_members", PathEscape(group))
-
-	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var bgm []*BillableGroupMember
-	resp, err := s.client.Do(req, &bgm)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return bgm, resp, nil
+	return do[[]*BillableGroupMember](s.client,
+		withPath("groups/%s/billable_members", GroupID{gid}),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // ListMembershipsForBillableGroupMemberOptions represents the available
@@ -288,24 +220,11 @@ type ListMembershipsForBillableGroupMemberOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#list-memberships-for-a-billable-member-of-a-group
 func (s *GroupsService) ListMembershipsForBillableGroupMember(gid any, user int64, opt *ListMembershipsForBillableGroupMemberOptions, options ...RequestOptionFunc) ([]*BillableUserMembership, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/billable_members/%d/memberships", PathEscape(group), user)
-
-	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var bum []*BillableUserMembership
-	resp, err := s.client.Do(req, &bum)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return bum, resp, nil
+	return do[[]*BillableUserMembership](s.client,
+		withPath("groups/%s/billable_members/%d/memberships", GroupID{gid}, user),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // RemoveBillableGroupMember removes a given group members that count as billable.
@@ -313,18 +232,12 @@ func (s *GroupsService) ListMembershipsForBillableGroupMember(gid any, user int6
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#remove-a-billable-member-from-a-group
 func (s *GroupsService) RemoveBillableGroupMember(gid any, user int64, options ...RequestOptionFunc) (*Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, err
-	}
-	u := fmt.Sprintf("groups/%s/billable_members/%d", PathEscape(group), user)
-
-	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.client.Do(req, nil)
+	_, resp, err := do[none](s.client,
+		withMethod(http.MethodDelete),
+		withPath("groups/%s/billable_members/%d", GroupID{gid}, user),
+		withRequestOpts(options...),
+	)
+	return resp, err
 }
 
 // AddGroupMember adds a user to the list of group members.
@@ -332,24 +245,12 @@ func (s *GroupsService) RemoveBillableGroupMember(gid any, user int64, options .
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#add-a-member-to-a-group-or-project
 func (s *GroupMembersService) AddGroupMember(gid any, opt *AddGroupMemberOptions, options ...RequestOptionFunc) (*GroupMember, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/members", PathEscape(group))
-
-	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	gm := new(GroupMember)
-	resp, err := s.client.Do(req, gm)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return gm, resp, nil
+	return do[*GroupMember](s.client,
+		withMethod(http.MethodPost),
+		withPath("groups/%s/members", GroupID{gid}),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // ShareWithGroup shares a group with the group.
@@ -357,24 +258,12 @@ func (s *GroupMembersService) AddGroupMember(gid any, opt *AddGroupMemberOptions
 // GitLab API docs:
 // https://docs.gitlab.com/api/groups/#create-a-link-to-share-a-group-with-another-group
 func (s *GroupMembersService) ShareWithGroup(gid any, opt *ShareWithGroupOptions, options ...RequestOptionFunc) (*Group, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/share", PathEscape(group))
-
-	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	g := new(Group)
-	resp, err := s.client.Do(req, g)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return g, resp, nil
+	return do[*Group](s.client,
+		withMethod(http.MethodPost),
+		withPath("groups/%s/share", GroupID{gid}),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // DeleteShareWithGroup allows to unshare a group from a group.
@@ -382,18 +271,12 @@ func (s *GroupMembersService) ShareWithGroup(gid any, opt *ShareWithGroupOptions
 // GitLab API docs:
 // https://docs.gitlab.com/api/groups/#delete-the-link-that-shares-a-group-with-another-group
 func (s *GroupMembersService) DeleteShareWithGroup(gid any, groupID int64, options ...RequestOptionFunc) (*Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, err
-	}
-	u := fmt.Sprintf("groups/%s/share/%d", PathEscape(group), groupID)
-
-	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.client.Do(req, nil)
+	_, resp, err := do[none](s.client,
+		withMethod(http.MethodDelete),
+		withPath("groups/%s/share/%d", GroupID{gid}, groupID),
+		withRequestOpts(options...),
+	)
+	return resp, err
 }
 
 // EditGroupMemberOptions represents the available EditGroupMember()
@@ -412,24 +295,12 @@ type EditGroupMemberOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#edit-a-member-of-a-group-or-project
 func (s *GroupMembersService) EditGroupMember(gid any, user int64, opt *EditGroupMemberOptions, options ...RequestOptionFunc) (*GroupMember, *Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("groups/%s/members/%d", PathEscape(group), user)
-
-	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	gm := new(GroupMember)
-	resp, err := s.client.Do(req, gm)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return gm, resp, nil
+	return do[*GroupMember](s.client,
+		withMethod(http.MethodPut),
+		withPath("groups/%s/members/%d", GroupID{gid}, user),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
 }
 
 // RemoveGroupMemberOptions represents the available options to remove a group member.
@@ -446,16 +317,11 @@ type RemoveGroupMemberOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/members/#remove-a-member-from-a-group-or-project
 func (s *GroupMembersService) RemoveGroupMember(gid any, user int64, opt *RemoveGroupMemberOptions, options ...RequestOptionFunc) (*Response, error) {
-	group, err := parseID(gid)
-	if err != nil {
-		return nil, err
-	}
-	u := fmt.Sprintf("groups/%s/members/%d", PathEscape(group), user)
-
-	req, err := s.client.NewRequest(http.MethodDelete, u, opt, options)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.client.Do(req, nil)
+	_, resp, err := do[none](s.client,
+		withMethod(http.MethodDelete),
+		withPath("groups/%s/members/%d", GroupID{gid}, user),
+		withAPIOpts(opt),
+		withRequestOpts(options...),
+	)
+	return resp, err
 }
