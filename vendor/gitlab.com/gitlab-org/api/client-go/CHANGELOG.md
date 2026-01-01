@@ -1,3 +1,43 @@
+## 1.10.0
+
+### 🚀 Features
+
+- feat: implement Runner Controller API ([!2634](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2634)) by [Duo Developer](https://gitlab.com/duo-developer)
+
+### 🔄 Other Changes
+
+- chore(deps): update module github.com/godbus/dbus/v5 to v5.2.1 ([!2635](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2635)) by [GitLab Dependency Bot](https://gitlab.com/gitlab-dependency-update-bot)
+
+
+
+# [1.10.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.9.1...v1.10.0) (2025-12-19)
+
+
+### Features
+
+* implement Runner Controller API ([66f19f4](https://gitlab.com/gitlab-org/api/client-go/commit/66f19f4073ce87566c7751e0987f857eeb008849))
+
+## 1.9.1
+
+### 🐛 Bug Fixes
+
+- fix: use parameters in config.NewClient and Jobs.DownloadArtifactsFile ([!2633](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2633)) by [Oleksandr Redko](https://gitlab.com/alexandear)
+
+### 🔄 Other Changes
+
+- test: fix TestCreateMergeRequestContextCommits failing locally ([!2631](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2631)) by [Oleksandr Redko](https://gitlab.com/alexandear)
+- Code Refactor Using Request Handlers - 8 ([!2523](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2523)) by [Yashesvinee V](https://gitlab.com/yashes7516)
+- Code Refactor Using Request Handlers - 6 ([!2521](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2521)) by [Yashesvinee V](https://gitlab.com/yashes7516)
+
+
+
+## [1.9.1](https://gitlab.com/gitlab-org/api/client-go/compare/v1.9.0...v1.9.1) (2025-12-17)
+
+
+### Bug Fixes
+
+* use parameters in config.NewClient and Jobs.DownloadArtifactsFile ([28b7cd7](https://gitlab.com/gitlab-org/api/client-go/commit/28b7cd72f06777a2d3ec7772870c26565140341a))
+
 ## 1.9.0
 
 ### 🚀 Features
