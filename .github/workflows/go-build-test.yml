@@ -17,15 +17,17 @@ jobs:
         id: go
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
+      - name: Install Mage
+        run: go install github.com/magefile/mage@latest
       - name: Configure Git for tests
         run: |
           git config --global user.name "Test User"
           git config --global user.email "test@example.com"
           git config --global init.defaultBranch main
       - name: Test
-        run: go test -v ./...
+        run: mage test
       - name: Build
-        run: go build -v -o ghorg ./cmd/ghorg
+        run: mage buildLocal
   build_and_test_windows:
     environment: actions
     name: Build and Test Windows
@@ -38,6 +40,8 @@ jobs:
         id: go
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
+      - name: Install Mage
+        run: go install github.com/magefile/mage@latest
       - name: Set configuration file
         run: |
           mkdir C:\Users\runneradmin\.config\ghorg
@@ -49,6 +53,6 @@ jobs:
           git config --global init.defaultBranch main
           git config --global core.autocrlf false
       - name: Build
-        run: env GOOS=windows GOARCH=386 go build -v -o ghorg.exe ./cmd/ghorg
+        run: mage buildLocal
       - name: Test
-        run: go test -v ./...
+        run: mage test
