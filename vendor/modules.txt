@@ -243,7 +243,7 @@ github.com/knadh/koanf/maps
 # github.com/knadh/koanf/parsers/yaml v1.1.0
 ## explicit; go 1.23.0
 github.com/knadh/koanf/parsers/yaml
-# github.com/knadh/koanf/providers/file v1.2.0
+# github.com/knadh/koanf/providers/file v1.2.1
 ## explicit; go 1.23.0
 github.com/knadh/koanf/providers/file
 # github.com/knadh/koanf/v2 v2.3.0
