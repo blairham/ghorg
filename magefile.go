@@ -59,6 +59,13 @@ func Build() error {
 	return sh.RunV("goreleaser", "build", "--snapshot", "--clean")
 }
 
+// BuildDocker builds Docker images using goreleaser snapshot (no push)
+func BuildDocker() error {
+	mg.Deps(Deps.Verify)
+	fmt.Println("Building Docker images with goreleaser (snapshot)...")
+	return sh.RunV("goreleaser", "release", "--snapshot", "--clean", "--skip=publish")
+}
+
 // BuildLocal builds a single ghorg binary for local development (fast)
 func BuildLocal() error {
 	mg.Deps(Fmt)
@@ -216,11 +223,24 @@ func TestHelpers() error {
 		"^Test(GetRemoteURL|HasLocalChanges|HasUnpushedCommits|GetCurrentBranch|HasCommitsNotOnDefaultBranch|IsDefaultBranchBehindHead|MergeIntoDefaultBranch|UpdateRef)")
 }
 
-// Release runs goreleaser to create a release
+// Release runs goreleaser to create a release (requires GITHUB_TOKEN)
 func Release() error {
 	mg.Deps(Deps.Verify, Test)
-	fmt.Println("Running goreleaser...")
-	return sh.RunV("goreleaser", "release")
+	fmt.Println("Running goreleaser release...")
+	return sh.RunV("goreleaser", "release", "--clean")
+}
+
+// ReleaseDry runs goreleaser in dry-run mode (no publish)
+func ReleaseDry() error {
+	mg.Deps(Deps.Verify)
+	fmt.Println("Running goreleaser release (dry-run)...")
+	return sh.RunV("goreleaser", "release", "--snapshot", "--clean")
+}
+
+// ReleaseCheck validates the goreleaser configuration
+func ReleaseCheck() error {
+	fmt.Println("Checking goreleaser configuration...")
+	return sh.RunV("goreleaser", "check")
 }
 
 // Examples copies example files
@@ -233,8 +253,12 @@ func Examples() error {
 func Clean() error {
 	fmt.Println("Cleaning build artifacts...")
 	files := []string{"ghorg", "coverage.out", "coverage.html"}
+	dirs := []string{"dist"}
 	for _, f := range files {
 		os.Remove(f)
+	}
+	for _, d := range dirs {
+		os.RemoveAll(d)
 	}
 	return nil
 }

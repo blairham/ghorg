@@ -1,0 +1,5 @@
+{
+  "yaml.schemas": {
+    "https://www.schemastore.org/github-workflow.json": "file:///Users/bhamilton/Developer/github.com/blairham/ghorg/.github/workflows/goreleaser.yml"
+  }
+}

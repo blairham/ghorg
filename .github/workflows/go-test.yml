@@ -2,9 +2,9 @@
 name: Go
 on: pull_request
 jobs:
-  build_and_test:
+  test:
     environment: actions
-    name: Build and Test
+    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -26,11 +26,9 @@ jobs:
           git config --global init.defaultBranch main
       - name: Test
         run: mage test
-      - name: Build
-        run: mage buildLocal
-  build_and_test_windows:
+  test_windows:
     environment: actions
-    name: Build and Test Windows
+    name: Test Windows
     runs-on: windows-latest
     steps:
       - name: Set up Go 1.24.11
@@ -52,7 +50,5 @@ jobs:
           git config --global user.email "test@example.com"
           git config --global init.defaultBranch main
           git config --global core.autocrlf false
-      - name: Build
-        run: mage buildLocal
       - name: Test
         run: mage test

@@ -1,23 +1,9 @@
 # ==================================================
-# Build image
+# Runtime image for GoReleaser
 # ==================================================
-FROM golang:alpine AS build-image
+FROM alpine:latest
 
-# ENV GO111MODULE=on
-ENV CGO_ENABLED=0
-
-WORKDIR /go/src/github.com/blairham/ghorg
-
-COPY . .
-
-RUN go get -d -v ./... \
-    && go build -a --mod vendor -o ghorg ./cmd/ghorg
-
-# ==================================================
-# Runtime image
-# ==================================================
-FROM alpine:latest AS runtime-image
-
+ARG TARGETPLATFORM
 ARG USER=ghorg
 ARG GROUP=ghorg
 ARG UID=1111
@@ -43,11 +29,11 @@ USER $USER
 WORKDIR /data
 
 # Sample config
-COPY --from=build-image --chown=$USER:$GROUP /go/src/github.com/blairham/ghorg/sample-conf.yaml /config/conf.yaml
-COPY --from=build-image --chown=$USER:$GROUP /go/src/github.com/blairham/ghorg/sample-reclone.yaml /config/reclone.yaml
+COPY --chown=$USER:$GROUP sample-conf.yaml /config/conf.yaml
+COPY --chown=$USER:$GROUP sample-reclone.yaml /config/reclone.yaml
 
-# Copy compiled binary
-COPY --from=build-image --chown=$USER:$GROUP /go/src/github.com/blairham/ghorg/ghorg /usr/local/bin
+# Copy compiled binary from GoReleaser (dockers_v2 uses $TARGETPLATFORM)
+COPY --chown=$USER:$GROUP $TARGETPLATFORM/ghorg /usr/local/bin/ghorg
 
 VOLUME /data
 
