@@ -1,0 +1,54 @@
+# Running locally https://yonatankra.com/how-to-test-github-actions-locally-using-act/
+name: Go
+on: pull_request
+jobs:
+  test:
+    environment: actions
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macos-latest, ubuntu-latest ]
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+      - name: Set up Go 1.24.11
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.11
+        id: go
+      - name: Install Mage
+        run: go install github.com/magefile/mage@latest
+      - name: Configure Git for tests
+        run: |
+          git config --global user.name "Test User"
+          git config --global user.email "test@example.com"
+          git config --global init.defaultBranch main
+      - name: Test
+        run: mage test
+  test_windows:
+    environment: actions
+    name: Test Windows
+    runs-on: windows-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+      - name: Set up Go 1.24.11
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.11
+        id: go
+      - name: Install Mage
+        run: go install github.com/magefile/mage@latest
+      - name: Set configuration file
+        run: |
+          mkdir C:\Users\runneradmin\.config\ghorg
+          copy sample-conf.yaml C:\Users\runneradmin\.config\ghorg\conf.yaml
+      - name: Configure Git for tests
+        run: |
+          git config --global user.name "Test User"
+          git config --global user.email "test@example.com"
+          git config --global init.defaultBranch main
+          git config --global core.autocrlf false
+      - name: Test
+        run: mage test

@@ -267,6 +267,7 @@ type DownloadArtifactsFileOptions struct {
 func (s *JobsService) DownloadArtifactsFile(pid any, refName string, opt *DownloadArtifactsFileOptions, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	b, resp, err := do[bytes.Buffer](s.client,
 		withPath("projects/%s/jobs/artifacts/%s/download", ProjectID{pid}, NoEscape{refName}),
+		withAPIOpts(opt),
 		withRequestOpts(options...),
 	)
 

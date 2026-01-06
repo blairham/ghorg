@@ -15,6 +15,17 @@ builds:
       - linux
       - windows
       - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: darwin
+        goarch: arm
 archives:
   - id: ghorg
     name_template: >-
@@ -23,40 +34,48 @@ checksum:
   name_template: "checksums.txt"
 changelog:
   disable: true
-brews:
+
+dockers_v2:
+  - images:
+      - "ghcr.io/blairham/ghorg"
+    tags:
+      - "{{ .Tag }}"
+      - "latest"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      - linux/arm/v7
+    labels:
+      "org.opencontainers.image.title": "{{ .ProjectName }}"
+      "org.opencontainers.image.description": "Quickly clone an entire org/users repositories into one directory"
+      "org.opencontainers.image.url": "https://github.com/blairham/ghorg"
+      "org.opencontainers.image.source": "https://github.com/blairham/ghorg"
+      "org.opencontainers.image.version": "{{ .Version }}"
+      "org.opencontainers.image.revision": "{{ .FullCommit }}"
+    extra_files:
+      - sample-conf.yaml
+      - sample-reclone.yaml
+
+homebrew_casks:
   - repository:
       owner: blairham
       name: homebrew-utils
-
-      # Optionally a branch can be provided.
-      # Defaults to the default repository branch.
       branch: master
 
-    # The project name and current git tag are used in the format string.
-    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
 
     homepage: "https://github.com/blairham/ghorg"
 
     description: "Quickly clone an entire org/users repositories into one directory"
 
-    license: "Apache-2.0"
+    binaries:
+      - ghorg
 
-    # Packages your package depends on.
-    # dependencies:
-    #   - name: git
+    caveats: |
+      For examples on how to use ghorg see: https://github.com/blairham/ghorg/tree/master/examples
 
-    test: |
-      system "#{bin}/ghorg version"
+      Remember to set your $HOME/.config/ghorg/conf.yaml
 
-    post_install: |
-      ohai ""
-      ohai "***************************"
-      ohai "For examples on how to use ghorg see: https://github.com/blairham/ghorg/tree/master/examples"
-      ohai ""
-      ohai "Remember to set your $HOME/.config/ghorg/conf.yaml"
-      ohai ""
-      ohai "Here's all you need to do..."
-      ohai "1) mkdir -p $HOME/.config/ghorg"
-      ohai "2) curl https://raw.githubusercontent.com/blairham/ghorg/master/sample-conf.yaml > $HOME/.config/ghorg/conf.yaml"
-      ohai "***************************"
-      ohai ""
+      Here's all you need to do...
+      1) mkdir -p $HOME/.config/ghorg
+      2) curl https://raw.githubusercontent.com/blairham/ghorg/master/sample-conf.yaml > $HOME/.config/ghorg/conf.yaml
