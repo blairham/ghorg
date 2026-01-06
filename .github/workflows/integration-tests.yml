@@ -1,0 +1,412 @@
+name: Integration Tests
+
+on:
+  # Run on push to main for regression testing
+  push:
+    branches: [main]
+  # Run on PRs to validate changes
+  pull_request:
+    branches: [main]
+  # Allow manual triggering for testing specific scenarios
+  workflow_dispatch:
+    inputs:
+      scm_provider:
+        description: 'SCM provider to test (all, github, gitlab, bitbucket, gitea)'
+        required: false
+        default: 'all'
+  # Run weekly to catch any upstream API changes
+  schedule:
+    - cron: '0 6 * * 1' # Every Monday at 6am UTC
+
+env:
+  GO_VERSION: '1.24.11'
+  GHORG_NO_CLEAN: 'true'
+  GHORG_COLOR: 'disabled'
+
+jobs:
+  # GitHub Integration Tests
+  github-integration:
+    name: GitHub Integration
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scm_provider == 'all' || github.event.inputs.scm_provider == 'github' || github.event.inputs.scm_provider == ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build ghorg
+        run: go build -o ghorg ./cmd/ghorg
+
+      - name: Configure git
+        run: |
+          git config --global user.name "Integration Test"
+          git config --global user.email "test@example.com"
+          git config --global init.defaultBranch main
+
+      - name: Create ghorg config directory
+        run: mkdir -p $HOME/.config/ghorg
+
+      - name: Test - Clone GitHub org (public, no token)
+        run: |
+          echo "Testing GitHub org clone (public repos, no auth)..."
+          ./ghorg clone actions --scm=github --no-token --protocol=https --path=/tmp/ghorg-test
+
+          # Verify repos were cloned
+          if [ -d "/tmp/ghorg-test/actions" ]; then
+            REPO_COUNT=$(find /tmp/ghorg-test/actions -maxdepth 1 -type d | wc -l)
+            echo "✓ Cloned $((REPO_COUNT - 1)) repositories from github.com/actions"
+
+            # Verify at least one known repo exists
+            if [ -d "/tmp/ghorg-test/actions/checkout" ]; then
+              echo "✓ Verified 'checkout' repo exists"
+            else
+              echo "✗ Expected 'checkout' repo not found"
+              exit 1
+            fi
+          else
+            echo "✗ Clone directory not created"
+            exit 1
+          fi
+
+      - name: Test - Clone GitHub user repos (public, no token)
+        run: |
+          echo "Testing GitHub user clone (public repos, no auth)..."
+          ./ghorg clone octocat --scm=github --clone-type=user --no-token --protocol=https --path=/tmp/ghorg-test-user
+
+          if [ -d "/tmp/ghorg-test-user/octocat" ]; then
+            REPO_COUNT=$(find /tmp/ghorg-test-user/octocat -maxdepth 1 -type d | wc -l)
+            echo "✓ Cloned $((REPO_COUNT - 1)) repositories from github.com/octocat"
+          else
+            echo "✗ Clone directory not created"
+            exit 1
+          fi
+
+      - name: Test - Clone with match-prefix filter
+        run: |
+          echo "Testing GitHub clone with match-prefix filter..."
+          ./ghorg clone actions --scm=github --no-token --protocol=https --path=/tmp/ghorg-test-prefix --match-prefix=checkout,setup
+
+          if [ -d "/tmp/ghorg-test-prefix/actions" ]; then
+            REPO_COUNT=$(find /tmp/ghorg-test-prefix/actions -maxdepth 1 -type d -name "checkout*" -o -name "setup*" 2>/dev/null | wc -l)
+            echo "✓ Found $REPO_COUNT repositories matching prefix filter"
+          fi
+
+      - name: Test - Clone GitHub org with token (if available)
+        if: env.GITHUB_TOKEN != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Testing GitHub org clone with authentication..."
+          ./ghorg clone actions --scm=github --token=$GITHUB_TOKEN --protocol=https --path=/tmp/ghorg-test-auth
+
+          if [ -d "/tmp/ghorg-test-auth/actions" ]; then
+            echo "✓ Authenticated clone successful"
+          fi
+
+  # GitLab Integration Tests
+  gitlab-integration:
+    name: GitLab Integration
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scm_provider == 'all' || github.event.inputs.scm_provider == 'gitlab' || github.event.inputs.scm_provider == ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build ghorg
+        run: go build -o ghorg ./cmd/ghorg
+
+      - name: Configure git
+        run: |
+          git config --global user.name "Integration Test"
+          git config --global user.email "test@example.com"
+          git config --global init.defaultBranch main
+
+      - name: Create ghorg config directory
+        run: mkdir -p $HOME/.config/ghorg
+
+      - name: Test - Clone GitLab group (public, no token)
+        run: |
+          echo "Testing GitLab group clone (public repos, no auth)..."
+          # Using gitlab-org/frontend as it's a smaller public group
+          ./ghorg clone gitlab-org/frontend --scm=gitlab --no-token --protocol=https --path=/tmp/ghorg-gitlab-test
+
+          if [ -d "/tmp/ghorg-gitlab-test/gitlab-org_frontend" ] || [ -d "/tmp/ghorg-gitlab-test/frontend" ]; then
+            echo "✓ GitLab group clone successful"
+            find /tmp/ghorg-gitlab-test -maxdepth 2 -type d | head -20
+          else
+            echo "✗ GitLab clone directory not created"
+            ls -la /tmp/ghorg-gitlab-test/ 2>/dev/null || echo "Directory doesn't exist"
+            exit 1
+          fi
+
+      - name: Test - Clone GitLab user repos (public, no token)
+        run: |
+          echo "Testing GitLab user clone (public repos, no auth)..."
+          ./ghorg clone gitlab-examples --scm=gitlab --clone-type=user --no-token --protocol=https --path=/tmp/ghorg-gitlab-user
+
+          if [ -d "/tmp/ghorg-gitlab-user/gitlab-examples" ]; then
+            REPO_COUNT=$(find /tmp/ghorg-gitlab-user/gitlab-examples -maxdepth 1 -type d | wc -l)
+            echo "✓ Cloned $((REPO_COUNT - 1)) repositories from gitlab.com/gitlab-examples"
+          else
+            echo "Note: GitLab user clone may have different path structure"
+            find /tmp/ghorg-gitlab-user -maxdepth 2 -type d 2>/dev/null | head -10
+          fi
+
+      - name: Test - Clone GitLab group with token (if available)
+        if: env.GHORG_GITLAB_TOKEN != ''
+        env:
+          GHORG_GITLAB_TOKEN: ${{ secrets.GHORG_GITLAB_TOKEN }}
+        run: |
+          echo "Testing GitLab group clone with authentication..."
+          ./ghorg clone gitlab-org/frontend --scm=gitlab --token=$GHORG_GITLAB_TOKEN --protocol=https --path=/tmp/ghorg-gitlab-auth
+
+          if [ -d "/tmp/ghorg-gitlab-auth" ]; then
+            echo "✓ Authenticated GitLab clone successful"
+          fi
+
+  # Bitbucket Integration Tests
+  bitbucket-integration:
+    name: Bitbucket Integration
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scm_provider == 'all' || github.event.inputs.scm_provider == 'bitbucket' || github.event.inputs.scm_provider == ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build ghorg
+        run: go build -o ghorg ./cmd/ghorg
+
+      - name: Configure git
+        run: |
+          git config --global user.name "Integration Test"
+          git config --global user.email "test@example.com"
+          git config --global init.defaultBranch main
+
+      - name: Create ghorg config directory
+        run: mkdir -p $HOME/.config/ghorg
+
+      - name: Test - Clone Bitbucket workspace (public, no token)
+        run: |
+          echo "Testing Bitbucket workspace clone (public repos, no auth)..."
+          # atlassian has public repos
+          ./ghorg clone atlassian --scm=bitbucket --no-token --protocol=https --path=/tmp/ghorg-bitbucket-test
+
+          if [ -d "/tmp/ghorg-bitbucket-test/atlassian" ]; then
+            REPO_COUNT=$(find /tmp/ghorg-bitbucket-test/atlassian -maxdepth 1 -type d | wc -l)
+            echo "✓ Cloned $((REPO_COUNT - 1)) repositories from bitbucket.org/atlassian"
+          else
+            echo "Note: Bitbucket clone may require different setup"
+            ls -la /tmp/ghorg-bitbucket-test/ 2>/dev/null || echo "Directory structure:"
+            find /tmp/ghorg-bitbucket-test -maxdepth 2 -type d 2>/dev/null | head -10
+          fi
+
+      - name: Test - Clone Bitbucket with token (if available)
+        if: env.GHORG_BITBUCKET_APP_PASSWORD != '' && env.GHORG_BITBUCKET_USERNAME != ''
+        env:
+          GHORG_BITBUCKET_APP_PASSWORD: ${{ secrets.GHORG_BITBUCKET_APP_PASSWORD }}
+          GHORG_BITBUCKET_USERNAME: ${{ secrets.GHORG_BITBUCKET_USERNAME }}
+        run: |
+          echo "Testing Bitbucket workspace clone with authentication..."
+          ./ghorg clone atlassian --scm=bitbucket --token=$GHORG_BITBUCKET_APP_PASSWORD --bitbucket-username=$GHORG_BITBUCKET_USERNAME --protocol=https --path=/tmp/ghorg-bitbucket-auth
+
+          if [ -d "/tmp/ghorg-bitbucket-auth/atlassian" ]; then
+            echo "✓ Authenticated Bitbucket clone successful"
+          fi
+
+  # Gitea Integration Tests (requires self-hosted or public instance)
+  gitea-integration:
+    name: Gitea Integration
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scm_provider == 'all' || github.event.inputs.scm_provider == 'gitea' || github.event.inputs.scm_provider == ''
+    services:
+      gitea:
+        image: gitea/gitea:latest
+        ports:
+          - 3000:3000
+        env:
+          GITEA__security__INSTALL_LOCK: true
+          GITEA__server__ROOT_URL: http://localhost:3000
+        options: >-
+          --health-cmd "curl -f http://localhost:3000/api/v1/version || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build ghorg
+        run: go build -o ghorg ./cmd/ghorg
+
+      - name: Configure git
+        run: |
+          git config --global user.name "Integration Test"
+          git config --global user.email "test@example.com"
+          git config --global init.defaultBranch main
+
+      - name: Create ghorg config directory
+        run: mkdir -p $HOME/.config/ghorg
+
+      - name: Wait for Gitea to be ready
+        run: |
+          echo "Waiting for Gitea service to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000/api/v1/version > /dev/null 2>&1; then
+              echo "✓ Gitea is ready"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+
+      - name: Setup Gitea test data
+        run: |
+          echo "Setting up Gitea test organization and repos..."
+
+          # Create admin user
+          docker exec $(docker ps -q -f ancestor=gitea/gitea:latest) \
+            gitea admin user create --admin --username testadmin --password testpassword123 --email admin@test.com --must-change-password=false || true
+
+          # Get admin token
+          TOKEN=$(curl -s -X POST "http://localhost:3000/api/v1/users/testadmin/tokens" \
+            -u testadmin:testpassword123 \
+            -H "Content-Type: application/json" \
+            -d '{"name":"test-token","scopes":["all"]}' | jq -r '.sha1')
+
+          echo "GITEA_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+          # Create test organization
+          curl -s -X POST "http://localhost:3000/api/v1/orgs" \
+            -H "Authorization: token $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"username":"test-org","visibility":"public"}'
+
+          # Create test repos in the org
+          for repo in test-repo-1 test-repo-2 test-repo-3; do
+            curl -s -X POST "http://localhost:3000/api/v1/orgs/test-org/repos" \
+              -H "Authorization: token $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\":\"$repo\",\"private\":false,\"auto_init\":true}"
+          done
+
+          echo "✓ Gitea test data created"
+
+      - name: Test - Clone Gitea org
+        run: |
+          echo "Testing Gitea org clone..."
+          ./ghorg clone test-org \
+            --scm=gitea \
+            --base-url=http://localhost:3000 \
+            --token=$GITEA_TOKEN \
+            --protocol=https \
+            --path=/tmp/ghorg-gitea-test
+
+          if [ -d "/tmp/ghorg-gitea-test/test-org" ]; then
+            REPO_COUNT=$(find /tmp/ghorg-gitea-test/test-org -maxdepth 1 -type d | wc -l)
+            echo "✓ Cloned $((REPO_COUNT - 1)) repositories from Gitea test-org"
+
+            # Verify expected repos exist
+            for repo in test-repo-1 test-repo-2 test-repo-3; do
+              if [ -d "/tmp/ghorg-gitea-test/test-org/$repo" ]; then
+                echo "✓ Found $repo"
+              else
+                echo "✗ Missing $repo"
+              fi
+            done
+          else
+            echo "✗ Gitea clone directory not created"
+            exit 1
+          fi
+
+      - name: Test - Clone Gitea user repos
+        run: |
+          echo "Testing Gitea user clone..."
+          ./ghorg clone testadmin \
+            --scm=gitea \
+            --clone-type=user \
+            --base-url=http://localhost:3000 \
+            --token=$GITEA_TOKEN \
+            --protocol=https \
+            --path=/tmp/ghorg-gitea-user
+
+          if [ -d "/tmp/ghorg-gitea-user/testadmin" ]; then
+            echo "✓ Gitea user clone successful"
+          else
+            echo "Note: User may not have personal repos"
+          fi
+
+  # Summary job
+  integration-summary:
+    name: Integration Test Summary
+    needs: [github-integration, gitlab-integration, bitbucket-integration, gitea-integration]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check integration test results
+        run: |
+          echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| SCM Provider | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.github-integration.result }}" == "success" ]; then
+            echo "| GitHub | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.github-integration.result }}" == "skipped" ]; then
+            echo "| GitHub | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| GitHub | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.gitlab-integration.result }}" == "success" ]; then
+            echo "| GitLab | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.gitlab-integration.result }}" == "skipped" ]; then
+            echo "| GitLab | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| GitLab | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.bitbucket-integration.result }}" == "success" ]; then
+            echo "| Bitbucket | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.bitbucket-integration.result }}" == "skipped" ]; then
+            echo "| Bitbucket | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Bitbucket | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.gitea-integration.result }}" == "success" ]; then
+            echo "| Gitea | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.gitea-integration.result }}" == "skipped" ]; then
+            echo "| Gitea | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Gitea | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if any integration tests failed
+        if: |
+          needs.github-integration.result == 'failure' ||
+          needs.gitlab-integration.result == 'failure' ||
+          needs.bitbucket-integration.result == 'failure' ||
+          needs.gitea-integration.result == 'failure'
+        run: |
+          echo "One or more integration tests failed"
+          exit 1
