@@ -259,7 +259,7 @@ github.com/knadh/koanf/parsers/yaml
 # github.com/knadh/koanf/providers/file v1.2.1
 ## explicit; go 1.23.0
 github.com/knadh/koanf/providers/file
-# github.com/knadh/koanf/v2 v2.3.0
+# github.com/knadh/koanf/v2 v2.3.2
 ## explicit; go 1.23.0
 github.com/knadh/koanf/v2
 # github.com/korovkin/limiter v0.0.0-20230307205149-3d4b2b34c99d
