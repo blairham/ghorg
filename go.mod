@@ -1,6 +1,6 @@
 module github.com/blairham/ghorg
 
-go 1.24.11
+go 1.25.0
 
 require (
 	code.gitea.io/sdk/gitea v0.22.1
@@ -16,12 +16,12 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/korovkin/limiter v0.0.0-20230307205149-3d4b2b34c99d
-	github.com/ktrysmt/go-bitbucket v0.9.88
+	github.com/ktrysmt/go-bitbucket v0.9.94
 	github.com/magefile/mage v1.15.0
 	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/go-homedir v1.1.0
 	gitlab.com/gitlab-org/api/client-go v1.10.0
-	golang.org/x/oauth2 v0.34.0
+	golang.org/x/oauth2 v0.35.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -87,11 +87,11 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.46.1-0.20251210140736-7dacc380ba00 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93 // indirect
-	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/term v0.38.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

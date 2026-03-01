@@ -265,8 +265,8 @@ github.com/knadh/koanf/v2
 # github.com/korovkin/limiter v0.0.0-20230307205149-3d4b2b34c99d
 ## explicit; go 1.18
 github.com/korovkin/limiter
-# github.com/ktrysmt/go-bitbucket v0.9.88
-## explicit; go 1.24.0
+# github.com/ktrysmt/go-bitbucket v0.9.94
+## explicit; go 1.25.0
 github.com/ktrysmt/go-bitbucket
 # github.com/lucasb-eyer/go-colorful v1.3.0
 ## explicit; go 1.12
@@ -340,7 +340,7 @@ gitlab.com/gitlab-org/api/client-go
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/crypto v0.46.1-0.20251210140736-7dacc380ba00
+# golang.org/x/crypto v0.48.0
 ## explicit; go 1.24.0
 golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
@@ -370,25 +370,25 @@ golang.org/x/exp/slices
 golang.org/x/exp/slog
 golang.org/x/exp/slog/internal
 golang.org/x/exp/slog/internal/buffer
-# golang.org/x/net v0.48.0
-## explicit; go 1.24.0
+# golang.org/x/net v0.51.0
+## explicit; go 1.25.0
 golang.org/x/net/context
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/oauth2 v0.34.0
+# golang.org/x/oauth2 v0.35.0
 ## explicit; go 1.24.0
 golang.org/x/oauth2
 golang.org/x/oauth2/bitbucket
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.39.0
+# golang.org/x/sys v0.41.0
 ## explicit; go 1.24.0
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.38.0
+# golang.org/x/term v0.40.0
 ## explicit; go 1.24.0
 golang.org/x/term
 # golang.org/x/time v0.14.0
