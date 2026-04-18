@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/google/go-github/v72/github"
+	"github.com/google/go-github/v84/github"
 )
 
 // fetchOrgReposParallel fetches remaining pages of org repos concurrently

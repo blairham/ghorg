@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blairham/ghorg/internal/scm"
 	"github.com/davecgh/go-spew/spew"
+
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 // Gitter defines the interface for git operations.

@@ -565,7 +565,8 @@ func Test_filterWithGhorgignore(t *testing.T) {
 
 			os.Setenv("GHORG_IGNORE_PATH", tmpfile.Name())
 
-			got := filterByGhorgignore(tt.cloneTargets)
+			filter := NewRepositoryFilter()
+			got := filter.FilterByGhorgignore(tt.cloneTargets)
 			if !reflect.DeepEqual(got, tt.expectedResult) {
 				t.Errorf("filterWithGhorgignore() = %v, want %v", got, tt.expectedResult)
 			}
@@ -628,7 +629,8 @@ func Test_filterDownReposIfTargetReposPathEnabled(t *testing.T) {
 
 			os.Setenv("GHORG_TARGET_REPOS_PATH", tmpfile.Name())
 
-			got := filterByTargetReposPath(tt.cloneTargets)
+			filter := NewRepositoryFilter()
+			got := filter.FilterByTargetReposPath(tt.cloneTargets)
 			if !reflect.DeepEqual(got, tt.expectedResult) {
 				t.Errorf("filterWithGhorgignore() = %v, want %v", got, tt.expectedResult)
 			}

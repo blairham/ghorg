@@ -15,14 +15,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/cli"
+	"github.com/jessevdk/go-flags"
+	"github.com/korovkin/limiter"
+
 	"github.com/blairham/ghorg/internal/colorlog"
 	"github.com/blairham/ghorg/internal/configs"
 	"github.com/blairham/ghorg/internal/git"
 	"github.com/blairham/ghorg/internal/scm"
 	"github.com/blairham/ghorg/internal/utils"
-	"github.com/jessevdk/go-flags"
-	"github.com/korovkin/limiter"
-	"github.com/mitchellh/cli"
 )
 
 // Helper function to safely parse integer environment variables
@@ -195,10 +196,125 @@ func (c *CloneCommand) Synopsis() string {
 	return "Clone user or org repos from GitHub, GitLab, Gitea or Bitbucket"
 }
 
-func (c *CloneCommand) Run(args []string) int {
-	// Record start time for the entire command duration including SCM API calls
-	commandStartTime = time.Now()
+// applyStringFlags sets environment variables from non-empty string flags.
+func applyStringFlags(opts *CloneFlags) {
+	stringMappings := []struct {
+		envVar    string
+		value     string
+		transform func(string) string
+	}{
+		{"GHORG_CLONE_PROTOCOL", opts.Protocol, nil},
+		{"GHORG_BRANCH", opts.Branch, nil},
+		{"GHORG_GITHUB_TOKEN_FROM_GITHUB_APP", opts.GitHubTokenFromGitHubApp, nil},
+		{"GHORG_GITHUB_APP_PEM_PATH", opts.GitHubAppPemPath, nil},
+		{"GHORG_GITHUB_APP_INSTALLATION_ID", opts.GitHubAppInstallationID, nil},
+		{"GHORG_GITHUB_FILTER_LANGUAGE", opts.GitHubFilterLanguage, nil},
+		{"GHORG_GITHUB_APP_ID", opts.GitHubAppID, nil},
+		{"GHORG_BITBUCKET_USERNAME", opts.BitbucketUsername, nil},
+		{"GHORG_GITHUB_USER_OPTION", opts.GitHubUserOption, nil},
+		{"GHORG_SCM_BASE_URL", opts.BaseURL, nil},
+		{"GHORG_CONCURRENCY", opts.Concurrency, nil},
+		{"GHORG_CLONE_DELAY_SECONDS", opts.CloneDelaySeconds, nil},
+		{"GHORG_CLONE_DEPTH", opts.CloneDepth, nil},
+		{"GHORG_EXIT_CODE_ON_CLONE_INFOS", opts.ExitCodeOnCloneInfos, nil},
+		{"GHORG_EXIT_CODE_ON_CLONE_ISSUES", opts.ExitCodeOnCloneIssues, nil},
+		{"GHORG_TOPICS", opts.Topics, nil},
+		{"GHORG_MATCH_PREFIX", opts.MatchPrefix, nil},
+		{"GHORG_EXCLUDE_MATCH_PREFIX", opts.ExcludeMatchPrefix, nil},
+		{"GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX", opts.GitlabGroupExcludeMatchRegex, nil},
+		{"GHORG_MATCH_REGEX", opts.MatchRegex, nil},
+		{"GHORG_EXCLUDE_MATCH_REGEX", opts.ExcludeMatchRegex, nil},
+		{"GHORG_IGNORE_PATH", opts.GhorgIgnorePath, nil},
+		{"GHORG_ONLY_PATH", opts.GhorgOnlyPath, nil},
+		{"GHORG_TARGET_REPOS_PATH", opts.TargetReposPath, nil},
+		{"GHORG_GIT_FILTER", opts.GitFilter, nil},
+		{"GHORG_GIT_BACKEND", opts.GitBackend, nil},
+		{"GHORG_OUTPUT_DIR", opts.OutputDir, nil},
+		{"GHORG_CLONE_TYPE", opts.CloneType, strings.ToLower},
+		{"GHORG_SCM_TYPE", opts.SCMType, strings.ToLower},
+		{"GHORG_ABSOLUTE_PATH_TO_CLONE_TO", opts.Path, configs.EnsureTrailingSlashOnFilePath},
+	}
 
+	for _, m := range stringMappings {
+		if m.value != "" {
+			v := m.value
+			if m.transform != nil {
+				v = m.transform(v)
+			}
+			os.Setenv(m.envVar, v)
+		}
+	}
+}
+
+// applyBoolFlags sets environment variables from true boolean flags.
+func applyBoolFlags(opts *CloneFlags) {
+	boolMappings := []struct {
+		envVar string
+		value  bool
+	}{
+		{"GHORG_PRESERVE_SCM_HOSTNAME", opts.PreserveSCMHostname},
+		{"GHORG_SKIP_ARCHIVED", opts.SkipArchived},
+		{"GHORG_STATS_ENABLED", opts.StatsEnabled},
+		{"GHORG_NO_CLEAN", opts.NoClean},
+		{"GHORG_PRUNE", opts.Prune},
+		{"GHORG_PRUNE_NO_CONFIRM", opts.PruneNoConfirm},
+		{"GHORG_PRUNE_UNTOUCHED", opts.PruneUntouched},
+		{"GHORG_PRUNE_UNTOUCHED_NO_CONFIRM", opts.PruneUntouchedNoConfirm},
+		{"GHORG_FETCH_ALL", opts.FetchAll},
+		{"GHORG_INCLUDE_SUBMODULES", opts.IncludeSubmodules},
+		{"GHORG_DRY_RUN", opts.DryRun},
+		{"GHORG_CLONE_WIKI", opts.CloneWiki},
+		{"GHORG_CLONE_SNIPPETS", opts.CloneSnippets},
+		{"GHORG_INSECURE_GITLAB_CLIENT", opts.InsecureGitlabClient},
+		{"GHORG_INSECURE_GITEA_CLIENT", opts.InsecureGiteaClient},
+		{"GHORG_INSECURE_BITBUCKET_CLIENT", opts.InsecureBitbucketClient},
+		{"GHORG_INSECURE_SOURCEHUT_CLIENT", opts.InsecureSourcehutClient},
+		{"GHORG_SKIP_FORKS", opts.SkipForks},
+		{"GHORG_QUIET", opts.Quiet},
+		{"GHORG_NO_TOKEN", opts.NoToken},
+		{"GHORG_NO_DIR_SIZE", opts.NoDirSize},
+		{"GHORG_PRESERVE_DIRECTORY_STRUCTURE", opts.PreserveDir},
+		{"GHORG_BACKUP", opts.Backup},
+		{"GHORG_SYNC_DEFAULT_BRANCH", opts.SyncDefaultBranch},
+	}
+
+	for _, m := range boolMappings {
+		if m.value {
+			os.Setenv(m.envVar, "true")
+		}
+	}
+}
+
+// setTokenForSCM routes the --token flag value to the correct SCM-specific env var.
+func setTokenForSCM(opts *CloneFlags) {
+	if opts.Token == "" {
+		return
+	}
+	token := opts.Token
+	if configs.IsFilePath(token) {
+		token = configs.GetTokenFromFile(token)
+	}
+	switch os.Getenv("GHORG_SCM_TYPE") {
+	case "github":
+		os.Setenv("GHORG_GITHUB_TOKEN", token)
+	case "gitlab":
+		os.Setenv("GHORG_GITLAB_TOKEN", token)
+	case "bitbucket":
+		if opts.BitbucketUsername != "" {
+			os.Setenv("GHORG_BITBUCKET_APP_PASSWORD", token)
+		} else {
+			os.Setenv("GHORG_BITBUCKET_OAUTH_TOKEN", token)
+		}
+	case "gitea":
+		os.Setenv("GHORG_GITEA_TOKEN", token)
+	case "sourcehut":
+		os.Setenv("GHORG_SOURCEHUT_TOKEN", token)
+	}
+}
+
+// parseAndApplyFlags parses CLI flags and applies them as environment variables.
+// Returns the remaining positional args and any error.
+func (c *CloneCommand) parseAndApplyFlags(args []string) ([]string, error) {
 	var opts CloneFlags
 	parser := flags.NewParser(&opts, flags.Default)
 	remaining, err := parser.ParseArgs(args)
@@ -206,10 +322,9 @@ func (c *CloneCommand) Run(args []string) int {
 		var flagsErr *flags.Error
 		if errors.As(err, &flagsErr) && flagsErr.Type == flags.ErrHelp {
 			fmt.Println(c.Help())
-			return 0
+			return nil, nil
 		}
-		colorlog.PrintError(fmt.Sprintf("Error parsing flags: %v", err))
-		return 1
+		return nil, fmt.Errorf("error parsing flags: %w", err)
 	}
 
 	// Handle config flag first - if set, reinitialize configuration
@@ -217,272 +332,49 @@ func (c *CloneCommand) Run(args []string) int {
 		os.Setenv("GHORG_CONFIG", opts.Config)
 		InitConfig()
 	}
-
-	// Handle color flag
 	if opts.Color != "" {
 		os.Setenv("GHORG_COLOR", opts.Color)
 	}
 
-	// Set environment variables from flags
-	if opts.Path != "" {
-		absolutePath := configs.EnsureTrailingSlashOnFilePath(opts.Path)
-		os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", absolutePath)
-	}
-
-	if opts.Protocol != "" {
-		os.Setenv("GHORG_CLONE_PROTOCOL", opts.Protocol)
-	}
-
-	if opts.Branch != "" {
-		os.Setenv("GHORG_BRANCH", opts.Branch)
-	}
-
-	if opts.GitHubTokenFromGitHubApp != "" {
-		os.Setenv("GHORG_GITHUB_TOKEN_FROM_GITHUB_APP", opts.GitHubTokenFromGitHubApp)
-	}
-
-	if opts.GitHubAppPemPath != "" {
-		os.Setenv("GHORG_GITHUB_APP_PEM_PATH", opts.GitHubAppPemPath)
-	}
-
-	if opts.GitHubAppInstallationID != "" {
-		os.Setenv("GHORG_GITHUB_APP_INSTALLATION_ID", opts.GitHubAppInstallationID)
-	}
-
-	if opts.GitHubFilterLanguage != "" {
-		os.Setenv("GHORG_GITHUB_FILTER_LANGUAGE", opts.GitHubFilterLanguage)
-	}
-
-	if opts.GitHubAppID != "" {
-		os.Setenv("GHORG_GITHUB_APP_ID", opts.GitHubAppID)
-	}
-
-	if opts.BitbucketUsername != "" {
-		os.Setenv("GHORG_BITBUCKET_USERNAME", opts.BitbucketUsername)
-	}
-
-	if opts.CloneType != "" {
-		cloneType := strings.ToLower(opts.CloneType)
-		os.Setenv("GHORG_CLONE_TYPE", cloneType)
-	}
-
-	if opts.SCMType != "" {
-		scmType := strings.ToLower(opts.SCMType)
-		os.Setenv("GHORG_SCM_TYPE", scmType)
-	}
-
-	if opts.GitHubUserOption != "" {
-		os.Setenv("GHORG_GITHUB_USER_OPTION", opts.GitHubUserOption)
-	}
-
-	if opts.BaseURL != "" {
-		os.Setenv("GHORG_SCM_BASE_URL", opts.BaseURL)
-	}
-
-	if opts.Concurrency != "" {
-		os.Setenv("GHORG_CONCURRENCY", opts.Concurrency)
-	}
-
-	if opts.CloneDelaySeconds != "" {
-		os.Setenv("GHORG_CLONE_DELAY_SECONDS", opts.CloneDelaySeconds)
-	}
-
-	if opts.CloneDepth != "" {
-		os.Setenv("GHORG_CLONE_DEPTH", opts.CloneDepth)
-	}
-
-	if opts.ExitCodeOnCloneInfos != "" {
-		os.Setenv("GHORG_EXIT_CODE_ON_CLONE_INFOS", opts.ExitCodeOnCloneInfos)
-	}
-
-	if opts.ExitCodeOnCloneIssues != "" {
-		os.Setenv("GHORG_EXIT_CODE_ON_CLONE_ISSUES", opts.ExitCodeOnCloneIssues)
-	}
-
-	if opts.Topics != "" {
-		os.Setenv("GHORG_TOPICS", opts.Topics)
-	}
-
-	if opts.MatchPrefix != "" {
-		os.Setenv("GHORG_MATCH_PREFIX", opts.MatchPrefix)
-	}
-
-	if opts.ExcludeMatchPrefix != "" {
-		os.Setenv("GHORG_EXCLUDE_MATCH_PREFIX", opts.ExcludeMatchPrefix)
-	}
-
-	if opts.GitlabGroupExcludeMatchRegex != "" {
-		os.Setenv("GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX", opts.GitlabGroupExcludeMatchRegex)
-	}
-
-	if opts.MatchRegex != "" {
-		os.Setenv("GHORG_MATCH_REGEX", opts.MatchRegex)
-	}
-
-	if opts.ExcludeMatchRegex != "" {
-		os.Setenv("GHORG_EXCLUDE_MATCH_REGEX", opts.ExcludeMatchRegex)
-	}
-
-	if opts.GhorgIgnorePath != "" {
-		os.Setenv("GHORG_IGNORE_PATH", opts.GhorgIgnorePath)
-	}
-
-	if opts.GhorgOnlyPath != "" {
-		os.Setenv("GHORG_ONLY_PATH", opts.GhorgOnlyPath)
-	}
-
-	if opts.TargetReposPath != "" {
-		os.Setenv("GHORG_TARGET_REPOS_PATH", opts.TargetReposPath)
-	}
-
-	if opts.GitFilter != "" {
-		os.Setenv("GHORG_GIT_FILTER", opts.GitFilter)
-	}
-
-	if opts.GitBackend != "" {
-		os.Setenv("GHORG_GIT_BACKEND", opts.GitBackend)
-	}
-
-	if opts.PreserveSCMHostname {
-		os.Setenv("GHORG_PRESERVE_SCM_HOSTNAME", "true")
-	}
-
-	if opts.SkipArchived {
-		os.Setenv("GHORG_SKIP_ARCHIVED", "true")
-	}
-
-	if opts.StatsEnabled {
-		os.Setenv("GHORG_STATS_ENABLED", "true")
-	}
-
-	if opts.NoClean {
-		os.Setenv("GHORG_NO_CLEAN", "true")
-	}
-
-	if opts.Prune {
-		os.Setenv("GHORG_PRUNE", "true")
-	}
-
-	if opts.PruneNoConfirm {
-		os.Setenv("GHORG_PRUNE_NO_CONFIRM", "true")
-	}
-
-	if opts.PruneUntouched {
-		os.Setenv("GHORG_PRUNE_UNTOUCHED", "true")
-	}
-
-	if opts.PruneUntouchedNoConfirm {
-		os.Setenv("GHORG_PRUNE_UNTOUCHED_NO_CONFIRM", "true")
-	}
-
-	if opts.FetchAll {
-		os.Setenv("GHORG_FETCH_ALL", "true")
-	}
-
-	if opts.IncludeSubmodules {
-		os.Setenv("GHORG_INCLUDE_SUBMODULES", "true")
-	}
-
-	if opts.DryRun {
-		os.Setenv("GHORG_DRY_RUN", "true")
-	}
-
-	if opts.CloneWiki {
-		os.Setenv("GHORG_CLONE_WIKI", "true")
-	}
-
-	if opts.CloneSnippets {
-		os.Setenv("GHORG_CLONE_SNIPPETS", "true")
-	}
-
-	if opts.InsecureGitlabClient {
-		os.Setenv("GHORG_INSECURE_GITLAB_CLIENT", "true")
-	}
-
-	if opts.InsecureGiteaClient {
-		os.Setenv("GHORG_INSECURE_GITEA_CLIENT", "true")
-	}
-
-	if opts.InsecureBitbucketClient {
-		os.Setenv("GHORG_INSECURE_BITBUCKET_CLIENT", "true")
-	}
-
-	if opts.InsecureSourcehutClient {
-		os.Setenv("GHORG_INSECURE_SOURCEHUT_CLIENT", "true")
-	}
-
-	if opts.SkipForks {
-		os.Setenv("GHORG_SKIP_FORKS", "true")
-	}
-
-	if opts.Quiet {
-		os.Setenv("GHORG_QUIET", "true")
-	}
-
-	if opts.NoToken {
-		os.Setenv("GHORG_NO_TOKEN", "true")
-	}
-
-	if opts.NoDirSize {
-		os.Setenv("GHORG_NO_DIR_SIZE", "true")
-	}
-
-	if opts.PreserveDir {
-		os.Setenv("GHORG_PRESERVE_DIRECTORY_STRUCTURE", "true")
-	}
-
-	if opts.Backup {
-		os.Setenv("GHORG_BACKUP", "true")
-	}
-
-	if opts.SyncDefaultBranch {
-		os.Setenv("GHORG_SYNC_DEFAULT_BRANCH", "true")
-	}
-
-	if opts.OutputDir != "" {
-		os.Setenv("GHORG_OUTPUT_DIR", opts.OutputDir)
-	}
+	applyStringFlags(&opts)
+	applyBoolFlags(&opts)
 
 	if len(remaining) < 1 {
 		if os.Getenv("GHORG_SCM_TYPE") == "github" && os.Getenv("GHORG_CLONE_TYPE") == "user" {
 			remaining = append(remaining, "")
 		} else {
-			colorlog.PrintError("You must provide an org or user to clone")
-			return 1
+			return nil, fmt.Errorf("you must provide an org or user to clone")
 		}
 	}
 
 	configs.GetOrSetToken()
+	setTokenForSCM(&opts)
 
-	if opts.Token != "" {
-		token := opts.Token
-		if configs.IsFilePath(token) {
-			token = configs.GetTokenFromFile(token)
-		}
-		if os.Getenv("GHORG_SCM_TYPE") == "github" {
-			os.Setenv("GHORG_GITHUB_TOKEN", token)
-		} else if os.Getenv("GHORG_SCM_TYPE") == "gitlab" {
-			os.Setenv("GHORG_GITLAB_TOKEN", token)
-		} else if os.Getenv("GHORG_SCM_TYPE") == "bitbucket" {
-			if opts.BitbucketUsername != "" {
-				os.Setenv("GHORG_BITBUCKET_APP_PASSWORD", token)
-			} else {
-				os.Setenv("GHORG_BITBUCKET_OAUTH_TOKEN", token)
-			}
-		} else if os.Getenv("GHORG_SCM_TYPE") == "gitea" {
-			os.Setenv("GHORG_GITEA_TOKEN", token)
-		} else if os.Getenv("GHORG_SCM_TYPE") == "sourcehut" {
-			os.Setenv("GHORG_SOURCEHUT_TOKEN", token)
-		}
+	return remaining, nil
+}
+
+// validateConfig verifies tokens and configuration are set correctly.
+func validateConfig() error {
+	if err := configs.VerifyTokenSet(); err != nil {
+		return err
 	}
-	err = configs.VerifyTokenSet()
+	return configs.VerifyConfigsSetCorrectly()
+}
+
+func (c *CloneCommand) Run(args []string) int {
+	commandStartTime = time.Now()
+
+	remaining, err := c.parseAndApplyFlags(args)
 	if err != nil {
 		colorlog.PrintError(err)
 		return 1
 	}
+	if remaining == nil {
+		// Help was printed
+		return 0
+	}
 
-	err = configs.VerifyConfigsSetCorrectly()
-	if err != nil {
+	if err := validateConfig(); err != nil {
 		colorlog.PrintError(err)
 		return 1
 	}
@@ -567,13 +459,13 @@ func getCloneUrls(isOrg bool) ([]scm.Repo, error) {
 	return client.GetUserRepos(targetCloneSource)
 }
 
-func createDirIfNotExist() {
+func createDirIfNotExist() error {
 	if _, err := os.Stat(outputDirAbsolutePath); os.IsNotExist(err) {
-		err = os.MkdirAll(os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO"), 0o700)
-		if err != nil {
-			panic(err)
+		if err := os.MkdirAll(os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO"), 0o700); err != nil {
+			return fmt.Errorf("failed to create clone directory: %w", err)
 		}
 	}
+	return nil
 }
 
 func repoExistsLocally(repo scm.Repo) bool {
@@ -607,8 +499,8 @@ func printRemainingMessages() {
 	}
 }
 
-func readTargetReposFile() ([]string, error) {
-	file, err := os.Open(os.Getenv("GHORG_TARGET_REPOS_PATH"))
+func readLinesFromFile(path string) ([]string, error) {
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -622,40 +514,18 @@ func readTargetReposFile() ([]string, error) {
 		}
 	}
 	return lines, scanner.Err()
+}
+
+func readTargetReposFile() ([]string, error) {
+	return readLinesFromFile(os.Getenv("GHORG_TARGET_REPOS_PATH"))
 }
 
 func readGhorgIgnore() ([]string, error) {
-	file, err := os.Open(configs.GhorgIgnoreLocation())
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		if scanner.Text() != "" {
-			lines = append(lines, scanner.Text())
-		}
-	}
-	return lines, scanner.Err()
+	return readLinesFromFile(configs.GhorgIgnoreLocation())
 }
 
 func readGhorgOnly() ([]string, error) {
-	file, err := os.Open(configs.GhorgOnlyLocation())
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		if scanner.Text() != "" {
-			lines = append(lines, scanner.Text())
-		}
-	}
-	return lines, scanner.Err()
+	return readLinesFromFile(configs.GhorgOnlyLocation())
 }
 
 func hasRepoNameCollisions(repos []scm.Repo) (map[string]bool, bool) {
@@ -809,7 +679,10 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 		return
 	}
 
-	createDirIfNotExist()
+	if err := createDirIfNotExist(); err != nil {
+		colorlog.PrintError(err)
+		os.Exit(1)
+	}
 
 	// check for duplicate names will cause issues for some clone types on gitlab
 	repoNameWithCollisions, hasCollisions := hasRepoNameCollisions(cloneTargets)
@@ -1105,81 +978,6 @@ func getCachedOrCalculatedOutputDirSizeInMb() (float64, error) {
 		isDirSizeCached = true
 	}
 	return cachedDirSizeMB, nil
-}
-
-// filterByTargetReposPath is used by tests - main code uses RepositoryFilter.FilterByTargetReposPath
-//
-//nolint:unused // Used by clone_test.go
-func filterByTargetReposPath(cloneTargets []scm.Repo) []scm.Repo {
-
-	_, err := os.Stat(os.Getenv("GHORG_TARGET_REPOS_PATH"))
-
-	if err != nil {
-		colorlog.PrintErrorAndExit(fmt.Sprintf("Error finding your GHORG_TARGET_REPOS_PATH file, error: %v", err))
-	}
-
-	if !os.IsNotExist(err) {
-		// Open the file parse each line and remove cloneTargets containing
-		toTarget, err := readTargetReposFile()
-		if err != nil {
-			colorlog.PrintErrorAndExit(fmt.Sprintf("Error parsing your GHORG_TARGET_REPOS_PATH file, error: %v", err))
-		}
-
-		colorlog.PrintInfo("Using GHORG_TARGET_REPOS_PATH, filtering repos down...")
-
-		filteredCloneTargets := []scm.Repo{}
-		var flag bool
-
-		targetRepoSeenOnOrg := make(map[string]bool)
-
-		for _, cloneTarget := range cloneTargets {
-			flag = false
-			for _, targetRepo := range toTarget {
-				if _, ok := targetRepoSeenOnOrg[targetRepo]; !ok {
-					targetRepoSeenOnOrg[targetRepo] = false
-				}
-				clonedRepoName := strings.TrimSuffix(filepath.Base(cloneTarget.URL), ".git")
-				if strings.EqualFold(clonedRepoName, targetRepo) {
-					flag = true
-					targetRepoSeenOnOrg[targetRepo] = true
-				}
-
-				if os.Getenv("GHORG_CLONE_WIKI") == "true" {
-					targetRepoWiki := targetRepo + ".wiki"
-					if strings.EqualFold(targetRepoWiki, clonedRepoName) {
-						flag = true
-						targetRepoSeenOnOrg[targetRepo] = true
-					}
-				}
-
-				if os.Getenv("GHORG_CLONE_SNIPPETS") == "true" {
-					if cloneTarget.IsGitLabSnippet {
-						targetSnippetOriginalRepo := strings.TrimSuffix(filepath.Base(cloneTarget.GitLabSnippetInfo.URLOfRepo), ".git")
-						if strings.EqualFold(targetSnippetOriginalRepo, targetRepo) {
-							flag = true
-							targetRepoSeenOnOrg[targetRepo] = true
-						}
-					}
-				}
-			}
-
-			if flag {
-				filteredCloneTargets = append(filteredCloneTargets, cloneTarget)
-			}
-		}
-
-		// Print all the repos in the file that were not in the org so users know the entry is not being cloned
-		for targetRepo, seen := range targetRepoSeenOnOrg {
-			if !seen {
-				cloneInfos = append(cloneInfos, fmt.Sprintf("Target in GHORG_TARGET_REPOS_PATH was not found in the org, repo: %v", targetRepo))
-			}
-		}
-
-		cloneTargets = filteredCloneTargets
-
-	}
-
-	return cloneTargets
 }
 
 func pruneRepos(cloneTargets []scm.Repo) int {
@@ -1493,43 +1291,6 @@ func setOutputDirName(argz []string) {
 	if os.Getenv("GHORG_BACKUP") == "true" {
 		outputDirName = outputDirName + "_backup"
 	}
-}
-
-// filterByGhorgignore is used by tests - main code uses RepositoryFilter.FilterByGhorgIgnore
-//
-//nolint:unused // Used by clone_test.go
-func filterByGhorgignore(cloneTargets []scm.Repo) []scm.Repo {
-
-	_, err := os.Stat(configs.GhorgIgnoreLocation())
-	if !os.IsNotExist(err) {
-		// Open the file parse each line and remove cloneTargets containing
-		toIgnore, err := readGhorgIgnore()
-		if err != nil {
-			colorlog.PrintErrorAndExit(fmt.Sprintf("Error parsing your ghorgignore, error: %v", err))
-		}
-
-		colorlog.PrintInfo("Using ghorgignore, filtering repos down...")
-
-		filteredCloneTargets := []scm.Repo{}
-		var flag bool
-		for _, cloned := range cloneTargets {
-			flag = false
-			for _, ignore := range toIgnore {
-				if strings.Contains(cloned.URL, ignore) {
-					flag = true
-				}
-			}
-
-			if !flag {
-				filteredCloneTargets = append(filteredCloneTargets, cloned)
-			}
-		}
-
-		cloneTargets = filteredCloneTargets
-
-	}
-
-	return cloneTargets
 }
 
 func isPathSegmentSafe(seg string) bool {

@@ -70,17 +70,35 @@ func (c Sourcehut) GetUserRepos(targetUsername string) ([]Repo, error) {
 	// Strip prefix for local paths
 	localUsername := stripUsernamePrefix(targetUsername)
 
-	var cursor sourcehutCursor
+	// Pipeline: prefetch the next page while processing the current one
+	type pageResult struct {
+		repos  []Repo
+		cursor sourcehutCursor
+		err    error
+	}
+
+	fetchPage := func(cur sourcehutCursor) <-chan pageResult {
+		ch := make(chan pageResult, 1)
+		go func() {
+			r, next, err := c.queryRepositoriesPage(cur, apiUsername, localUsername)
+			ch <- pageResult{repos: r, cursor: next, err: err}
+		}()
+		return ch
+	}
+
+	// Kick off the first fetch
+	pending := fetchPage("")
 	for {
-		reposPage, nextCursor, err := c.queryRepositoriesPage(cursor, apiUsername, localUsername)
-		if err != nil {
-			return nil, err
+		result := <-pending
+		if result.err != nil {
+			return nil, result.err
 		}
-		cursor = nextCursor
-		repos = append(repos, reposPage...)
-		if cursor == "" {
+		repos = append(repos, result.repos...)
+		if result.cursor == "" {
 			break
 		}
+		// Start fetching next page while we loop back
+		pending = fetchPage(result.cursor)
 	}
 
 	return repos, nil

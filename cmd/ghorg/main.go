@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hashicorp/cli"
+
 	"github.com/blairham/ghorg/internal/cmd"
-	"github.com/mitchellh/cli"
 )
 
 func main() {

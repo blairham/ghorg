@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func TestRecloneCronCommand_Synopsis(t *testing.T) {

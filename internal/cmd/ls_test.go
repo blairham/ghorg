@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func TestLsCommand_Synopsis(t *testing.T) {

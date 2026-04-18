@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 // CommandFactory creates CLI commands

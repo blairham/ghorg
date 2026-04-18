@@ -7,11 +7,12 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/hashicorp/cli"
+	"github.com/jessevdk/go-flags"
+	"gopkg.in/yaml.v2"
+
 	"github.com/blairham/ghorg/internal/colorlog"
 	"github.com/blairham/ghorg/internal/configs"
-	"github.com/jessevdk/go-flags"
-	"github.com/mitchellh/cli"
-	"gopkg.in/yaml.v2"
 )
 
 type RecloneCommand struct {

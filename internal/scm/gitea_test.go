@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"code.gitea.io/sdk/gitea"
@@ -316,6 +317,328 @@ func TestGitea_GetOrgRepos_NotFound(t *testing.T) {
 	expectedError := `org "nonexistent-org" not found`
 	if err.Error() != expectedError {
 		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestGitea_AddTokenToCloneURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		url      string
+		token    string
+		insecure string
+		expected string
+	}{
+		{
+			name:     "HTTPS URL adds token",
+			url:      "https://gitea.example.com/org/repo.git",
+			token:    "mytoken",
+			expected: "https://mytoken@gitea.example.com/org/repo.git",
+		},
+		{
+			name:     "HTTPS URL with different token",
+			url:      "https://gitea.example.com/user/another-repo.git",
+			token:    "abc123",
+			expected: "https://abc123@gitea.example.com/user/another-repo.git",
+		},
+		{
+			name:     "HTTP URL with insecure flag",
+			url:      "http://gitea.local/org/repo.git",
+			token:    "mytoken",
+			insecure: "true",
+			expected: "http://mytoken@gitea.local/org/repo.git",
+		},
+		{
+			name:     "HTTPS URL with port",
+			url:      "https://gitea.example.com:3000/org/repo.git",
+			token:    "tok",
+			expected: "https://tok@gitea.example.com:3000/org/repo.git",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if tt.insecure != "" {
+				os.Setenv("GHORG_INSECURE_GITEA_CLIENT", tt.insecure)
+				defer os.Unsetenv("GHORG_INSECURE_GITEA_CLIENT")
+			}
+
+			g := Gitea{}
+			result := g.addTokenToCloneURL(tt.url, tt.token)
+			if result != tt.expected {
+				t.Errorf("addTokenToCloneURL(%q, %q) = %q, want %q", tt.url, tt.token, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGitea_GetOrgRepos_SkipArchived(t *testing.T) {
+	client, mux, _, teardown := setupGiteaTest()
+	defer teardown()
+
+	repos := []*gitea.Repository{
+		{
+			ID:            1,
+			Name:          "active-repo",
+			FullName:      "test-org/active-repo",
+			CloneURL:      "https://gitea.example.com/test-org/active-repo.git",
+			SSHURL:        "git@gitea.example.com:test-org/active-repo.git",
+			Archived:      false,
+			DefaultBranch: "main",
+			Owner:         &gitea.User{UserName: "test-org"},
+		},
+		{
+			ID:            2,
+			Name:          "archived-repo",
+			FullName:      "test-org/archived-repo",
+			CloneURL:      "https://gitea.example.com/test-org/archived-repo.git",
+			SSHURL:        "git@gitea.example.com:test-org/archived-repo.git",
+			Archived:      true,
+			DefaultBranch: "main",
+			Owner:         &gitea.User{UserName: "test-org"},
+		},
+		{
+			ID:            3,
+			Name:          "another-active",
+			FullName:      "test-org/another-active",
+			CloneURL:      "https://gitea.example.com/test-org/another-active.git",
+			SSHURL:        "git@gitea.example.com:test-org/another-active.git",
+			Archived:      false,
+			DefaultBranch: "main",
+			Owner:         &gitea.User{UserName: "test-org"},
+		},
+	}
+
+	mux.HandleFunc("/api/v1/orgs/test-org/repos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(repos)
+	})
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	os.Setenv("GHORG_SKIP_ARCHIVED", "true")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	defer os.Unsetenv("GHORG_SKIP_ARCHIVED")
+
+	result, err := client.GetOrgRepos("test-org")
+	if err != nil {
+		t.Fatalf("GetOrgRepos failed: %v", err)
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("Expected 2 repositories (archived excluded), got %d", len(result))
+	}
+
+	for _, repo := range result {
+		if repo.Name == "archived-repo" {
+			t.Errorf("Archived repo should have been excluded, but found %q", repo.Name)
+		}
+	}
+}
+
+func TestGitea_GetOrgRepos_SkipForks(t *testing.T) {
+	client, mux, _, teardown := setupGiteaTest()
+	defer teardown()
+
+	repos := []*gitea.Repository{
+		{
+			ID:            1,
+			Name:          "original-repo",
+			FullName:      "test-org/original-repo",
+			CloneURL:      "https://gitea.example.com/test-org/original-repo.git",
+			SSHURL:        "git@gitea.example.com:test-org/original-repo.git",
+			Fork:          false,
+			DefaultBranch: "main",
+			Owner:         &gitea.User{UserName: "test-org"},
+		},
+		{
+			ID:            2,
+			Name:          "forked-repo",
+			FullName:      "test-org/forked-repo",
+			CloneURL:      "https://gitea.example.com/test-org/forked-repo.git",
+			SSHURL:        "git@gitea.example.com:test-org/forked-repo.git",
+			Fork:          true,
+			DefaultBranch: "main",
+			Owner:         &gitea.User{UserName: "test-org"},
+		},
+		{
+			ID:            3,
+			Name:          "another-original",
+			FullName:      "test-org/another-original",
+			CloneURL:      "https://gitea.example.com/test-org/another-original.git",
+			SSHURL:        "git@gitea.example.com:test-org/another-original.git",
+			Fork:          false,
+			DefaultBranch: "main",
+			Owner:         &gitea.User{UserName: "test-org"},
+		},
+	}
+
+	mux.HandleFunc("/api/v1/orgs/test-org/repos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(repos)
+	})
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	os.Setenv("GHORG_SKIP_FORKS", "true")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	defer os.Unsetenv("GHORG_SKIP_FORKS")
+
+	result, err := client.GetOrgRepos("test-org")
+	if err != nil {
+		t.Fatalf("GetOrgRepos failed: %v", err)
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("Expected 2 repositories (fork excluded), got %d", len(result))
+	}
+
+	for _, repo := range result {
+		if repo.Name == "forked-repo" {
+			t.Errorf("Forked repo should have been excluded, but found %q", repo.Name)
+		}
+	}
+}
+
+func TestGitea_GetOrgRepos_SSHProtocol(t *testing.T) {
+	client, mux, _, teardown := setupGiteaTest()
+	defer teardown()
+
+	repos := []*gitea.Repository{
+		mockGiteaRepository(1, "ssh-repo-1"),
+		mockGiteaRepository(2, "ssh-repo-2"),
+	}
+
+	mux.HandleFunc("/api/v1/orgs/test-org/repos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(repos)
+	})
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "ssh")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+
+	result, err := client.GetOrgRepos("test-org")
+	if err != nil {
+		t.Fatalf("GetOrgRepos failed: %v", err)
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("Expected 2 repositories, got %d", len(result))
+	}
+
+	for _, repo := range result {
+		expectedSSHPrefix := "git@gitea.example.com:"
+		if !strings.HasPrefix(repo.CloneURL, expectedSSHPrefix) {
+			t.Errorf("Expected CloneURL to start with %q, got %q", expectedSSHPrefix, repo.CloneURL)
+		}
+		if !strings.HasPrefix(repo.URL, expectedSSHPrefix) {
+			t.Errorf("Expected URL to start with %q, got %q", expectedSSHPrefix, repo.URL)
+		}
+	}
+}
+
+func TestGitea_GetOrgRepos_BranchOverride(t *testing.T) {
+	client, mux, _, teardown := setupGiteaTest()
+	defer teardown()
+
+	repos := []*gitea.Repository{
+		mockGiteaRepository(1, "branch-repo-1"),
+		mockGiteaRepository(2, "branch-repo-2"),
+	}
+
+	mux.HandleFunc("/api/v1/orgs/test-org/repos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(repos)
+	})
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	os.Setenv("GHORG_BRANCH", "custom-branch")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	defer os.Unsetenv("GHORG_BRANCH")
+
+	result, err := client.GetOrgRepos("test-org")
+	if err != nil {
+		t.Fatalf("GetOrgRepos failed: %v", err)
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("Expected 2 repositories, got %d", len(result))
+	}
+
+	for _, repo := range result {
+		if repo.CloneBranch != "custom-branch" {
+			t.Errorf("Expected CloneBranch %q for repo %q, got %q", "custom-branch", repo.Name, repo.CloneBranch)
+		}
+	}
+}
+
+func TestGitea_GetOrgRepos_WikiClone(t *testing.T) {
+	client, mux, _, teardown := setupGiteaTest()
+	defer teardown()
+
+	repos := []*gitea.Repository{
+		{
+			ID:            1,
+			Name:          "wiki-repo",
+			FullName:      "test-org/wiki-repo",
+			CloneURL:      "https://gitea.example.com/test-org/wiki-repo.git",
+			SSHURL:        "git@gitea.example.com:test-org/wiki-repo.git",
+			HasWiki:       true,
+			DefaultBranch: "main",
+			Owner:         &gitea.User{UserName: "test-org"},
+		},
+		{
+			ID:            2,
+			Name:          "no-wiki-repo",
+			FullName:      "test-org/no-wiki-repo",
+			CloneURL:      "https://gitea.example.com/test-org/no-wiki-repo.git",
+			SSHURL:        "git@gitea.example.com:test-org/no-wiki-repo.git",
+			HasWiki:       false,
+			DefaultBranch: "main",
+			Owner:         &gitea.User{UserName: "test-org"},
+		},
+	}
+
+	mux.HandleFunc("/api/v1/orgs/test-org/repos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(repos)
+	})
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	os.Setenv("GHORG_CLONE_WIKI", "true")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	defer os.Unsetenv("GHORG_CLONE_WIKI")
+
+	result, err := client.GetOrgRepos("test-org")
+	if err != nil {
+		t.Fatalf("GetOrgRepos failed: %v", err)
+	}
+
+	// Expect 3 results: wiki-repo, wiki-repo.wiki, no-wiki-repo
+	if len(result) != 3 {
+		t.Fatalf("Expected 3 entries (2 repos + 1 wiki), got %d", len(result))
+	}
+
+	foundWiki := false
+	for _, repo := range result {
+		if repo.IsWiki {
+			foundWiki = true
+			if repo.Path != "wiki-repo.wiki" {
+				t.Errorf("Expected wiki Path %q, got %q", "wiki-repo.wiki", repo.Path)
+			}
+			expectedWikiURL := "https://gitea.example.com/test-org/wiki-repo.wiki.git"
+			if repo.CloneURL != expectedWikiURL {
+				t.Errorf("Expected wiki CloneURL %q, got %q", expectedWikiURL, repo.CloneURL)
+			}
+			if repo.CloneBranch != "master" {
+				t.Errorf("Expected wiki CloneBranch %q, got %q", "master", repo.CloneBranch)
+			}
+		}
+	}
+
+	if !foundWiki {
+		t.Error("Expected a wiki entry in results, but none was found")
 	}
 }
 

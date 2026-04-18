@@ -269,27 +269,12 @@ func Lint() error {
 	return sh.RunV("golangci-lint", "run", "./...")
 }
 
-// Vendor updates vendor directory
-func Vendor() error {
-	fmt.Println("Updating vendor directory...")
-	if err := sh.RunV("go", "mod", "tidy"); err != nil {
-		return err
-	}
-	return sh.RunV("go", "mod", "vendor")
-}
-
-// getGoFiles returns all Go files excluding vendor directory
+// getGoFiles returns all Go files in the project
 func getGoFiles() ([]string, error) {
 	var gofiles []string
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
-		}
-		if strings.Contains(path, "vendor/") {
-			if info.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
 		}
 		if strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "bindata.go") {
 			gofiles = append(gofiles, path)

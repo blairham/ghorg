@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 const ghorgVersion = "v1.11.8"

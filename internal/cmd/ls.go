@@ -9,11 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/briandowns/spinner"
+	"github.com/hashicorp/cli"
+	"github.com/jessevdk/go-flags"
+
 	"github.com/blairham/ghorg/internal/colorlog"
 	"github.com/blairham/ghorg/internal/utils"
-	"github.com/briandowns/spinner"
-	"github.com/jessevdk/go-flags"
-	"github.com/mitchellh/cli"
 )
 
 type LsCommand struct {

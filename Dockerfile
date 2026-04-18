@@ -1,7 +1,7 @@
 # ==================================================
 # Runtime image for GoReleaser
 # ==================================================
-FROM alpine:latest
+FROM alpine:3.21
 
 ARG TARGETPLATFORM
 ARG USER=ghorg

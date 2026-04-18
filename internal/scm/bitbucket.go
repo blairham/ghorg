@@ -9,8 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/blairham/ghorg/internal/colorlog"
 	"github.com/ktrysmt/go-bitbucket"
+
+	"github.com/blairham/ghorg/internal/colorlog"
 )
 
 var (
@@ -74,7 +75,7 @@ func (c Bitbucket) GetUserRepos(targetUser string) ([]Repo, error) {
 func (Bitbucket) NewClient() (Client, error) {
 	user := os.Getenv("GHORG_BITBUCKET_USERNAME")
 	password := os.Getenv("GHORG_BITBUCKET_APP_PASSWORD")
-	oAuth := os.Getenv("GHORG_BITBUCKET_OAUTH")
+	oAuth := os.Getenv("GHORG_BITBUCKET_OAUTH_TOKEN")
 	baseURL := os.Getenv("GHORG_SCM_BASE_URL")
 
 	// Check if this is a Bitbucket Server instance
@@ -337,8 +338,8 @@ func (Bitbucket) filter(resp []bitbucket.Repository) (repoData []Repo, err error
 			} else if os.Getenv("GHORG_CLONE_PROTOCOL") == "https" && linkType == "https" {
 				r.URL = link
 				r.CloneURL = link
-				if os.Getenv("GHORG_BITBUCKET_OAUTH") != "" {
-					// TODO
+				if os.Getenv("GHORG_BITBUCKET_OAUTH_TOKEN") != "" {
+					r.CloneURL = insertOauthTokenIntoURL(r.CloneURL)
 				} else {
 					r.CloneURL = insertAppPasswordCredentialsIntoURL(r.CloneURL)
 				}
@@ -352,6 +353,13 @@ func (Bitbucket) filter(resp []bitbucket.Repository) (repoData []Repo, err error
 
 func insertAppPasswordCredentialsIntoURL(url string) string {
 	credentials := ":" + os.Getenv("GHORG_BITBUCKET_APP_PASSWORD") + "@"
+	urlWithCredentials := strings.Replace(url, "@", credentials, 1)
+
+	return urlWithCredentials
+}
+
+func insertOauthTokenIntoURL(url string) string {
+	credentials := "x-token-auth:" + os.Getenv("GHORG_BITBUCKET_OAUTH_TOKEN") + "@"
 	urlWithCredentials := strings.Replace(url, "@", credentials, 1)
 
 	return urlWithCredentials

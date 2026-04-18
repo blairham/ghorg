@@ -8,9 +8,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/blairham/ghorg/internal/colorlog"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 var (
@@ -252,6 +254,38 @@ func (c Gitlab) getAllSnippets() []*gitlab.Snippet {
 	return allSnippets
 }
 
+// getRepoSnippetsParallel fetches snippets for multiple repos concurrently.
+func (c Gitlab) getRepoSnippetsParallel(repos []Repo) []*gitlab.Snippet {
+	type result struct {
+		snippets []*gitlab.Snippet
+	}
+
+	resultChan := make(chan result, len(repos))
+	sem := make(chan struct{}, 10) // limit to 10 concurrent API calls
+	var wg sync.WaitGroup
+
+	for _, repo := range repos {
+		wg.Add(1)
+		go func(r Repo) {
+			defer wg.Done()
+			sem <- struct{}{}        // acquire
+			defer func() { <-sem }() // release
+			resultChan <- result{snippets: c.getRepoSnippets(r)}
+		}(repo)
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	var allSnippets []*gitlab.Snippet
+	for r := range resultChan {
+		allSnippets = append(allSnippets, r.snippets...)
+	}
+	return allSnippets
+}
+
 func (c Gitlab) GetSnippets(cloneData []Repo, target string) ([]Repo, error) {
 
 	if os.Getenv("GHORG_CLONE_SNIPPETS") != "true" {
@@ -267,19 +301,13 @@ func (c Gitlab) GetSnippets(cloneData []Repo, target string) ([]Repo, error) {
 	if os.Getenv("GHORG_CLONE_TYPE") != "user" && os.Getenv("GHORG_SCM_BASE_URL") == "" {
 		// Iterate over all projects in the group. If it has snippets add them
 		colorlog.PrintInfo("Note: only snippets you have access to will be cloned. This process may take a while depending on the size of group you are trying to clone, please be patient.")
-		for _, repo := range cloneData {
-			snippets := c.getRepoSnippets(repo)
-			allSnippetsToClone = append(allSnippetsToClone, snippets...)
-		}
+		allSnippetsToClone = c.getRepoSnippetsParallel(cloneData)
 	} else {
 		allSnippets := c.getAllSnippets()
 
 		// if its an all-user or all-group clone, for each repo get its snippets then also include all root level snippets
 		if target == "all-users" || target == "all-groups" {
-			for _, repo := range cloneData {
-				repoSnippets := c.getRepoSnippets(repo)
-				allSnippetsToClone = append(allSnippetsToClone, repoSnippets...)
-			}
+			allSnippetsToClone = c.getRepoSnippetsParallel(cloneData)
 
 			for _, snippet := range allSnippets {
 				if c.rootLevelSnippet(snippet.WebURL) {
@@ -288,10 +316,7 @@ func (c Gitlab) GetSnippets(cloneData []Repo, target string) ([]Repo, error) {
 			}
 		} else if os.Getenv("GHORG_CLONE_TYPE") != "user" {
 			// Handle single group clones on hosted instances
-			for _, repo := range cloneData {
-				repoSnippets := c.getRepoSnippets(repo)
-				allSnippetsToClone = append(allSnippetsToClone, repoSnippets...)
-			}
+			allSnippetsToClone = c.getRepoSnippetsParallel(cloneData)
 		}
 		// Note: User clones on gitlab.com don't include snippets
 
@@ -364,13 +389,6 @@ func (c Gitlab) GetUserRepos(targetUsername string) ([]Repo, error) {
 	cloneData := []Repo{}
 	targetUsers := []string{}
 
-	projectOpts := &gitlab.ListProjectsOptions{
-		ListOptions: gitlab.ListOptions{
-			PerPage: perPage,
-			Page:    1,
-		},
-	}
-
 	userOpts := &gitlab.ListUsersOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: perPage,
@@ -403,26 +421,58 @@ func (c Gitlab) GetUserRepos(targetUsername string) ([]Repo, error) {
 		targetUsers = append(targetUsers, targetUsername)
 	}
 
-	for _, targetUser := range targetUsers {
+	// fetchUserProjects fetches all project pages for a single user
+	fetchUserProjects := func(targetUser string) []Repo {
+		var userData []Repo
+		opts := &gitlab.ListProjectsOptions{
+			ListOptions: gitlab.ListOptions{
+				PerPage: perPage,
+				Page:    1,
+			},
+		}
 		for {
-			// Get the first page with projects.
-			ps, resp, err := c.Projects.ListUserProjects(targetUser, projectOpts)
+			ps, resp, err := c.Projects.ListUserProjects(targetUser, opts)
 			if err != nil {
-				spinningSpinner.Stop()
 				colorlog.PrintError(fmt.Sprintf("Error getting repo for user: %v", targetUser))
-				continue
+				break
 			}
-
-			// filter from all the projects we've found so far.
-			cloneData = append(cloneData, c.filter(targetUser, ps)...)
-
-			// Exit the loop when we've seen all pages.
+			userData = append(userData, c.filter(targetUser, ps)...)
 			if resp.NextPage == 0 {
 				break
 			}
+			opts.Page = resp.NextPage
+		}
+		return userData
+	}
 
-			// Update the page number to get the next page.
-			userOpts.Page = resp.NextPage
+	if len(targetUsers) == 1 {
+		cloneData = append(cloneData, fetchUserProjects(targetUsers[0])...)
+	} else {
+		// Fetch repos for multiple users concurrently
+		type userResult struct {
+			repos []Repo
+		}
+		resultChan := make(chan userResult, len(targetUsers))
+		sem := make(chan struct{}, 10) // limit to 10 concurrent user fetches
+		var wg sync.WaitGroup
+
+		for _, user := range targetUsers {
+			wg.Add(1)
+			go func(u string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				resultChan <- userResult{repos: fetchUserProjects(u)}
+			}(user)
+		}
+
+		go func() {
+			wg.Wait()
+			close(resultChan)
+		}()
+
+		for r := range resultChan {
+			cloneData = append(cloneData, r.repos...)
 		}
 	}
 

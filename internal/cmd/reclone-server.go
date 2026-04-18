@@ -11,9 +11,10 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/hashicorp/cli"
 	"github.com/jessevdk/go-flags"
-	"github.com/mitchellh/cli"
+
+	"github.com/blairham/ghorg/internal/colorlog"
 )
 
 type RecloneServerCommand struct {

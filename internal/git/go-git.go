@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blairham/ghorg/internal/colorlog"
-	"github.com/blairham/ghorg/internal/scm"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -16,6 +14,9 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/scm"
 )
 
 // goGitClient implements the Gitter interface using the go-git library (pure Go).
@@ -557,7 +558,7 @@ func (g goGitClient) ShortStatus(repo scm.Repo) (string, error) {
 		if s.Staging != gogit.Unmodified || s.Worktree != gogit.Unmodified {
 			staging := statusCodeToChar(s.Staging)
 			worktree := statusCodeToChar(s.Worktree)
-			result.WriteString(fmt.Sprintf("%s%s %s\n", staging, worktree, file))
+			fmt.Fprintf(&result, "%s%s %s\n", staging, worktree, file)
 		}
 	}
 

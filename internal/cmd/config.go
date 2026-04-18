@@ -8,11 +8,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/blairham/ghorg/internal/colorlog"
-	"github.com/blairham/ghorg/internal/configs"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/configs"
 )
 
 var (
