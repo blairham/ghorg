@@ -116,16 +116,16 @@ func TestGitlab_GetGroupRepos_SkipArchived(t *testing.T) {
 			{
 				"id": 1, "name": "active-repo", "default_branch": "main",
 				"path_with_namespace": "test-group/active-repo",
-				"http_url_to_repo": "https://gitlab.com/test-group/active-repo.git",
-				"ssh_url_to_repo": "git@gitlab.com:test-group/active-repo.git",
-				"archived": false, "topics": []string{}, "wiki_access_level": "disabled",
+				"http_url_to_repo":    "https://gitlab.com/test-group/active-repo.git",
+				"ssh_url_to_repo":     "git@gitlab.com:test-group/active-repo.git",
+				"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
 			},
 			{
 				"id": 2, "name": "archived-repo", "default_branch": "main",
 				"path_with_namespace": "test-group/archived-repo",
-				"http_url_to_repo": "https://gitlab.com/test-group/archived-repo.git",
-				"ssh_url_to_repo": "git@gitlab.com:test-group/archived-repo.git",
-				"archived": true, "topics": []string{}, "wiki_access_level": "disabled",
+				"http_url_to_repo":    "https://gitlab.com/test-group/archived-repo.git",
+				"ssh_url_to_repo":     "git@gitlab.com:test-group/archived-repo.git",
+				"archived":            true, "topics": []string{}, "wiki_access_level": "disabled",
 			},
 		})
 	})
@@ -163,16 +163,16 @@ func TestGitlab_GetGroupRepos_SkipForks(t *testing.T) {
 			{
 				"id": 1, "name": "original", "default_branch": "main",
 				"path_with_namespace": "test-group/original",
-				"http_url_to_repo": "https://gitlab.com/test-group/original.git",
-				"ssh_url_to_repo": "git@gitlab.com:test-group/original.git",
-				"archived": false, "topics": []string{}, "wiki_access_level": "disabled",
+				"http_url_to_repo":    "https://gitlab.com/test-group/original.git",
+				"ssh_url_to_repo":     "git@gitlab.com:test-group/original.git",
+				"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
 			},
 			{
 				"id": 2, "name": "forked", "default_branch": "main",
 				"path_with_namespace": "test-group/forked",
-				"http_url_to_repo": "https://gitlab.com/test-group/forked.git",
-				"ssh_url_to_repo": "git@gitlab.com:test-group/forked.git",
-				"archived": false, "topics": []string{}, "wiki_access_level": "disabled",
+				"http_url_to_repo":    "https://gitlab.com/test-group/forked.git",
+				"ssh_url_to_repo":     "git@gitlab.com:test-group/forked.git",
+				"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
 				"forked_from_project": map[string]any{"id": 99},
 			},
 		})
@@ -214,9 +214,9 @@ func TestGitlab_GetGroupRepos_MultiPage(t *testing.T) {
 				{
 					"id": 1, "name": "page1-repo", "default_branch": "main",
 					"path_with_namespace": "test-group/page1-repo",
-					"http_url_to_repo": "https://gitlab.com/test-group/page1-repo.git",
-					"ssh_url_to_repo": "git@gitlab.com:test-group/page1-repo.git",
-					"archived": false, "topics": []string{}, "wiki_access_level": "disabled",
+					"http_url_to_repo":    "https://gitlab.com/test-group/page1-repo.git",
+					"ssh_url_to_repo":     "git@gitlab.com:test-group/page1-repo.git",
+					"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
 				},
 			})
 		} else {
@@ -225,9 +225,9 @@ func TestGitlab_GetGroupRepos_MultiPage(t *testing.T) {
 				{
 					"id": 2, "name": "page2-repo", "default_branch": "main",
 					"path_with_namespace": "test-group/page2-repo",
-					"http_url_to_repo": "https://gitlab.com/test-group/page2-repo.git",
-					"ssh_url_to_repo": "git@gitlab.com:test-group/page2-repo.git",
-					"archived": false, "topics": []string{}, "wiki_access_level": "disabled",
+					"http_url_to_repo":    "https://gitlab.com/test-group/page2-repo.git",
+					"ssh_url_to_repo":     "git@gitlab.com:test-group/page2-repo.git",
+					"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
 				},
 			})
 		}
@@ -271,9 +271,9 @@ func TestGitlab_GetGroupRepos_SSHProtocol(t *testing.T) {
 			{
 				"id": 1, "name": "ssh-repo", "default_branch": "main",
 				"path_with_namespace": "test-group/ssh-repo",
-				"http_url_to_repo": "https://gitlab.com/test-group/ssh-repo.git",
-				"ssh_url_to_repo": "git@gitlab.com:test-group/ssh-repo.git",
-				"archived": false, "topics": []string{}, "wiki_access_level": "disabled",
+				"http_url_to_repo":    "https://gitlab.com/test-group/ssh-repo.git",
+				"ssh_url_to_repo":     "git@gitlab.com:test-group/ssh-repo.git",
+				"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
 			},
 		})
 	})
@@ -451,9 +451,9 @@ func TestGitlab_GetGroupRepos_WikiClone(t *testing.T) {
 			{
 				"id": 1, "name": "wiki-repo", "default_branch": "main",
 				"path_with_namespace": "test-group/wiki-repo",
-				"http_url_to_repo": "https://gitlab.com/test-group/wiki-repo.git",
-				"ssh_url_to_repo": "git@gitlab.com:test-group/wiki-repo.git",
-				"archived": false, "topics": []string{},
+				"http_url_to_repo":    "https://gitlab.com/test-group/wiki-repo.git",
+				"ssh_url_to_repo":     "git@gitlab.com:test-group/wiki-repo.git",
+				"archived":            false, "topics": []string{},
 				"wiki_access_level": "enabled",
 			},
 		})
@@ -630,7 +630,7 @@ func TestGitlab_BranchOverride(t *testing.T) {
 				"path_with_namespace": "test-group/repo",
 				"http_url_to_repo":    fmt.Sprintf("%s/test-group/repo.git", "https://gitlab.com"),
 				"ssh_url_to_repo":     "git@gitlab.com:test-group/repo.git",
-				"archived": false, "topics": []string{}, "wiki_access_level": "disabled",
+				"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
 			},
 		})
 	})

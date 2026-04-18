@@ -17,15 +17,13 @@ jobs:
         with:
           go-version: 1.24.11
         id: go
-      - name: Install Mage
-        run: go install github.com/magefile/mage@latest
       - name: Configure Git for tests
         run: |
           git config --global user.name "Test User"
           git config --global user.email "test@example.com"
           git config --global init.defaultBranch main
       - name: Test
-        run: mage test
+        run: make test
   test_windows:
     environment: actions
     name: Test Windows
@@ -38,8 +36,6 @@ jobs:
         with:
           go-version: 1.24.11
         id: go
-      - name: Install Mage
-        run: go install github.com/magefile/mage@latest
       - name: Set configuration file
         run: |
           mkdir C:\Users\runneradmin\.config\ghorg
@@ -51,4 +47,4 @@ jobs:
           git config --global init.defaultBranch main
           git config --global core.autocrlf false
       - name: Test
-        run: mage test
+        run: go test ./... -v

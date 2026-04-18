@@ -13,27 +13,27 @@ ghorg is a CLI tool that bulk-clones all repositories from a GitHub, GitLab, Git
 
 ## Quick Reference — Build Commands
 
-All builds use [Mage](https://magefile.org/) (Go-native build tool). Run `mage -l` for a full list.
+Run `make help` for a full list.
 
 | Command | Purpose |
 |---|---|
-| `mage buildLocal` | Fast local dev build → `./ghorg` binary |
-| `mage build` | Multi-platform build via GoReleaser snapshot |
-| `mage buildDocker` | Build Docker images locally (no push) |
-| `mage install` | Build + copy sample config to `~/.config/ghorg/` |
-| `mage test` | Run all tests (`go test ./... -v`) |
-| `mage testGit` | Run git package tests only |
-| `mage testSync` | Run sync-related tests only |
-| `mage testHelpers` | Run git helper function tests only |
-| `mage testAll` | fmt + lint + test (full quality gate) |
-| `mage testCoverage` | Tests with HTML coverage report → `coverage.html` |
-| `mage fmt` | Format all Go files (`gofmt -s -w`) |
-| `mage lint` | Run golangci-lint (47 linters enabled) |
-| `mage clean` | Remove build artifacts |
-| `mage deps:install` | Install mage, goreleaser, golangci-lint |
-| `mage deps:verify` | Check required tools are available |
-| `mage release` | Full GoReleaser release (requires `GITHUB_TOKEN`) |
-| `mage releaseDry` | Dry-run release (no publish) |
+| `make build-local` | Fast local dev build → `dist/ghorg` |
+| `make build` | Multi-platform build via GoReleaser snapshot |
+| `make build-docker` | Build Docker images locally (no push) |
+| `make install` | Build + copy sample config to `~/.config/ghorg/` |
+| `make test` | Run all tests (`go test ./... -v`) |
+| `make test-git` | Run git package tests only |
+| `make test-sync` | Run sync-related tests only |
+| `make test-helpers` | Run git helper function tests only |
+| `make test-all` | fmt + lint + test (full quality gate) |
+| `make test-coverage` | Tests with HTML coverage report → `coverage.html` |
+| `make fmt` | Format all Go files (`gofmt -s -w`) |
+| `make lint` | Run golangci-lint (47 linters enabled) |
+| `make clean` | Remove build artifacts |
+| `make deps-install` | Install goreleaser, golangci-lint |
+| `make deps-verify` | Check required tools are available |
+| `make release` | Full GoReleaser release (requires `GITHUB_TOKEN`) |
+| `make release-dry` | Dry-run release (no publish) |
 
 ## Project Structure
 

@@ -18,7 +18,6 @@ require (
 	github.com/knadh/koanf/v2 v2.3.4
 	github.com/korovkin/limiter v0.0.0-20260306054425-004398ae7895
 	github.com/ktrysmt/go-bitbucket v0.9.95
-	github.com/magefile/mage v1.17.1
 	github.com/mitchellh/go-homedir v1.1.0
 	gitlab.com/gitlab-org/api/client-go v1.46.0
 	golang.org/x/oauth2 v0.36.0

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jessevdk/go-flags"
 	"github.com/hashicorp/cli"
+	"github.com/jessevdk/go-flags"
 )
 
 func TestLsCommand_Synopsis(t *testing.T) {
