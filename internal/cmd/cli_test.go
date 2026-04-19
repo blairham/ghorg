@@ -14,6 +14,7 @@ func TestCommandFactory(t *testing.T) {
 		"reclone-cron",
 		"reclone-server",
 		"ls",
+		"config",
 	}
 
 	for _, cmdName := range expectedCommands {
@@ -53,7 +54,7 @@ func TestCommandFactory(t *testing.T) {
 func TestCommandFactoryCount(t *testing.T) {
 	commands := CommandFactory()
 
-	expectedCount := 6
+	expectedCount := 7
 	if len(commands) != expectedCount {
 		t.Errorf("Expected %d commands, got %d", expectedCount, len(commands))
 	}

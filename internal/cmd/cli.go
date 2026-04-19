@@ -45,5 +45,10 @@ func CommandFactory() map[string]cli.CommandFactory {
 				UI: ui,
 			}, nil
 		},
+		"config": func() (cli.Command, error) {
+			return &ConfigCmdCommand{
+				UI: ui,
+			}, nil
+		},
 	}
 }

@@ -70,49 +70,28 @@ func updateAbsolutePathToCloneToWithHostname() {
 	}
 }
 
-// getDefaultValue returns the default value for a given environment variable
+// getDefaultValue returns the default value for a given environment variable.
+// It first checks the config registry, then falls back to computed defaults.
 func getDefaultValue(envVar string) string {
-	defaults := map[string]string{
-		"GHORG_SCM_TYPE":                     "github",
-		"GHORG_CLONE_PROTOCOL":               "https",
-		"GHORG_CLONE_TYPE":                   "org",
-		"GHORG_GITHUB_USER_OPTION":           "owner",
-		"GHORG_SYNC_DEFAULT_BRANCH":          "false",
-		"GHORG_SKIP_ARCHIVED":                "false",
-		"GHORG_SKIP_FORKS":                   "false",
-		"GHORG_NO_CLEAN":                     "false",
-		"GHORG_NO_TOKEN":                     "false",
-		"GHORG_NO_DIR_SIZE":                  "false",
-		"GHORG_FETCH_ALL":                    "false",
-		"GHORG_PRUNE":                        "false",
-		"GHORG_PRUNE_NO_CONFIRM":             "false",
-		"GHORG_PRUNE_UNTOUCHED":              "false",
-		"GHORG_PRUNE_UNTOUCHED_NO_CONFIRM":   "false",
-		"GHORG_DRY_RUN":                      "false",
-		"GHORG_CLONE_WIKI":                   "false",
-		"GHORG_CLONE_SNIPPETS":               "false",
-		"GHORG_INSECURE_GITLAB_CLIENT":       "false",
-		"GHORG_INSECURE_GITEA_CLIENT":        "false",
-		"GHORG_INSECURE_BITBUCKET_CLIENT":    "false",
-		"GHORG_INSECURE_SOURCEHUT_CLIENT":    "false",
-		"GHORG_BACKUP":                       "false",
-		"GHORG_RECLONE_ENV_CONFIG_ONLY":      "false",
-		"GHORG_RECLONE_QUIET":                "false",
-		"GHORG_INCLUDE_SUBMODULES":           "false",
-		"GHORG_EXIT_CODE_ON_CLONE_INFOS":     "0",
-		"GHORG_EXIT_CODE_ON_CLONE_ISSUES":    "1",
-		"GHORG_STATS_ENABLED":                "false",
-		"GHORG_PRESERVE_DIRECTORY_STRUCTURE": "false",
-		"GHORG_PRESERVE_SCM_HOSTNAME":        "false",
-		"GHORG_QUIET":                        "false",
-		"GHORG_CONCURRENCY":                  "25",
-		"GHORG_CLONE_DELAY_SECONDS":          "0",
-		"GHORG_CRON_TIMER_MINUTES":           "60",
-		"GHORG_RECLONE_SERVER_PORT":          ":8080",
-		"GHORG_COLOR":                        "disabled",
-		"GHORG_GITHUB_TOKEN_FROM_GITHUB_APP": "false",
+	ck := configs.LookupByEnvVar(envVar)
+	if ck != nil && ck.DefaultValue != "" {
+		return ck.DefaultValue
 	}
-	return defaults[envVar]
+	return ""
+}
+
+// resolveKoanfValue looks up a config value in koanf, checking both the new
+// dot-notation key and the legacy GHORG_* flat key.
+func resolveKoanfValue(envVar string) string {
+	// Try new dot-notation key first (e.g., "scm.type")
+	ck := configs.LookupByEnvVar(envVar)
+	if ck != nil {
+		if val := k.String(ck.DotNotation); val != "" {
+			return val
+		}
+	}
+	// Fall back to legacy flat key (e.g., "GHORG_SCM_TYPE")
+	return k.String(envVar)
 }
 
 // reads in configuration file and updates anything not set to default
@@ -129,15 +108,16 @@ func getOrSetDefaults(envVar string) {
 			return
 		}
 
-		if k.String(envVar) == "enabled" {
+		if resolveKoanfValue(envVar) == "enabled" {
 			os.Setenv("GHORG_COLOR", "enabled")
 			return
 		}
 	}
 
-	// When a user does not set value in $HOME/.config/ghorg/conf.yaml set the default values, else set env to what they have added to the file.
+	// When a user does not set value in config file, set the default values,
+	// else set env to what they have added to the file.
 	if os.Getenv(envVar) == "" {
-		koanfResult := k.String(envVar)
+		koanfResult := resolveKoanfValue(envVar)
 		if koanfResult != "" {
 			// Handle path-related env vars that need special formatting
 			switch envVar {
@@ -172,7 +152,8 @@ func InitConfig() {
 	k = koanf.New(".")
 
 	curDir, _ := os.Getwd()
-	localConfig := filepath.Join(curDir, "ghorg.yaml")
+	legacyLocalConfig := filepath.Join(curDir, "ghorg.yaml")
+	newLocalConfig := filepath.Join(curDir, ".ghorg", "config.yaml")
 
 	var configFile string
 	config := os.Getenv("GHORG_CONFIG")
@@ -181,15 +162,15 @@ func InitConfig() {
 		os.Setenv("GHORG_CONFIG", config)
 	} else if os.Getenv("GHORG_CONFIG") != "" {
 		configFile = os.Getenv("GHORG_CONFIG")
-	} else if _, err := os.Stat(localConfig); !errors.Is(err, os.ErrNotExist) {
-		configFile = localConfig
-		os.Setenv("GHORG_CONFIG", localConfig)
+	} else if _, err := os.Stat(legacyLocalConfig); !errors.Is(err, os.ErrNotExist) {
+		configFile = legacyLocalConfig
+		os.Setenv("GHORG_CONFIG", legacyLocalConfig)
 	} else {
 		configFile = configs.DefaultConfFile()
 		os.Setenv("GHORG_CONFIG", configs.DefaultConfFile())
 	}
 
-	// Load the config file using Koanf
+	// Load the primary config file using Koanf
 	if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
 		// Check if file doesn't exist
 		if _, statErr := os.Stat(configFile); os.IsNotExist(statErr) {
@@ -197,6 +178,15 @@ func InitConfig() {
 		} else {
 			colorlog.PrintError(fmt.Sprintf("Something unexpected happened reading configuration file: %s, err: %s", os.Getenv("GHORG_CONFIG"), err))
 			os.Exit(1)
+		}
+	}
+
+	// Overlay local .ghorg/config.yaml if it exists and we didn't already load it
+	if configFile != newLocalConfig {
+		if _, err := os.Stat(newLocalConfig); err == nil {
+			if loadErr := k.Load(file.Provider(newLocalConfig), yaml.Parser()); loadErr != nil {
+				colorlog.PrintError(fmt.Sprintf("Error reading local config %s: %s", newLocalConfig, loadErr))
+			}
 		}
 	}
 
@@ -208,72 +198,10 @@ func InitConfig() {
 		}
 	}
 
-	getOrSetDefaults("GHORG_ABSOLUTE_PATH_TO_CLONE_TO")
-	getOrSetDefaults("GHORG_BRANCH")
-	getOrSetDefaults("GHORG_CLONE_PROTOCOL")
-	getOrSetDefaults("GHORG_CLONE_TYPE")
-	getOrSetDefaults("GHORG_SCM_TYPE")
-	getOrSetDefaults("GHORG_PRESERVE_SCM_HOSTNAME")
-	getOrSetDefaults("GHORG_SKIP_ARCHIVED")
-	getOrSetDefaults("GHORG_SKIP_FORKS")
-	getOrSetDefaults("GHORG_NO_CLEAN")
-	getOrSetDefaults("GHORG_NO_TOKEN")
-	getOrSetDefaults("GHORG_NO_DIR_SIZE")
-	getOrSetDefaults("GHORG_FETCH_ALL")
-	getOrSetDefaults("GHORG_PRUNE")
-	getOrSetDefaults("GHORG_PRUNE_NO_CONFIRM")
-	getOrSetDefaults("GHORG_PRUNE_UNTOUCHED")
-	getOrSetDefaults("GHORG_PRUNE_UNTOUCHED_NO_CONFIRM")
-	getOrSetDefaults("GHORG_DRY_RUN")
-	getOrSetDefaults("GHORG_GITHUB_USER_OPTION")
-	getOrSetDefaults("GHORG_CLONE_WIKI")
-	getOrSetDefaults("GHORG_CLONE_SNIPPETS")
-	getOrSetDefaults("GHORG_INSECURE_GITLAB_CLIENT")
-	getOrSetDefaults("GHORG_INSECURE_GITEA_CLIENT")
-	getOrSetDefaults("GHORG_INSECURE_BITBUCKET_CLIENT")
-	getOrSetDefaults("GHORG_INSECURE_SOURCEHUT_CLIENT")
-	getOrSetDefaults("GHORG_BACKUP")
-	getOrSetDefaults("GHORG_SYNC_DEFAULT_BRANCH")
-	getOrSetDefaults("GHORG_RECLONE_ENV_CONFIG_ONLY")
-	getOrSetDefaults("GHORG_RECLONE_QUIET")
-	getOrSetDefaults("GHORG_CONCURRENCY")
-	getOrSetDefaults("GHORG_CLONE_DELAY_SECONDS")
-	getOrSetDefaults("GHORG_INCLUDE_SUBMODULES")
-	getOrSetDefaults("GHORG_EXIT_CODE_ON_CLONE_INFOS")
-	getOrSetDefaults("GHORG_EXIT_CODE_ON_CLONE_ISSUES")
-	getOrSetDefaults("GHORG_STATS_ENABLED")
-	getOrSetDefaults("GHORG_CRON_TIMER_MINUTES")
-	getOrSetDefaults("GHORG_RECLONE_SERVER_PORT")
-	// Optionally set
-	getOrSetDefaults("GHORG_TARGET_REPOS_PATH")
-	getOrSetDefaults("GHORG_CLONE_DEPTH")
-	getOrSetDefaults("GHORG_GITHUB_TOKEN")
-	getOrSetDefaults("GHORG_GITHUB_TOKEN_FROM_GITHUB_APP")
-	getOrSetDefaults("GHORG_GITHUB_FILTER_LANGUAGE")
-	getOrSetDefaults("GHORG_COLOR")
-	getOrSetDefaults("GHORG_TOPICS")
-	getOrSetDefaults("GHORG_GITLAB_TOKEN")
-	getOrSetDefaults("GHORG_BITBUCKET_USERNAME")
-	getOrSetDefaults("GHORG_BITBUCKET_APP_PASSWORD")
-	getOrSetDefaults("GHORG_BITBUCKET_OAUTH_TOKEN")
-	getOrSetDefaults("GHORG_SCM_BASE_URL")
-	getOrSetDefaults("GHORG_PRESERVE_DIRECTORY_STRUCTURE")
-	getOrSetDefaults("GHORG_OUTPUT_DIR")
-	getOrSetDefaults("GHORG_MATCH_REGEX")
-	getOrSetDefaults("GHORG_EXCLUDE_MATCH_REGEX")
-	getOrSetDefaults("GHORG_MATCH_PREFIX")
-	getOrSetDefaults("GHORG_EXCLUDE_MATCH_PREFIX")
-	getOrSetDefaults("GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX")
-	getOrSetDefaults("GHORG_IGNORE_PATH")
-	getOrSetDefaults("GHORG_RECLONE_PATH")
-	getOrSetDefaults("GHORG_QUIET")
-	getOrSetDefaults("GHORG_GIT_FILTER")
-	getOrSetDefaults("GHORG_GITEA_TOKEN")
-	getOrSetDefaults("GHORG_SOURCEHUT_TOKEN")
-	getOrSetDefaults("GHORG_INSECURE_GITEA_CLIENT")
-	getOrSetDefaults("GHORG_GITHUB_APP_PEM_PATH")
-	getOrSetDefaults("GHORG_GITHUB_APP_INSTALLATION_ID")
-	getOrSetDefaults("GHORG_GITHUB_APP_ID")
+	// Apply all config keys from the registry
+	for _, ck := range configs.AllKeys {
+		getOrSetDefaults(ck.EnvVar)
+	}
 
 	if os.Getenv("GHORG_DEBUG") != "" {
 		fmt.Println("Koanf config file used:", os.Getenv("GHORG_CONFIG"))
