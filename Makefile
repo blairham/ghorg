@@ -1,4 +1,4 @@
-.PHONY: build build-local build-docker install homebrew fmt test test-git test-sync \
+.PHONY: build build-local build-docker install homebrew fmt test test-race test-git test-sync \
        test-helpers test-all test-coverage test-coverage-func lint clean release \
        release-dry release-check examples deps-install deps-verify
 
@@ -28,6 +28,9 @@ homebrew: ## Copy sample config for homebrew installation
 
 test: ## Run all tests
 	go test ./... -v
+
+test-race: ## Run all tests with race detector
+	go test ./... -v -race
 
 test-git: ## Run git package tests only
 	go test ./internal/git -v

@@ -254,6 +254,80 @@ func TestGetServerProjectRepos_ThreePages(t *testing.T) {
 	}
 }
 
+func TestGetServerProjectRepos_MultiPage_ErrorOnPage(t *testing.T) {
+	client, mux, _, teardown := setupBitbucketServerTest()
+	defer teardown()
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	os.Setenv("GHORG_BRANCH", "")
+	defer os.Unsetenv("GHORG_BRANCH")
+
+	allRepos := make([]ServerRepository, 25)
+	for i := range 25 {
+		name := fmt.Sprintf("repo%d", i+1)
+		allRepos[i] = newServerRepo(
+			name, "PROJ",
+			fmt.Sprintf("https://bb.example.com/scm/proj/%s.git", strings.ToLower(name)),
+			fmt.Sprintf("ssh://git@bb.example.com:7999/proj/%s.git", strings.ToLower(name)),
+		)
+	}
+
+	mux.HandleFunc("/rest/api/1.0/projects/PROJ/repos", func(w http.ResponseWriter, r *http.Request) {
+		start := r.URL.Query().Get("start")
+		w.Header().Set("Content-Type", "application/json")
+
+		if start == "0" || start == "" {
+			// First page: report total 50 repos but only return 25
+			fmt.Fprint(w, makeServerRepoJSON(allRepos, 50, false, 0))
+		} else {
+			// All subsequent pages return 500
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+	})
+
+	_, err := client.getServerProjectRepos("PROJ")
+	if err == nil {
+		t.Fatal("expected error when parallel page returns 500, got nil")
+	}
+}
+
+func TestGetServerUserRepos_MultiPage_ErrorOnPage(t *testing.T) {
+	client, mux, _, teardown := setupBitbucketServerTest()
+	defer teardown()
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	os.Setenv("GHORG_BRANCH", "")
+	defer os.Unsetenv("GHORG_BRANCH")
+
+	allRepos := make([]ServerRepository, 25)
+	for i := range 25 {
+		name := fmt.Sprintf("urepo%d", i+1)
+		allRepos[i] = newServerRepo(
+			name, "~USER",
+			fmt.Sprintf("https://bb.example.com/scm/~user/%s.git", strings.ToLower(name)),
+			fmt.Sprintf("ssh://git@bb.example.com:7999/~user/%s.git", strings.ToLower(name)),
+		)
+	}
+
+	mux.HandleFunc("/rest/api/1.0/repos", func(w http.ResponseWriter, r *http.Request) {
+		start := r.URL.Query().Get("start")
+		w.Header().Set("Content-Type", "application/json")
+
+		if start == "0" || start == "" {
+			fmt.Fprint(w, makeServerRepoJSON(allRepos, 50, false, 0))
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+	})
+
+	_, err := client.getServerUserRepos("user")
+	if err == nil {
+		t.Fatal("expected error when parallel page returns 500, got nil")
+	}
+}
+
 func TestGetServerProjectRepos_APIError(t *testing.T) {
 	client, mux, _, teardown := setupBitbucketServerTest()
 	defer teardown()

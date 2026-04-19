@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"code.gitea.io/sdk/gitea"
@@ -111,11 +112,11 @@ func TestGitea_GetOrgRepos_MultiplePage_PaginationBugRegression(t *testing.T) {
 	// This test specifically catches the pagination bug where perPage was undefined
 	// and defaulted to 0, causing infinite loops or early termination
 
-	pageRequests := 0
+	var pageRequests atomic.Int32
 	totalRepos := 25 // More than perPage (10) to force pagination
 
 	mux.HandleFunc("/api/v1/orgs/test-org/repos", func(w http.ResponseWriter, r *http.Request) {
-		pageRequests++
+		pageRequests.Add(1)
 
 		// Parse page parameter
 		page := 1
@@ -165,11 +166,12 @@ func TestGitea_GetOrgRepos_MultiplePage_PaginationBugRegression(t *testing.T) {
 	// With parallel pagination, we fetch in batches of 10 pages at a time
 	// So for 25 repos (3 pages), we'll request: page 1 + pages 2-11 (batch) = 11 requests total
 	// This is expected - we make more requests but get better performance through concurrency
-	expectedMinPages := 3  // At minimum we need 3 pages for 25 repos (10+10+5)
-	expectedMaxPages := 11 // With batch size of 10, we'll request up to page 11
-	if pageRequests < expectedMinPages || pageRequests > expectedMaxPages {
+	expectedMinPages := int32(3)  // At minimum we need 3 pages for 25 repos (10+10+5)
+	expectedMaxPages := int32(11) // With batch size of 10, we'll request up to page 11
+	actualRequests := pageRequests.Load()
+	if actualRequests < expectedMinPages || actualRequests > expectedMaxPages {
 		t.Errorf("Expected between %d and %d page requests (parallel pagination), got %d",
-			expectedMinPages, expectedMaxPages, pageRequests)
+			expectedMinPages, expectedMaxPages, actualRequests)
 	}
 
 	// Verify repository data continuity across pages
@@ -682,5 +684,85 @@ func BenchmarkGitea_GetOrgRepos_LargePagination(b *testing.B) {
 		if len(result) != totalRepos {
 			b.Errorf("Expected %d repositories, got %d", totalRepos, len(result))
 		}
+	}
+}
+
+func TestGitea_GetOrgRepos_MultiPage_ErrorOnPage(t *testing.T) {
+	client, mux, _, teardown := setupGiteaTest()
+	defer teardown()
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+
+	mux.HandleFunc("/api/v1/orgs/error-org/repos", func(w http.ResponseWriter, r *http.Request) {
+		page := 1
+		if pageParam := r.URL.Query().Get("page"); pageParam != "" {
+			fmt.Sscanf(pageParam, "%d", &page)
+		}
+
+		if page == 1 {
+			// Return a full page to trigger parallel pagination
+			repos := make([]*gitea.Repository, 0, client.perPage)
+			for i := 0; i < client.perPage; i++ {
+				repos = append(repos, mockGiteaRepository(int64(i+1), fmt.Sprintf("repo-%03d", i+1)))
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(repos)
+		} else if page == 2 {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode([]*gitea.Repository{})
+		}
+	})
+
+	_, err := client.GetOrgRepos("error-org")
+	if err == nil {
+		t.Fatal("expected error when page 2 returns 500, got nil")
+	}
+}
+
+func TestGitea_GetUserRepos_MultiPage(t *testing.T) {
+	client, mux, _, teardown := setupGiteaTest()
+	defer teardown()
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+
+	totalRepos := 15 // More than perPage (10) to force pagination
+
+	mux.HandleFunc("/api/v1/users/test-user/repos", func(w http.ResponseWriter, r *http.Request) {
+		page := 1
+		if pageParam := r.URL.Query().Get("page"); pageParam != "" {
+			fmt.Sscanf(pageParam, "%d", &page)
+		}
+
+		startIdx := (page - 1) * client.perPage
+		endIdx := startIdx + client.perPage
+		if endIdx > totalRepos {
+			endIdx = totalRepos
+		}
+
+		var repos []*gitea.Repository
+		if startIdx < totalRepos {
+			repos = make([]*gitea.Repository, 0, endIdx-startIdx)
+			for i := startIdx; i < endIdx; i++ {
+				repos = append(repos, mockGiteaRepository(int64(i+1), fmt.Sprintf("user-repo-%03d", i+1)))
+			}
+		} else {
+			repos = []*gitea.Repository{}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(repos)
+	})
+
+	result, err := client.GetUserRepos("test-user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result) != totalRepos {
+		t.Errorf("expected %d repos, got %d", totalRepos, len(result))
 	}
 }

@@ -67,7 +67,11 @@ func (c Github) GetOrgRepos(targetOrg string) ([]Repo, error) {
 // GetUserRepos gets user repos with parallel pagination for performance
 func (c Github) GetUserRepos(targetUser string) ([]Repo, error) {
 	if os.Getenv("GHORG_SCM_BASE_URL") != "" {
-		c.BaseURL, _ = url.Parse(os.Getenv("GHORG_SCM_BASE_URL"))
+		var parseErr error
+		c.BaseURL, parseErr = url.Parse(os.Getenv("GHORG_SCM_BASE_URL"))
+		if parseErr != nil {
+			return nil, fmt.Errorf("failed to parse GHORG_SCM_BASE_URL: %w", parseErr)
+		}
 	}
 
 	c.SetTokensUsername()
@@ -172,7 +176,11 @@ func (Github) NewClient() (Client, error) {
 
 	if baseURL != "" {
 		ghClient = github.NewClient(tc)
-		ghClient, _ = ghClient.WithEnterpriseURLs(baseURL, baseURL)
+		var enterpriseErr error
+		ghClient, enterpriseErr = ghClient.WithEnterpriseURLs(baseURL, baseURL)
+		if enterpriseErr != nil {
+			return nil, fmt.Errorf("failed to configure enterprise URLs: %w", enterpriseErr)
+		}
 	} else {
 		ghClient = github.NewClient(tc)
 	}

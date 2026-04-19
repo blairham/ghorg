@@ -58,7 +58,11 @@ func (c Bitbucket) fetchServerProjectReposParallel(projectKey string, firstPageR
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				body, _ := io.ReadAll(resp.Body)
+				body, readErr := io.ReadAll(resp.Body)
+				if readErr != nil {
+					resultChan <- pageResult{err: fmt.Errorf("failed to fetch repos for project %s (could not read response body: %w)", projectKey, readErr), page: pageNum}
+					return
+				}
 				resultChan <- pageResult{err: fmt.Errorf("failed to fetch repos for project %s: %s", projectKey, string(body)), page: pageNum}
 				return
 			}
@@ -153,7 +157,11 @@ func (c Bitbucket) fetchServerUserReposParallel(_ string, firstPageRepos []Serve
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				body, _ := io.ReadAll(resp.Body)
+				body, readErr := io.ReadAll(resp.Body)
+				if readErr != nil {
+					resultChan <- pageResult{err: fmt.Errorf("failed to fetch user repos (could not read response body: %w)", readErr), page: pageNum}
+					return
+				}
 				resultChan <- pageResult{err: fmt.Errorf("failed to fetch user repos: %s", string(body)), page: pageNum}
 				return
 			}

@@ -167,7 +167,10 @@ func (c Bitbucket) getServerProjectRepos(projectKey string) ([]Repo, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("API request failed with status %d (could not read response body: %w)", resp.StatusCode, readErr)
+		}
 		colorlog.PrintError(fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
@@ -209,7 +212,10 @@ func (c Bitbucket) getServerUserRepos(username string) ([]Repo, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("API request failed with status %d (could not read response body: %w)", resp.StatusCode, readErr)
+		}
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -312,11 +318,20 @@ func (Bitbucket) filter(resp []bitbucket.Repository) (repoData []Repo, err error
 	cloneData := []Repo{}
 
 	for _, a := range resp {
-		links, _ := a.Links["clone"].([]any)
+		links, ok := a.Links["clone"].([]any)
+		if !ok {
+			continue
+		}
 		for _, l := range links {
-			linkMap, _ := l.(map[string]any)
+			linkMap, ok := l.(map[string]any)
+			if !ok {
+				continue
+			}
 			link, _ := linkMap["href"].(string)
 			linkType, _ := linkMap["name"].(string)
+			if link == "" || linkType == "" {
+				continue
+			}
 
 			if os.Getenv("GHORG_TOPICS") != "" {
 				colorlog.PrintError("WARNING: Filtering by topics is not supported for Bitbucket SCM")

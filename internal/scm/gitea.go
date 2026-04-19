@@ -104,7 +104,10 @@ func (Gitea) NewClient() (Client, error) {
 	var err error
 	var c *gitea.Client
 	if os.Getenv("GHORG_INSECURE_GITEA_CLIENT") == "true" {
-		defaultTransport, _ := http.DefaultTransport.(*http.Transport)
+		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+		if !ok {
+			return nil, fmt.Errorf("http.DefaultTransport is not *http.Transport; cannot create insecure client")
+		}
 		// Create new Transport that ignores self-signed SSL
 		customTransport := &http.Transport{
 			Proxy:                 defaultTransport.Proxy,

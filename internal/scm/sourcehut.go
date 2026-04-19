@@ -121,7 +121,10 @@ func (Sourcehut) NewClient() (Client, error) {
 
 	var hc *http.Client
 	if os.Getenv("GHORG_INSECURE_SOURCEHUT_CLIENT") == "true" {
-		defaultTransport, _ := http.DefaultTransport.(*http.Transport)
+		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+		if !ok {
+			return nil, fmt.Errorf("http.DefaultTransport is not *http.Transport; cannot create insecure client")
+		}
 		// Create new Transport that ignores self-signed SSL
 		customTransport := &http.Transport{
 			Proxy:                 defaultTransport.Proxy,
@@ -197,7 +200,10 @@ func (c Sourcehut) queryRepositoriesPage(cursor sourcehutCursor, apiUsername str
 	defer rs.Body.Close()
 
 	if rs.StatusCode != 200 {
-		body, _ := io.ReadAll(io.LimitReader(rs.Body, 200))
+		body, readErr := io.ReadAll(io.LimitReader(rs.Body, 200))
+		if readErr != nil {
+			return nil, "", fmt.Errorf("unexpected response code %d from sourcehut (could not read response body: %w)", rs.StatusCode, readErr)
+		}
 		return nil, "", fmt.Errorf("unexpected response code %d from sourcehut: %q", rs.StatusCode, string(body))
 	}
 
