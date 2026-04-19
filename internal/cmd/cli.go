@@ -50,5 +50,10 @@ func CommandFactory() map[string]cli.CommandFactory {
 				UI: ui,
 			}, nil
 		},
+		"init": func() (cli.Command, error) {
+			return &InitCommand{
+				UI: ui,
+			}, nil
+		},
 	}
 }

@@ -258,18 +258,26 @@ func getOrSetGitHubToken() {
 	token := os.Getenv("GHORG_GITHUB_TOKEN")
 	if IsFilePath(token) {
 		os.Setenv("GHORG_GITHUB_TOKEN", GetTokenFromFile(token))
+		return
 	}
 
 	if isZero(token) {
-		if runtime.GOOS == "windows" {
-			return
+		// Try gh CLI first — always returns a fresh token
+		if out, err := exec.Command("gh", "auth", "token").Output(); err == nil {
+			token = strings.TrimSpace(string(out))
+			if token != "" {
+				os.Setenv("GHORG_GITHUB_TOKEN", token)
+				return
+			}
 		}
-		cmd := `security find-internet-password -s github.com | grep "acct" | awk -F\" '{ print $4 }'`
-		out, _ := exec.Command("bash", "-c", cmd).Output()
 
-		token = strings.TrimSuffix(string(out), "\n")
-
-		os.Setenv("GHORG_GITHUB_TOKEN", token)
+		// Fall back to macOS Keychain
+		if runtime.GOOS != "windows" {
+			cmd := `security find-internet-password -s github.com | grep "acct" | awk -F\" '{ print $4 }'`
+			out, _ := exec.Command("bash", "-c", cmd).Output()
+			token = strings.TrimSuffix(string(out), "\n")
+			os.Setenv("GHORG_GITHUB_TOKEN", token)
+		}
 	}
 }
 

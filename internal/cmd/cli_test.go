@@ -54,7 +54,7 @@ func TestCommandFactory(t *testing.T) {
 func TestCommandFactoryCount(t *testing.T) {
 	commands := CommandFactory()
 
-	expectedCount := 7
+	expectedCount := 8
 	if len(commands) != expectedCount {
 		t.Errorf("Expected %d commands, got %d", expectedCount, len(commands))
 	}
