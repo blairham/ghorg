@@ -89,7 +89,7 @@ The easiest way to get started is with the interactive setup wizard:
 ghorg init
 ```
 
-This will prompt you to select your SCM provider, enter your token, and configure your clone path. Use `ghorg init --dry-run` to preview the config without writing to disk.
+This will prompt you to select your SCM provider, enter your token, and configure your clone path. For GitHub users with the [gh CLI](https://cli.github.com) installed, the token is detected automatically via `gh auth token`. Use `ghorg init --dry-run` to preview the config without writing to disk, or `ghorg init --force` to overwrite an existing config.
 
 ## Configuration
 

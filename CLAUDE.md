@@ -27,7 +27,7 @@ Run `make help` for a full list.
 | `make test-helpers` | Run git helper function tests only |
 | `make test-all` | fmt + lint + test (full quality gate) |
 | `make test-coverage` | Tests with HTML coverage report → `coverage.html` |
-| `make fmt` | Format all Go files (`gofmt -s -w`) |
+| `make fmt` | Format all Go files (`gofumpt -w`) |
 | `make lint` | Run golangci-lint (47 linters enabled) |
 | `make clean` | Remove build artifacts |
 | `make deps-install` | Install goreleaser |
@@ -51,6 +51,7 @@ internal/
     reclone.go                  # Batch reclone from reclone.yaml
     reclone-server.go           # HTTP server for triggering reclones
     reclone-cron.go             # Cron-scheduled recloning
+    init.go                     # Interactive setup wizard
     ls.go                       # List cloned repos
     version.go                  # Version command
 
@@ -152,6 +153,7 @@ Config keys use env var names as YAML keys (e.g., `GHORG_SCM_TYPE: github`).
 3. Temporarily restore credentials only when needed (e.g., fetch-all)
 4. Always strip again after operation completes
 5. On macOS, automatic Keychain lookup as fallback for GitHub/GitLab/Bitbucket tokens
+6. GitHub token fallback chain: explicit token/env var → `gh auth token` (gh CLI) → macOS Keychain
 
 ### Concurrency
 
@@ -211,9 +213,9 @@ git config --global init.defaultBranch main
 
 ## Authentication by Provider
 
-| Provider | Token Env Var | Alt Auth | Keychain Fallback |
+| Provider | Token Env Var | Alt Auth | Auto-detect Fallback |
 |---|---|---|---|
-| GitHub | `GHORG_GITHUB_TOKEN` | GitHub App (PEM + Installation ID + App ID) | Yes (macOS) |
+| GitHub | `GHORG_GITHUB_TOKEN` | GitHub App (PEM + Installation ID + App ID) | `gh auth token` → macOS Keychain |
 | GitLab | `GHORG_GITLAB_TOKEN` | — | Yes (macOS) |
 | Gitea | `GHORG_GITEA_TOKEN` | — | No |
 | Bitbucket | `GHORG_BITBUCKET_OAUTH_TOKEN` OR `GHORG_BITBUCKET_APP_PASSWORD` + `GHORG_BITBUCKET_USERNAME` | — | Yes (macOS) |
