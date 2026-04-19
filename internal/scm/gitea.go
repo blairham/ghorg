@@ -205,7 +205,7 @@ func (c Gitea) filter(rps []*gitea.Repository) (repoData []Repo, err error) {
 			r.URL = cloneURL
 			repoData = append(repoData, r)
 		} else {
-			r.CloneURL = rp.SSHURL
+			r.CloneURL = ReplaceSSHHostname(rp.SSHURL)
 			r.URL = rp.SSHURL
 			repoData = append(repoData, r)
 		}

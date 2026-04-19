@@ -74,6 +74,10 @@ func (c Gitlab) GetOrgRepos(targetOrg string) ([]Repo, error) {
 		allGroups = append(allGroups, targetOrg)
 	}
 
+	if os.Getenv("GHORG_GITLAB_GROUP_MATCH_REGEX") != "" {
+		allGroups = filterGitlabGroupByMatchRegex(allGroups)
+	}
+
 	if os.Getenv("GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX") != "" {
 		allGroups = filterGitlabGroupByExcludeMatchRegex(allGroups)
 	}
@@ -551,6 +555,15 @@ func (c Gitlab) filter(group string, ps []*gitlab.Project) []Repo {
 			continue
 		}
 
+		// Apply GitLab group match regex to repository path (include filter)
+		if os.Getenv("GHORG_GITLAB_GROUP_MATCH_REGEX") != "" {
+			regex := os.Getenv("GHORG_GITLAB_GROUP_MATCH_REGEX")
+			re := regexp.MustCompile(regex)
+			if re.FindString(p.PathWithNamespace) == "" {
+				continue // Skip this repository as it does not match the include pattern
+			}
+		}
+
 		// Apply GitLab group exclude regex to repository path
 		if os.Getenv("GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX") != "" {
 			regex := os.Getenv("GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX")
@@ -598,7 +611,7 @@ func (c Gitlab) filter(group string, ps []*gitlab.Project) []Repo {
 			r.URL = p.HTTPURLToRepo
 			repoData = append(repoData, r)
 		} else {
-			r.CloneURL = p.SSHURLToRepo
+			r.CloneURL = ReplaceSSHHostname(p.SSHURLToRepo)
 			r.URL = p.SSHURLToRepo
 			repoData = append(repoData, r)
 		}
@@ -616,6 +629,20 @@ func (c Gitlab) filter(group string, ps []*gitlab.Project) []Repo {
 		}
 	}
 	return repoData
+}
+
+func filterGitlabGroupByMatchRegex(groups []string) []string {
+	filteredGroups := []string{}
+	regex := os.Getenv("GHORG_GITLAB_GROUP_MATCH_REGEX")
+	re := regexp.MustCompile(regex)
+
+	for _, grp := range groups {
+		if re.FindString(grp) != "" {
+			filteredGroups = append(filteredGroups, grp)
+		}
+	}
+
+	return filteredGroups
 }
 
 func filterGitlabGroupByExcludeMatchRegex(groups []string) []string {

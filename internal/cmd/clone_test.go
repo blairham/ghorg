@@ -216,6 +216,11 @@ func (g MockGitClient) GetCurrentBranch(repo scm.Repo) (string, error) {
 	return "main", nil
 }
 
+// CheckoutBranch checks out the specified branch by name.
+func (g MockGitClient) CheckoutBranch(repo scm.Repo, branch string) error {
+	return nil
+}
+
 // HasCommitsNotOnDefaultBranch returns true if currentBranch contains commits not present on the default branch.
 func (g MockGitClient) HasCommitsNotOnDefaultBranch(repo scm.Repo, currentBranch string) (bool, error) {
 	return false, nil
@@ -1135,7 +1140,7 @@ func TestPrintCloneStatsMessage_WithTiming(t *testing.T) {
 			// and the timing formatting logic is correct
 
 			// This should not panic and should execute successfully
-			printCloneStatsMessage(tc.cloneCount, tc.pulledCount, tc.skippedCount, tc.updateRemoteCount,
+			printCloneStatsMessage(tc.cloneCount, tc.pulledCount, tc.skippedCount, 0, tc.updateRemoteCount,
 				tc.newCommits, tc.syncedCount, tc.untouchedPrunes, tc.durationSeconds)
 
 			// The expectedText should be present in the output (in a real test with output capture)

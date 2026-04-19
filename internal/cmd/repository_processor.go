@@ -33,6 +33,7 @@ type RepositoryProcessor struct {
 	stats          *CloneStats
 	mutex          *sync.RWMutex
 	untouchedRepos []string
+	protectedRepos []string
 }
 
 // CloneStats tracks statistics during clone operations
@@ -40,6 +41,7 @@ type CloneStats struct {
 	CloneCount           int
 	PulledCount          int
 	SkippedCount         int
+	ProtectedCount       int
 	UpdateRemoteCount    int
 	NewCommits           int
 	UntouchedPrunes      int
@@ -84,8 +86,15 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 	repoWillBePulled := repoExistsLocally(*repo)
 	var action string
 
-	// Skip repos with local modifications to avoid overwriting user's work
-	if repoWillBePulled {
+	// Protect local: skip repos with uncommitted changes or unpushed commits
+	if repoWillBePulled && os.Getenv("GHORG_PROTECT_LOCAL") == "true" {
+		if rp.hasLocalChangesForProtect(*repo) {
+			colorlog.PrintWarning(fmt.Sprintf("Protected %s (has local changes or unpushed commits)", repo.URL))
+			rp.addProtected(fmt.Sprintf("%s: has local changes or unpushed commits", repo.URL))
+			return
+		}
+	} else if repoWillBePulled {
+		// Legacy behavior: skip repos with local modifications
 		status, statusErr := rp.git.ShortStatus(*repo)
 		if statusErr == nil && status != "" {
 			colorlog.PrintWarning(fmt.Sprintf("Skipped %s (has local changes)", repo.URL))
@@ -94,11 +103,26 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 		}
 	}
 
+	// Save current branch for restore if protect-local is enabled
+	var originalBranch string
+	if repoWillBePulled && os.Getenv("GHORG_PROTECT_LOCAL") == "true" {
+		branch, err := rp.git.GetCurrentBranch(*repo)
+		if err == nil {
+			originalBranch = branch
+		}
+	}
+
 	// Process the repository (clone or update)
 	if repoWillBePulled {
 		success := rp.handleExistingRepository(repo, &action)
 		if !success {
 			return
+		}
+		// Restore original branch if protect-local and we were on a different branch
+		if originalBranch != "" && originalBranch != repo.CloneBranch {
+			if err := rp.git.CheckoutBranch(*repo, originalBranch); err != nil {
+				rp.addInfo(fmt.Sprintf("Could not restore original branch %s for %s: %v", originalBranch, repo.URL, err))
+			}
 		}
 	} else {
 		success := rp.handleNewRepository(repo, &action)
@@ -542,6 +566,37 @@ func (rp *RepositoryProcessor) addInfo(msg string) {
 	rp.mutex.Unlock()
 }
 
+// hasLocalChangesForProtect checks if a repo has uncommitted changes or unpushed commits.
+func (rp *RepositoryProcessor) hasLocalChangesForProtect(repo scm.Repo) bool {
+	// Check for uncommitted changes
+	status, err := rp.git.ShortStatus(repo)
+	if err != nil {
+		return false // If we can't check, allow the update
+	}
+	if status != "" {
+		return true
+	}
+
+	// Check for unpushed commits (skip this check in backup mode)
+	if os.Getenv("GHORG_BACKUP") == "true" {
+		return false
+	}
+
+	hasUnpushed, err := rp.git.HasUnpushedCommits(repo)
+	if err != nil {
+		return false // If we can't check, allow the update
+	}
+	return hasUnpushed
+}
+
+// addProtected adds a protected message to the stats in a thread-safe manner
+func (rp *RepositoryProcessor) addProtected(msg string) {
+	rp.mutex.Lock()
+	rp.stats.ProtectedCount++
+	rp.protectedRepos = append(rp.protectedRepos, msg)
+	rp.mutex.Unlock()
+}
+
 // addSkipped adds a skipped message to the stats in a thread-safe manner
 func (rp *RepositoryProcessor) addSkipped(msg string) {
 	rp.mutex.Lock()
@@ -559,6 +614,7 @@ func (rp *RepositoryProcessor) GetStats() CloneStats {
 		CloneCount:           rp.stats.CloneCount,
 		PulledCount:          rp.stats.PulledCount,
 		SkippedCount:         rp.stats.SkippedCount,
+		ProtectedCount:       rp.stats.ProtectedCount,
 		UpdateRemoteCount:    rp.stats.UpdateRemoteCount,
 		NewCommits:           rp.stats.NewCommits,
 		UntouchedPrunes:      rp.stats.UntouchedPrunes,

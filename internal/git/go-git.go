@@ -215,6 +215,33 @@ func (g goGitClient) setRemoteURL(repo scm.Repo, remoteName, url string) error {
 	return r.SetConfig(cfg)
 }
 
+// CheckoutBranch checks out the specified branch by name.
+func (g goGitClient) CheckoutBranch(repo scm.Repo, branch string) error {
+	g.debugLog("CheckoutBranch", repo, fmt.Sprintf("Branch: %s", branch))
+
+	r, err := gogit.PlainOpen(repo.HostPath)
+	if err != nil {
+		return err
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
+
+	err = w.Checkout(&gogit.CheckoutOptions{
+		Branch: plumbing.NewBranchReferenceName(branch),
+	})
+	if err != nil && errors.Is(err, plumbing.ErrReferenceNotFound) {
+		err = w.Checkout(&gogit.CheckoutOptions{
+			Branch: plumbing.NewBranchReferenceName(branch),
+			Create: true,
+		})
+	}
+
+	return err
+}
+
 // Checkout checks out the specified branch in the repository.
 func (g goGitClient) Checkout(repo scm.Repo) error {
 	g.debugLog("Checkout", repo, fmt.Sprintf("Branch: %s", repo.CloneBranch))
@@ -380,7 +407,7 @@ func (g goGitClient) Reset(repo scm.Repo) error {
 }
 
 // FetchAll fetches from all remotes.
-// Respects configuration for depth.
+// Respects configuration for depth and prune.
 func (g goGitClient) FetchAll(repo scm.Repo) error {
 	g.debugLog("FetchAll", repo)
 
@@ -406,6 +433,11 @@ func (g goGitClient) FetchAll(repo scm.Repo) error {
 		if convErr == nil && depthInt > 0 {
 			fetchOpts.Depth = depthInt
 		}
+	}
+
+	// Handle prune
+	if os.Getenv("GHORG_FETCH_PRUNE") == "true" {
+		fetchOpts.Prune = true
 	}
 
 	err = r.Fetch(fetchOpts)

@@ -176,9 +176,40 @@ func sanitizeCmd(cmd string) string {
 	return cmd
 }
 
+// splitCommandArgs splits a command string into arguments, properly handling
+// single and double quoted values. This is needed because reclone.yaml commands
+// may contain quoted arguments like --match-regex "(foo|bar)".
+func splitCommandArgs(cmd string) []string {
+	var args []string
+	var current strings.Builder
+	inSingleQuote := false
+	inDoubleQuote := false
+
+	for i := 0; i < len(cmd); i++ {
+		ch := cmd[i]
+		switch {
+		case ch == '\'' && !inDoubleQuote:
+			inSingleQuote = !inSingleQuote
+		case ch == '"' && !inSingleQuote:
+			inDoubleQuote = !inDoubleQuote
+		case ch == ' ' && !inSingleQuote && !inDoubleQuote:
+			if current.Len() > 0 {
+				args = append(args, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteByte(ch)
+		}
+	}
+	if current.Len() > 0 {
+		args = append(args, current.String())
+	}
+	return args
+}
+
 func runReClone(rc ReClone, rcIdentifier string) {
 	// make sure command starts with ghorg clone
-	splitCommand := strings.Split(rc.Cmd, " ")
+	splitCommand := splitCommandArgs(rc.Cmd)
 	ghorg, clone, remainingCommand := splitCommand[0], splitCommand[1], splitCommand[1:]
 
 	if ghorg != "ghorg" || clone != "clone" {

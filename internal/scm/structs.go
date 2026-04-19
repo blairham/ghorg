@@ -18,6 +18,8 @@ type Repo struct {
 	CloneBranch string
 	// IsWiki is set to true when the data is for a wiki page
 	IsWiki bool
+	// IsGitHubGist is set to true when the data is for a github gist
+	IsGitHubGist bool
 	// IsGitLabSnippet is set to true when the data is for a gitlab snippet
 	IsGitLabSnippet bool
 	// IsGitLabRootLevelSnippet is set to true when a snippet was not created for a repo

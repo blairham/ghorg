@@ -111,9 +111,14 @@ func (Bitbucket) NewClient() (Client, error) {
 	}
 
 	// For Bitbucket Cloud, use the existing go-bitbucket library
+	apiToken := os.Getenv("GHORG_BITBUCKET_API_TOKEN")
+
 	var c *bitbucket.Client
 	var clientErr error
-	if oAuth != "" {
+	if apiToken != "" {
+		// API token auth (newer method)
+		c, clientErr = bitbucket.NewOAuthbearerToken(apiToken)
+	} else if oAuth != "" {
 		c, clientErr = bitbucket.NewOAuthbearerToken(oAuth)
 	} else {
 		c, clientErr = bitbucket.NewBasicAuth(user, password)
@@ -283,7 +288,7 @@ func (c Bitbucket) filterServerRepos(repos []ServerRepository) []Repo {
 				// Processing clone link
 
 				if cloneProtocol == "ssh" && name == "ssh" {
-					r.CloneURL = href
+					r.CloneURL = ReplaceSSHHostname(href)
 					cloneData = append(cloneData, r)
 					// Added SSH clone URL
 				} else if cloneProtocol == "https" && (name == "http" || name == "https") {
@@ -348,12 +353,14 @@ func (Bitbucket) filter(resp []bitbucket.Repository) (repoData []Repo, err error
 
 			if os.Getenv("GHORG_CLONE_PROTOCOL") == "ssh" && linkType == "ssh" {
 				r.URL = link
-				r.CloneURL = link
+				r.CloneURL = ReplaceSSHHostname(link)
 				cloneData = append(cloneData, r)
 			} else if os.Getenv("GHORG_CLONE_PROTOCOL") == "https" && linkType == "https" {
 				r.URL = link
 				r.CloneURL = link
-				if os.Getenv("GHORG_BITBUCKET_OAUTH_TOKEN") != "" {
+				if os.Getenv("GHORG_BITBUCKET_API_TOKEN") != "" {
+					r.CloneURL = insertAPITokenIntoURL(r.CloneURL)
+				} else if os.Getenv("GHORG_BITBUCKET_OAUTH_TOKEN") != "" {
 					r.CloneURL = insertOauthTokenIntoURL(r.CloneURL)
 				} else {
 					r.CloneURL = insertAppPasswordCredentialsIntoURL(r.CloneURL)
@@ -368,6 +375,13 @@ func (Bitbucket) filter(resp []bitbucket.Repository) (repoData []Repo, err error
 
 func insertAppPasswordCredentialsIntoURL(url string) string {
 	credentials := ":" + os.Getenv("GHORG_BITBUCKET_APP_PASSWORD") + "@"
+	urlWithCredentials := strings.Replace(url, "@", credentials, 1)
+
+	return urlWithCredentials
+}
+
+func insertAPITokenIntoURL(url string) string {
+	credentials := "x-bitbucket-api-token-auth:" + os.Getenv("GHORG_BITBUCKET_API_TOKEN") + "@"
 	urlWithCredentials := strings.Replace(url, "@", credentials, 1)
 
 	return urlWithCredentials

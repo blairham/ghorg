@@ -45,6 +45,10 @@ var (
 	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
 	ErrNoBitbucketAppPassword = errors.New("Could not find a valid bitbucket app password. GHORG_BITBUCKET_APP_PASSWORD or (--token, -t) must be set to clone repos from bitbucket, see 'BitBucket Setup' in README.md")
 
+	// ErrNoBitbucketCredentials error message when no valid bitbucket credentials are found
+	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
+	ErrNoBitbucketCredentials = errors.New("Could not find valid bitbucket credentials. Set one of: GHORG_BITBUCKET_API_TOKEN (with GHORG_BITBUCKET_API_EMAIL), GHORG_BITBUCKET_APP_PASSWORD (with GHORG_BITBUCKET_USERNAME), or GHORG_BITBUCKET_OAUTH_TOKEN")
+
 	// ErrIncorrectScmType indicates an unsupported scm type being used
 	ErrIncorrectScmType = errors.New("GHORG_SCM_TYPE or --scm must be one of " + strings.Join(scm.SupportedClients(), ", "))
 
@@ -290,6 +294,15 @@ func getOrSetGitLabToken() {
 }
 
 func getOrSetBitBucketToken() {
+	// If API token is already set, use it
+	if !isZero(os.Getenv("GHORG_BITBUCKET_API_TOKEN")) {
+		token := os.Getenv("GHORG_BITBUCKET_API_TOKEN")
+		if IsFilePath(token) {
+			os.Setenv("GHORG_BITBUCKET_API_TOKEN", GetTokenFromFile(token))
+		}
+		return
+	}
+
 	var token string
 	if isZero(os.Getenv("GHORG_BITBUCKET_APP_PASSWORD")) && isZero(os.Getenv("GHORG_BITBUCKET_OAUTH_TOKEN")) {
 		if runtime.GOOS == "windows" {
@@ -367,15 +380,20 @@ func VerifyTokenSet() error {
 	}
 
 	if scmProvider == "bitbucket" {
-		if os.Getenv("GHORG_BITBUCKET_OAUTH_TOKEN") == "" {
-
-			if os.Getenv("GHORG_BITBUCKET_USERNAME") == "" {
-				return ErrNoBitbucketUsername
-			}
-
-			if os.Getenv("GHORG_BITBUCKET_APP_PASSWORD") == "" {
-				return ErrNoBitbucketAppPassword
-			}
+		// API token auth (newer method)
+		if os.Getenv("GHORG_BITBUCKET_API_TOKEN") != "" {
+			return nil
+		}
+		// OAuth token auth
+		if os.Getenv("GHORG_BITBUCKET_OAUTH_TOKEN") != "" {
+			return nil
+		}
+		// App password auth
+		if os.Getenv("GHORG_BITBUCKET_USERNAME") == "" {
+			return ErrNoBitbucketUsername
+		}
+		if os.Getenv("GHORG_BITBUCKET_APP_PASSWORD") == "" {
+			return ErrNoBitbucketAppPassword
 		}
 	}
 

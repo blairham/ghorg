@@ -289,7 +289,7 @@ func (c Sourcehut) filter(rps []repository, apiUsername string, localUsername st
 				gitBase = strings.Replace(c.BaseURL, "https://", "git@", 1)
 			}
 			// Use repoPathWithTilde for clone URL (git needs the ~ prefix)
-			r.CloneURL = fmt.Sprintf("%s:%s", gitBase, repoPathWithTilde)
+			r.CloneURL = ReplaceSSHHostname(fmt.Sprintf("%s:%s", gitBase, repoPathWithTilde))
 		}
 
 		r.URL = r.CloneURL
