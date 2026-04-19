@@ -33,7 +33,20 @@ archives:
 checksum:
   name_template: "checksums.txt"
 changelog:
-  disable: true
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))?.*$'
+    - title: Bug Fixes
+      regexp: '^.*?fix(\(.+\))?.*$'
+    - title: Performance
+      regexp: '^.*?perf(\(.+\))?.*$'
+    - title: Refactoring
+      regexp: '^.*?refactor(\(.+\))?.*$'
+    - title: CI/CD
+      regexp: '^.*?ci(\(.+\))?.*$'
+    - title: Other
+      order: 999
 
 dockers_v2:
   - images:
