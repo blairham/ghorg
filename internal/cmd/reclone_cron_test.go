@@ -67,7 +67,6 @@ func TestRecloneCronFlags_Parse(t *testing.T) {
 			var opts RecloneCronFlags
 			parser := createTestParser(&opts)
 			_, err := parser.ParseArgs(tt.args)
-
 			if err != nil {
 				t.Fatalf("Failed to parse args: %v", err)
 			}

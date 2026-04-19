@@ -434,6 +434,7 @@ func (c *CloneCommand) Run(args []string) int {
 	setupRepoClone()
 	return 0
 }
+
 func setupRepoClone() {
 	// Clear global slices and cached values at the start of each clone operation
 	// to prevent memory leaks in long-running processes like reclone-server
@@ -613,7 +614,6 @@ func readGhorgOnly() ([]string, error) {
 }
 
 func hasRepoNameCollisions(repos []scm.Repo) (map[string]bool, bool) {
-
 	repoNameWithCollisions := make(map[string]bool)
 
 	if os.Getenv("GHORG_GITLAB_TOKEN") == "" {
@@ -656,7 +656,6 @@ func printDryRun(repos []scm.Repo) {
 	colorlog.PrintSuccess(fmt.Sprintf("%v repos to be cloned into: %s", count, outputDirAbsolutePath))
 
 	if os.Getenv("GHORG_PRUNE") == "true" {
-
 		if stat, err := os.Stat(outputDirAbsolutePath); err == nil && stat.IsDir() {
 			// We check that the clone path exists, otherwise there would definitely be no pruning
 			// to do.
@@ -935,7 +934,6 @@ func getGhorgStatsFilePath() string {
 }
 
 func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount, cloneInfosCount, cloneErrorsCount, updateRemoteCount, newCommits, syncedCount, pruneCount, totalDurationSeconds int, hasCollisions bool) error {
-
 	statsFilePath := getGhorgStatsFilePath()
 	fileExists := true
 
@@ -961,7 +959,7 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 			hashedHeader := fmt.Sprintf("%x", sha256.Sum256([]byte(header)))
 			newHeaderFilePath := filepath.Join(os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO"), fmt.Sprintf("ghorg_stats_new_header_%s.csv", hashedHeader))
 			// Create a new file with the new header
-			file, err = os.OpenFile(newHeaderFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			file, err = os.OpenFile(newHeaderFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 			if err != nil {
 				colorlog.PrintError(fmt.Sprintf("Error creating new header stats file: %v", err))
 				return err
@@ -972,7 +970,7 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 			}
 		} else {
 			// Open the existing file in append mode
-			file, err = os.OpenFile(statsFilePath, os.O_APPEND|os.O_WRONLY, 0644)
+			file, err = os.OpenFile(statsFilePath, os.O_APPEND|os.O_WRONLY, 0o644)
 			if err != nil {
 				colorlog.PrintError(fmt.Sprintf("Error opening stats file for appending: %v", err))
 				return err
@@ -980,7 +978,7 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 		}
 	} else {
 		// Create the file and write the header
-		file, err = os.OpenFile(statsFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err = os.OpenFile(statsFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			colorlog.PrintError(fmt.Sprintf("Error creating stats file: %v", err))
 			return err
@@ -1179,7 +1177,6 @@ func interactiveYesNoPrompt(prompt string) bool {
 
 // There's probably a nicer way of finding whether any scm.Repo in the slice matches a given name.
 func sliceContainsNamedRepo(haystack []scm.Repo, needle string) bool {
-
 	// GitLab Cloud vs GitLab on Prem seem to have different needle/repo.Paths when it comes to this,
 	// so normalize to handle both
 	// I'm not really sure whats going on here though, could be a bug with how this is set

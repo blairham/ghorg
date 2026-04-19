@@ -73,9 +73,7 @@ func TestGetOrgRepos(t *testing.T) {
 	})
 
 	t.Run("Should return all repos", func(tt *testing.T) {
-
 		resp, err := github.GetOrgRepos("testorg")
-
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -85,13 +83,11 @@ func TestGetOrgRepos(t *testing.T) {
 		if want != got {
 			tt.Errorf("Expected %v repo, got: %v", want, got)
 		}
-
 	})
 
 	t.Run("Should skip archived repos when env is set", func(tt *testing.T) {
 		os.Setenv("GHORG_SKIP_ARCHIVED", "true")
 		resp, err := github.GetOrgRepos("testorg")
-
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -101,13 +97,11 @@ func TestGetOrgRepos(t *testing.T) {
 			tt.Errorf("Expected %v repo, got: %v", want, got)
 		}
 		os.Setenv("GHORG_SKIP_ARCHIVED", "")
-
 	})
 
 	t.Run("Should skip forked repos when env is set", func(tt *testing.T) {
 		os.Setenv("GHORG_SKIP_FORKS", "true")
 		resp, err := github.GetOrgRepos("testorg")
-
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -117,13 +111,11 @@ func TestGetOrgRepos(t *testing.T) {
 			tt.Errorf("Expected %v repo, got: %v", want, got)
 		}
 		os.Setenv("GHORG_SKIP_FORKS", "")
-
 	})
 
 	t.Run("Find all repos with specific topic set", func(tt *testing.T) {
 		os.Setenv("GHORG_TOPICS", "test-topic")
 		resp, err := github.GetOrgRepos("testorg")
-
 		if err != nil {
 			t.Fatal(err)
 		}

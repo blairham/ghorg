@@ -42,7 +42,7 @@ func setupTestRepo(t *testing.T) (string, func()) {
 
 	// Create initial commit
 	testFile := filepath.Join(tmpDir, "README.md")
-	if err := os.WriteFile(testFile, []byte("# Test Repo\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("# Test Repo\n"), 0o644); err != nil {
 		os.RemoveAll(tmpDir)
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -113,7 +113,7 @@ func setupBareRepoWithClone(t *testing.T) (bareRepo, cloneRepo string, cleanup f
 
 	// Create initial commit
 	testFile := filepath.Join(workDir, "README.md")
-	if err := os.WriteFile(testFile, []byte("# Test Repo\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("# Test Repo\n"), 0o644); err != nil {
 		os.RemoveAll(bareDir)
 		os.RemoveAll(workDir)
 		t.Fatalf("failed to create test file: %v", err)
@@ -285,7 +285,7 @@ func TestGoGitClientShortStatus(t *testing.T) {
 
 	// Create untracked file
 	testFile := filepath.Join(cloneRepo, "untracked.txt")
-	if err := os.WriteFile(testFile, []byte("untracked\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("untracked\n"), 0o644); err != nil {
 		t.Fatalf("failed to create untracked file: %v", err)
 	}
 
@@ -324,7 +324,7 @@ func TestGoGitClientHasLocalChanges(t *testing.T) {
 
 	// Modify existing file
 	testFile := filepath.Join(repoPath, "README.md")
-	if err := os.WriteFile(testFile, []byte("# Modified\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("# Modified\n"), 0o644); err != nil {
 		t.Fatalf("failed to modify file: %v", err)
 	}
 
@@ -413,7 +413,7 @@ func TestGoGitClientRepoCommitCount(t *testing.T) {
 
 	// Add another commit
 	testFile := filepath.Join(repoPath, "file2.txt")
-	if err := os.WriteFile(testFile, []byte("content\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("content\n"), 0o644); err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
 
@@ -478,7 +478,7 @@ func TestBackendParity(t *testing.T) {
 	t.Run("HasLocalChanges parity - dirty", func(t *testing.T) {
 		// Create untracked file
 		testFile := filepath.Join(repoPath, "parity-test.txt")
-		if err := os.WriteFile(testFile, []byte("test\n"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("test\n"), 0o644); err != nil {
 			t.Fatalf("failed to create file: %v", err)
 		}
 		defer os.Remove(testFile)
@@ -553,7 +553,7 @@ func TestBackendParityWithRemote(t *testing.T) {
 	t.Run("HasUnpushedCommits parity - with unpushed", func(t *testing.T) {
 		// Create local commit
 		testFile := filepath.Join(cloneRepo, "unpushed.txt")
-		if err := os.WriteFile(testFile, []byte("unpushed\n"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("unpushed\n"), 0o644); err != nil {
 			t.Fatalf("failed to create file: %v", err)
 		}
 
@@ -591,12 +591,12 @@ func TestGoGitClientClean(t *testing.T) {
 
 	// Create untracked file and directory
 	testFile := filepath.Join(repoPath, "untracked.txt")
-	if err := os.WriteFile(testFile, []byte("untracked\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("untracked\n"), 0o644); err != nil {
 		t.Fatalf("failed to create untracked file: %v", err)
 	}
 
 	testDir := filepath.Join(repoPath, "untracked-dir")
-	if err := os.MkdirAll(testDir, 0755); err != nil {
+	if err := os.MkdirAll(testDir, 0o755); err != nil {
 		t.Fatalf("failed to create untracked dir: %v", err)
 	}
 
@@ -702,7 +702,7 @@ func TestGoGitClientReset(t *testing.T) {
 
 	// Modify a file locally
 	testFile := filepath.Join(cloneRepo, "README.md")
-	if err := os.WriteFile(testFile, []byte("# Modified\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("# Modified\n"), 0o644); err != nil {
 		t.Fatalf("failed to modify file: %v", err)
 	}
 
@@ -816,7 +816,7 @@ func TestGoGitClientHasCommitsNotOnDefaultBranch(t *testing.T) {
 	cmd.Run()
 
 	testFile := filepath.Join(repoPath, "feature.txt")
-	if err := os.WriteFile(testFile, []byte("feature\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("feature\n"), 0o644); err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
 
@@ -857,7 +857,7 @@ func TestGoGitClientIsDefaultBranchBehindHead(t *testing.T) {
 	cmd.Run()
 
 	testFile := filepath.Join(repoPath, "feature.txt")
-	if err := os.WriteFile(testFile, []byte("feature\n"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("feature\n"), 0o644); err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
 

@@ -16,7 +16,7 @@ func TestDefaultSettings(t *testing.T) {
 	// Create a temporary empty config file to test defaults
 	tmpDir := t.TempDir()
 	tmpConfig := filepath.Join(tmpDir, "test-conf.yaml")
-	if err := os.WriteFile(tmpConfig, []byte("# Empty config for testing defaults\n"), 0644); err != nil {
+	if err := os.WriteFile(tmpConfig, []byte("# Empty config for testing defaults\n"), 0o644); err != nil {
 		t.Fatalf("Failed to create temp config: %v", err)
 	}
 
@@ -66,7 +66,6 @@ func TestDefaultSettings(t *testing.T) {
 	if cloneType != "org" {
 		t.Errorf("Default clone type should be org, got: %v", cloneType)
 	}
-
 }
 
 func TestSyncDefaultBranchDefault(t *testing.T) {
@@ -77,7 +76,7 @@ func TestSyncDefaultBranchDefault(t *testing.T) {
 	// Create a temporary empty config file to test defaults
 	tmpDir := t.TempDir()
 	tmpConfig := filepath.Join(tmpDir, "test-conf.yaml")
-	if err := os.WriteFile(tmpConfig, []byte("# Empty config for testing defaults\n"), 0644); err != nil {
+	if err := os.WriteFile(tmpConfig, []byte("# Empty config for testing defaults\n"), 0o644); err != nil {
 		t.Fatalf("Failed to create temp config: %v", err)
 	}
 

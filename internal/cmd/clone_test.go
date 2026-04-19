@@ -14,7 +14,6 @@ import (
 )
 
 func TestShouldLowerRegularString(t *testing.T) {
-
 	upperName := "RepoName"
 	defer setOutputDirName([]string{""})
 	setOutputDirName([]string{upperName})
@@ -25,7 +24,6 @@ func TestShouldLowerRegularString(t *testing.T) {
 }
 
 func TestShouldNotChangeLowerCasedRegularString(t *testing.T) {
-
 	lowerName := "repo_name"
 	defer setOutputDirName([]string{""})
 	setOutputDirName([]string{lowerName})
@@ -36,7 +34,6 @@ func TestShouldNotChangeLowerCasedRegularString(t *testing.T) {
 }
 
 func TestReplaceDashWithUnderscore(t *testing.T) {
-
 	want := "repo-name"
 	lowerName := "repo-name"
 	defer setOutputDirName([]string{""})
@@ -48,7 +45,6 @@ func TestReplaceDashWithUnderscore(t *testing.T) {
 }
 
 func TestShouldNotChangeNonLettersString(t *testing.T) {
-
 	numberName := "1234567_8"
 	defer setOutputDirName([]string{""})
 	setOutputDirName([]string{numberName})
@@ -250,7 +246,7 @@ func TestInitialClone(t *testing.T) {
 	defer os.RemoveAll(dir)
 	os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", dir)
 	os.Setenv("GHORG_CONCURRENCY", "1")
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name: "testRepoOne",
 		},
@@ -290,7 +286,7 @@ func TestCloneEmptyRepo(t *testing.T) {
 	defer os.RemoveAll(outputDirAbsolutePath + "/" + "testRepoEmpty")
 
 	os.Setenv("GHORG_CONCURRENCY", "1")
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name:        "testRepoEmpty",
 			URL:         "git@github.com:org/testRepoEmpty.git",
@@ -325,7 +321,7 @@ func TestMatchPrefix(t *testing.T) {
 	os.Setenv("GHORG_MATCH_PREFIX", "test")
 	os.Setenv("GHORG_DONT_EXIT_UNDER_TEST", "true")
 
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name: "testRepoOne",
 		},
@@ -365,7 +361,7 @@ func TestExcludeMatchPrefix(t *testing.T) {
 	os.Setenv("GHORG_EXCLUDE_MATCH_PREFIX", "test")
 	os.Setenv("GHORG_DONT_EXIT_UNDER_TEST", "true")
 
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name: "testRepoOne",
 		},
@@ -405,7 +401,7 @@ func TestMatchRegex(t *testing.T) {
 	os.Setenv("GHORG_MATCH_REGEX", "^test-")
 	os.Setenv("GHORG_DONT_EXIT_UNDER_TEST", "true")
 
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name: "test-RepoOne",
 		},
@@ -447,7 +443,7 @@ func TestExcludeMatchRegex(t *testing.T) {
 	os.Setenv("GHORG_EXCLUDE_MATCH_REGEX", "^test-")
 	os.Setenv("GHORG_DONT_EXIT_UNDER_TEST", "true")
 
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name: "test-RepoOne",
 		},
@@ -865,7 +861,7 @@ func TestCloneAllRepos_Timing(t *testing.T) {
 	os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", dir)
 	os.Setenv("GHORG_CONCURRENCY", "1")
 
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name: "testRepoOne",
 		},
@@ -925,7 +921,7 @@ func TestCloneAllRepos_TimingWithDelay(t *testing.T) {
 	os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", dir)
 	os.Setenv("GHORG_CONCURRENCY", "1")
 
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name: "testRepoDelayed",
 		},
@@ -981,7 +977,6 @@ func TestWriteGhorgStats_WithTiming(t *testing.T) {
 	err = writeGhorgStats(date, allReposToCloneCount, cloneCount, pulledCount,
 		cloneInfosCount, cloneErrorsCount, updateRemoteCount, newCommits,
 		0, pruneCount, totalDurationSeconds, hasCollisions)
-
 	if err != nil {
 		t.Fatalf("writeGhorgStats returned error: %v", err)
 	}
@@ -1036,7 +1031,7 @@ func TestCommandTiming_IncludesFullDuration(t *testing.T) {
 	os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", dir)
 	os.Setenv("GHORG_CONCURRENCY", "1")
 
-	var testRepos = []scm.Repo{
+	testRepos := []scm.Repo{
 		{
 			Name: "testRepo",
 		},
@@ -1198,7 +1193,7 @@ func TestSyncDefaultBranch_Enabled(t *testing.T) {
 
 	// Create a mock repo directory to simulate existing repo
 	repoDir := filepath.Join(dir, "testRepo")
-	if err := os.MkdirAll(repoDir, 0755); err != nil {
+	if err := os.MkdirAll(repoDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1238,7 +1233,7 @@ func TestSyncDefaultBranch_Disabled(t *testing.T) {
 
 	// Create a mock repo directory to simulate existing repo
 	repoDir := filepath.Join(dir, "testRepo")
-	if err := os.MkdirAll(repoDir, 0755); err != nil {
+	if err := os.MkdirAll(repoDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1295,7 +1290,7 @@ func TestSyncDefaultBranch_CountsOnlyWhenUpdated(t *testing.T) {
 	// Create mock repos
 	for _, name := range []string{"repo1", "repo2", "repo3"} {
 		repoDir := filepath.Join(dir, name)
-		if err := os.MkdirAll(repoDir, 0755); err != nil {
+		if err := os.MkdirAll(repoDir, 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1334,7 +1329,7 @@ func TestSyncDefaultBranch_WithStandardPullMode(t *testing.T) {
 	// Not setting GHORG_NO_CLEAN or GHORG_BACKUP - should use standard pull mode
 
 	repoDir := filepath.Join(dir, "testRepo")
-	if err := os.MkdirAll(repoDir, 0755); err != nil {
+	if err := os.MkdirAll(repoDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1368,7 +1363,7 @@ func TestSyncDefaultBranch_WithBackupMode(t *testing.T) {
 	os.Setenv("GHORG_BACKUP", "true") // Backup mode
 
 	repoDir := filepath.Join(dir, "testRepo")
-	if err := os.MkdirAll(repoDir, 0755); err != nil {
+	if err := os.MkdirAll(repoDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1442,7 +1437,7 @@ func TestSyncDefaultBranch_StatsReporting(t *testing.T) {
 	for i := 0; i < numRepos; i++ {
 		repoName := "repo" + string(rune('0'+i))
 		repoDir := filepath.Join(dir, repoName)
-		if err := os.MkdirAll(repoDir, 0755); err != nil {
+		if err := os.MkdirAll(repoDir, 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -48,7 +48,7 @@ func createTestGitRepo(t *testing.T) (string, func()) {
 
 	// Create initial commit
 	testFile := filepath.Join(tempDir, "test.txt")
-	if err := os.WriteFile(testFile, []byte("test content"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("test content"), 0o644); err != nil {
 		cleanup()
 		t.Fatalf("Failed to create test file: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestHasLocalChanges(t *testing.T) {
 	t.Run("Modified file", func(t *testing.T) {
 		// Modify file
 		testFile := filepath.Join(repoPath, "test.txt")
-		if err := os.WriteFile(testFile, []byte("modified content"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("modified content"), 0o644); err != nil {
 			t.Fatalf("Failed to modify file: %v", err)
 		}
 
@@ -175,7 +175,7 @@ func TestHasLocalChanges(t *testing.T) {
 	t.Run("Untracked file", func(t *testing.T) {
 		// Create untracked file
 		newFile := filepath.Join(repoPath, "untracked.txt")
-		if err := os.WriteFile(newFile, []byte("untracked"), 0644); err != nil {
+		if err := os.WriteFile(newFile, []byte("untracked"), 0o644); err != nil {
 			t.Fatalf("Failed to create untracked file: %v", err)
 		}
 
@@ -248,7 +248,7 @@ func TestHasUnpushedCommits(t *testing.T) {
 	t.Run("With unpushed commits", func(t *testing.T) {
 		// Create a new commit
 		newFile := filepath.Join(repoPath, "new.txt")
-		if err := os.WriteFile(newFile, []byte("new content"), 0644); err != nil {
+		if err := os.WriteFile(newFile, []byte("new content"), 0o644); err != nil {
 			t.Fatalf("Failed to create new file: %v", err)
 		}
 
@@ -349,7 +349,7 @@ func TestHasCommitsNotOnDefaultBranch(t *testing.T) {
 
 		// Add commit on feature branch
 		newFile := filepath.Join(repoPath, "feature.txt")
-		if err := os.WriteFile(newFile, []byte("feature content"), 0644); err != nil {
+		if err := os.WriteFile(newFile, []byte("feature content"), 0o644); err != nil {
 			t.Fatalf("Failed to create feature file: %v", err)
 		}
 
@@ -412,7 +412,7 @@ func TestIsDefaultBranchBehindHead(t *testing.T) {
 
 		// Add commit
 		newFile := filepath.Join(repoPath, "feature.txt")
-		if err := os.WriteFile(newFile, []byte("feature content"), 0644); err != nil {
+		if err := os.WriteFile(newFile, []byte("feature content"), 0o644); err != nil {
 			t.Fatalf("Failed to create feature file: %v", err)
 		}
 
@@ -454,7 +454,7 @@ func TestIsDefaultBranchBehindHead(t *testing.T) {
 
 		// Add commit on divergent
 		file1 := filepath.Join(repoPath, "divergent.txt")
-		if err := os.WriteFile(file1, []byte("divergent content"), 0644); err != nil {
+		if err := os.WriteFile(file1, []byte("divergent content"), 0o644); err != nil {
 			t.Fatalf("Failed to create file: %v", err)
 		}
 
@@ -478,7 +478,7 @@ func TestIsDefaultBranchBehindHead(t *testing.T) {
 		}
 
 		file2 := filepath.Join(repoPath, "main.txt")
-		if err := os.WriteFile(file2, []byte("main content"), 0644); err != nil {
+		if err := os.WriteFile(file2, []byte("main content"), 0o644); err != nil {
 			t.Fatalf("Failed to create file: %v", err)
 		}
 
@@ -524,7 +524,7 @@ func TestMergeIntoDefaultBranch(t *testing.T) {
 
 		// Add commit
 		newFile := filepath.Join(repoPath, "feature.txt")
-		if err := os.WriteFile(newFile, []byte("feature content"), 0644); err != nil {
+		if err := os.WriteFile(newFile, []byte("feature content"), 0o644); err != nil {
 			t.Fatalf("Failed to create feature file: %v", err)
 		}
 
@@ -589,7 +589,7 @@ func TestUpdateRef(t *testing.T) {
 
 		// Add a commit on main
 		newFile := filepath.Join(repoPath, "update-ref.txt")
-		if err := os.WriteFile(newFile, []byte("content"), 0644); err != nil {
+		if err := os.WriteFile(newFile, []byte("content"), 0o644); err != nil {
 			t.Fatalf("Failed to create file: %v", err)
 		}
 

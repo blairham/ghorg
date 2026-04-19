@@ -179,7 +179,6 @@ func listGhorgHome(longFormat, totalFormat bool) {
 }
 
 func listGhorgDir(arg string, longFormat, totalFormat bool) {
-
 	path := os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO") + arg
 
 	_, err := os.ReadDir(path)

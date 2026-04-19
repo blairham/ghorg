@@ -14,9 +14,7 @@ import (
 	"github.com/blairham/ghorg/internal/colorlog"
 )
 
-var (
-	_ Client = Bitbucket{}
-)
+var _ Client = Bitbucket{}
 
 func init() {
 	registerClient(Bitbucket{})

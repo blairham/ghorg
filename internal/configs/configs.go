@@ -255,7 +255,7 @@ func GetOrSetToken() {
 }
 
 func getOrSetGitHubToken() {
-	var token = os.Getenv("GHORG_GITHUB_TOKEN")
+	token := os.Getenv("GHORG_GITHUB_TOKEN")
 	if IsFilePath(token) {
 		os.Setenv("GHORG_GITHUB_TOKEN", GetTokenFromFile(token))
 	}
@@ -353,7 +353,6 @@ func getOrSetSourcehutToken() {
 
 // VerifyTokenSet checks to make sure env is set for the correct scm provider
 func VerifyTokenSet() error {
-
 	if os.Getenv("GHORG_NO_TOKEN") == "true" {
 		return nil
 	}

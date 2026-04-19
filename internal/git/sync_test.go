@@ -84,7 +84,7 @@ func TestSyncDefaultBranch(t *testing.T) {
 		}
 
 		// Make some local changes to make the working directory dirty
-		err = os.WriteFile(filepath.Join(destDir, "new-file.txt"), []byte("local changes"), 0644)
+		err = os.WriteFile(filepath.Join(destDir, "new-file.txt"), []byte("local changes"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create test file: %v", err)
 		}
@@ -220,7 +220,6 @@ func TestPartialCloneAndSyncIntegration(t *testing.T) {
 			}
 		}
 	})
-
 }
 
 func TestSyncDefaultBranchExtensive(t *testing.T) {
@@ -287,7 +286,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 		}
 
 		// Make a new commit that hasn't been pushed
-		err = os.WriteFile(filepath.Join(tempDir, "newfile.txt"), []byte("new content"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "newfile.txt"), []byte("new content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create new file: %v", err)
 		}
@@ -329,7 +328,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 		defer os.RemoveAll(tempDir)
 
 		// Make some local changes
-		err = os.WriteFile(filepath.Join(tempDir, "untracked.txt"), []byte("new content"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "untracked.txt"), []byte("new content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create untracked file: %v", err)
 		}
@@ -380,7 +379,7 @@ func TestSyncDefaultBranchExtensive(t *testing.T) {
 		}
 
 		// Make a new commit that hasn't been pushed
-		err = os.WriteFile(filepath.Join(tempDir, "newfile.txt"), []byte("new content"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "newfile.txt"), []byte("new content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create new file: %v", err)
 		}
@@ -523,7 +522,7 @@ func createTestRepo(_ *testing.T) (string, error) {
 
 	// Create a test file
 	filename := filepath.Join(tempDir, "README.md")
-	err = os.WriteFile(filename, []byte("# Test Repository for Sync"), 0644)
+	err = os.WriteFile(filename, []byte("# Test Repository for Sync"), 0o644)
 	if err != nil {
 		os.RemoveAll(tempDir)
 		return "", err
@@ -602,7 +601,7 @@ func createTestRepoWithMultipleFiles(_ *testing.T) (string, error) {
 	}
 
 	for filename, content := range files {
-		err = os.WriteFile(filepath.Join(tempDir, filename), []byte(content), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, filename), []byte(content), 0o644)
 		if err != nil {
 			os.RemoveAll(tempDir)
 			return "", err
@@ -611,13 +610,13 @@ func createTestRepoWithMultipleFiles(_ *testing.T) (string, error) {
 
 	// Create a subdirectory with files
 	subDir := filepath.Join(tempDir, "docs")
-	err = os.Mkdir(subDir, 0755)
+	err = os.Mkdir(subDir, 0o755)
 	if err != nil {
 		os.RemoveAll(tempDir)
 		return "", err
 	}
 
-	err = os.WriteFile(filepath.Join(subDir, "API.md"), []byte("# API Documentation\n\nAPI docs here.\n"), 0644)
+	err = os.WriteFile(filepath.Join(subDir, "API.md"), []byte("# API Documentation\n\nAPI docs here.\n"), 0o644)
 	if err != nil {
 		os.RemoveAll(tempDir)
 		return "", err
@@ -697,10 +696,10 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to read original index: %v", err)
 		}
-		defer os.WriteFile(indexFile, originalIndex, 0644) // Restore for cleanup
+		defer os.WriteFile(indexFile, originalIndex, 0o644) // Restore for cleanup
 
 		// Write invalid data to the index file
-		err = os.WriteFile(indexFile, []byte("invalid index data"), 0644)
+		err = os.WriteFile(indexFile, []byte("invalid index data"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to corrupt index file: %v", err)
 		}
@@ -829,7 +828,7 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 
 		// Make local changes
-		err = os.WriteFile(filepath.Join(tempDir, "dirty.txt"), []byte("local changes"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "dirty.txt"), []byte("local changes"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create dirty file: %v", err)
 		}
@@ -869,7 +868,7 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 
 		// Create another commit to have unpushed changes
-		err = os.WriteFile(filepath.Join(tempDir, "new.txt"), []byte("new content"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "new.txt"), []byte("new content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create new file: %v", err)
 		}
@@ -948,7 +947,7 @@ func TestSyncDefaultBranchMissingCoverage(t *testing.T) {
 		}
 
 		// Add a commit to the feature branch (this makes it divergent from main)
-		err = os.WriteFile(filepath.Join(tempDir, "feature.txt"), []byte("feature content"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "feature.txt"), []byte("feature content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create feature file: %v", err)
 		}
@@ -1229,7 +1228,7 @@ func TestSyncDefaultBranchComprehensiveCoverage(t *testing.T) {
 		}
 
 		// Make some local changes
-		err = os.WriteFile(filepath.Join(tempDir, "local-change.txt"), []byte("local changes"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "local-change.txt"), []byte("local changes"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create test file: %v", err)
 		}
@@ -1285,7 +1284,7 @@ func TestSyncDefaultBranchComprehensiveCoverage(t *testing.T) {
 		}
 
 		// Make a new commit that hasn't been pushed
-		err = os.WriteFile(filepath.Join(tempDir, "newfile.txt"), []byte("new content"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "newfile.txt"), []byte("new content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create new file: %v", err)
 		}
@@ -1362,7 +1361,7 @@ func TestSyncDefaultBranchComprehensiveCoverage(t *testing.T) {
 		}
 
 		// Add a commit to the feature branch (this makes it divergent from main)
-		err = os.WriteFile(filepath.Join(tempDir, "feature.txt"), []byte("feature content"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "feature.txt"), []byte("feature content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create feature file: %v", err)
 		}
@@ -1443,7 +1442,7 @@ func TestSyncActuallyAppliesChanges(t *testing.T) {
 		defer os.RemoveAll(remoteDir)
 
 		// Add a file to the remote repository
-		err = os.WriteFile(filepath.Join(remoteDir, "remote-file.txt"), []byte("remote content"), 0644)
+		err = os.WriteFile(filepath.Join(remoteDir, "remote-file.txt"), []byte("remote content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create remote file: %v", err)
 		}
@@ -1480,7 +1479,7 @@ func TestSyncActuallyAppliesChanges(t *testing.T) {
 		}
 
 		// Add another file to the remote repository (simulating changes from another user)
-		err = os.WriteFile(filepath.Join(remoteDir, "new-remote-file.txt"), []byte("new remote content"), 0644)
+		err = os.WriteFile(filepath.Join(remoteDir, "new-remote-file.txt"), []byte("new remote content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create new remote file: %v", err)
 		}
@@ -1679,7 +1678,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			t.Fatalf("Failed to create feature branch: %v", err)
 		}
 
-		err = os.WriteFile(filepath.Join(workDir, "feature.txt"), []byte("feature"), 0644)
+		err = os.WriteFile(filepath.Join(workDir, "feature.txt"), []byte("feature"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create feature file: %v", err)
 		}
@@ -1832,7 +1831,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			t.Fatalf("Failed to create feature branch: %v", err)
 		}
 
-		err = os.WriteFile(filepath.Join(tempDir, "feature.txt"), []byte("content"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "feature.txt"), []byte("content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create file: %v", err)
 		}
@@ -2003,7 +2002,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 		}
 
 		// Create initial commit
-		err = os.WriteFile(filepath.Join(localDir, "README.md"), []byte("# Test Repo"), 0644)
+		err = os.WriteFile(filepath.Join(localDir, "README.md"), []byte("# Test Repo"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create README: %v", err)
 		}
@@ -2044,7 +2043,7 @@ func TestSyncDefaultBranchCompleteCoverage(t *testing.T) {
 			t.Fatalf("Failed to clone from bare repo: %v", err)
 		}
 
-		err = os.WriteFile(filepath.Join(remoteWorkDir, "remote.txt"), []byte("remote content"), 0644)
+		err = os.WriteFile(filepath.Join(remoteWorkDir, "remote.txt"), []byte("remote content"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create remote file: %v", err)
 		}
@@ -2182,7 +2181,7 @@ func TestSyncOnDefaultBranch(t *testing.T) {
 	cmd.Run()
 
 	// Create initial file
-	err = os.WriteFile(filepath.Join(sourceDir, "file1.txt"), []byte("initial content"), 0644)
+	err = os.WriteFile(filepath.Join(sourceDir, "file1.txt"), []byte("initial content"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create file: %v", err)
 	}
@@ -2234,7 +2233,7 @@ func TestSyncOnDefaultBranch(t *testing.T) {
 	initialCommit := strings.TrimSpace(string(output))
 
 	// Now add a new commit to the source repo and push
-	err = os.WriteFile(filepath.Join(sourceDir, "file2.txt"), []byte("new content"), 0644)
+	err = os.WriteFile(filepath.Join(sourceDir, "file2.txt"), []byte("new content"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create new file: %v", err)
 	}
@@ -2375,7 +2374,7 @@ func TestSyncOnFeatureBranch(t *testing.T) {
 	cmd.Run()
 
 	// Create initial file
-	err = os.WriteFile(filepath.Join(sourceDir, "file1.txt"), []byte("initial content"), 0644)
+	err = os.WriteFile(filepath.Join(sourceDir, "file1.txt"), []byte("initial content"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create file: %v", err)
 	}
@@ -2425,7 +2424,7 @@ func TestSyncOnFeatureBranch(t *testing.T) {
 	}
 
 	// Add a commit on feature branch
-	err = os.WriteFile(filepath.Join(cloneDir, "feature.txt"), []byte("feature work"), 0644)
+	err = os.WriteFile(filepath.Join(cloneDir, "feature.txt"), []byte("feature work"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create feature file: %v", err)
 	}
@@ -2452,7 +2451,7 @@ func TestSyncOnFeatureBranch(t *testing.T) {
 	initialMainCommit := strings.TrimSpace(string(output))
 
 	// Now add a new commit to the source repo main branch and push
-	err = os.WriteFile(filepath.Join(sourceDir, "file2.txt"), []byte("new content"), 0644)
+	err = os.WriteFile(filepath.Join(sourceDir, "file2.txt"), []byte("new content"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create new file: %v", err)
 	}
@@ -2612,7 +2611,7 @@ func TestGetRemoteDefaultBranch(t *testing.T) {
 
 	// Create a file and commit
 	testFile := localRepoPath + "/test.txt"
-	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("test"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2695,7 +2694,7 @@ func TestSyncWithActualDefaultBranchDetection(t *testing.T) {
 
 	// Create initial commit
 	testFile := localRepoPath + "/file1.txt"
-	if err := os.WriteFile(testFile, []byte("content1"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("content1"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2746,7 +2745,7 @@ func TestSyncWithActualDefaultBranchDetection(t *testing.T) {
 	}
 
 	testFile2 := tempClonePath + "/file2.txt"
-	if err := os.WriteFile(testFile2, []byte("content2"), 0644); err != nil {
+	if err := os.WriteFile(testFile2, []byte("content2"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

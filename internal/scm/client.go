@@ -12,9 +12,7 @@ type Client interface {
 	GetType() string
 }
 
-var (
-	clients []Client
-)
+var clients []Client
 
 // registerClient registers a client
 func registerClient(c Client) {

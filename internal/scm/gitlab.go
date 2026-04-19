@@ -147,7 +147,6 @@ func (c Gitlab) GetTopLevelGroups() ([]string, error) {
 // ssh clone target url git@gitlab.com:ghorg-test-group/subgroup-2/foobar.git
 // ssh snippet clone url git@gitlab.com:ghorg-test-group/subgroup-2/foobar/snippets/3711587.git
 func (c Gitlab) createRepoSnippetCloneURL(cloneTargetURL string, snippetID string) string {
-
 	// Split the cloneTargetURL into two parts at the ".git"
 	parts := strings.Split(cloneTargetURL, ".git")
 	// Insert the "/snippets/:id" before the ".git"
@@ -291,7 +290,6 @@ func (c Gitlab) getRepoSnippetsParallel(repos []Repo) []*gitlab.Snippet {
 }
 
 func (c Gitlab) GetSnippets(cloneData []Repo, target string) ([]Repo, error) {
-
 	if os.Getenv("GHORG_CLONE_SNIPPETS") != "true" {
 		return []Repo{}, nil
 	}
@@ -519,7 +517,6 @@ func (Gitlab) NewClient() (Client, error) {
 		} else {
 			c, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
 		}
-
 	} else {
 		c, err = gitlab.NewClient(token)
 	}
