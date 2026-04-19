@@ -40,21 +40,32 @@ func TestVersionCommand_Help(t *testing.T) {
 }
 
 func TestGetVersion(t *testing.T) {
-	version := GetVersion()
+	v := GetVersion()
 
-	if version == "" {
+	if v == "" {
 		t.Error("GetVersion should return a non-empty string")
-	}
-
-	// Version should start with 'v'
-	if version[0] != 'v' {
-		t.Errorf("Version should start with 'v', got %q", version)
 	}
 }
 
-func TestVersionConstant(t *testing.T) {
-	// Test that the version constant is set
-	if ghorgVersion == "" {
-		t.Error("ghorgVersion constant should not be empty")
+func TestGetVersion_WithLdflags(t *testing.T) {
+	// When version is set via ldflags, GetVersion returns it directly
+	old := version
+	version = "v2.0.0"
+	defer func() { version = old }()
+
+	if GetVersion() != "v2.0.0" {
+		t.Errorf("Expected 'v2.0.0', got %q", GetVersion())
+	}
+}
+
+func TestGetVersion_FallbackToGitSHA(t *testing.T) {
+	// When version is empty, GetVersion falls back to git SHA
+	old := version
+	version = ""
+	defer func() { version = old }()
+
+	v := GetVersion()
+	if v == "" {
+		t.Error("GetVersion should fall back to git SHA or 'dev'")
 	}
 }

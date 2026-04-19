@@ -9,6 +9,8 @@ builds:
   - env:
       - CGO_ENABLED=0
     main: ./cmd/ghorg
+    ldflags:
+      - -s -w -X github.com/blairham/ghorg/internal/cmd.version={{.Version}}
     goos:
       - linux
       - windows

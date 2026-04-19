@@ -2,11 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/hashicorp/cli"
 )
 
-const ghorgVersion = "v1.11.8"
+// version is set via ldflags at build time by goreleaser or make build-local.
+// When not set (e.g., go run), it falls back to the git SHA.
+var version string //nolint:gochecknoglobals // set via ldflags
 
 type VersionCommand struct {
 	UI cli.Ui
@@ -21,14 +25,25 @@ func (c *VersionCommand) Synopsis() string {
 }
 
 func (c *VersionCommand) Run(args []string) int {
-	fmt.Println(ghorgVersion)
+	fmt.Println(GetVersion())
 	return 0
 }
 
 func PrintVersion() {
-	fmt.Println(ghorgVersion)
+	fmt.Println(GetVersion())
 }
 
 func GetVersion() string {
-	return ghorgVersion
+	if version != "" {
+		return version
+	}
+	return gitSHA()
+}
+
+func gitSHA() string {
+	out, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+	if err != nil {
+		return "dev"
+	}
+	return strings.TrimSpace(string(out))
 }

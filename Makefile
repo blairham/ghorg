@@ -9,7 +9,7 @@ build: deps-verify ## Multi-platform build via GoReleaser snapshot
 
 build-local: fmt ## Fast local dev build
 	@mkdir -p dist
-	go build -o dist/ghorg ./cmd/ghorg
+	go build -ldflags "-X github.com/blairham/ghorg/internal/cmd.version=$$(git describe --tags --always --dirty)" -o dist/ghorg ./cmd/ghorg
 
 build-docker: deps-verify ## Build Docker images locally (no push)
 	goreleaser release --snapshot --clean --skip=publish
