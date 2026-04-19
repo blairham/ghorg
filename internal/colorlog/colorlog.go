@@ -85,6 +85,17 @@ func PrintErrorAndExit(msg any) {
 	os.Exit(1)
 }
 
+// PrintWarning prints yellow colored text to standard out.
+// Unlike PrintInfo, this is not suppressed by GHORG_QUIET.
+func PrintWarning(msg any) {
+	if os.Getenv("GHORG_COLOR") == "enabled" {
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color("11")) // Yellow
+		fmt.Println(style.Render(formatMsg(msg)))
+	} else {
+		fmt.Println(formatMsg(msg))
+	}
+}
+
 // PrintSubtleInfo prints magenta colored text to standard out
 func PrintSubtleInfo(msg any) {
 	if os.Getenv("GHORG_QUIET") == "true" {
