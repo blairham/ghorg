@@ -69,22 +69,17 @@ dockers_v2:
       - sample-conf.yaml
       - sample-reclone.yaml
 
-brews:
+homebrew_casks:
   - repository:
       owner: blairham
       name: homebrew-tap
       branch: main
 
-    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
 
     homepage: "https://github.com/blairham/ghorg"
 
     description: "Quickly clone an entire org/users repositories into one directory"
-
-    license: "Apache-2.0"
-
-    install: |
-      bin.install "ghorg"
 
     caveats: |
       For examples on how to use ghorg see: https://github.com/blairham/ghorg/tree/master/examples
