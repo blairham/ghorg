@@ -74,7 +74,7 @@ func TestGetTokenFromFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test file
 			testFile := filepath.Join(tempDir, tt.name+".txt")
-			err := os.WriteFile(testFile, []byte(tt.fileContent), 0644)
+			err := os.WriteFile(testFile, []byte(tt.fileContent), 0o644)
 			if err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
 			}

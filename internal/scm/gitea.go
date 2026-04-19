@@ -12,9 +12,7 @@ import (
 	"github.com/blairham/ghorg/internal/colorlog"
 )
 
-var (
-	_ Client = Gitea{}
-)
+var _ Client = Gitea{}
 
 func init() {
 	registerClient(Gitea{})
@@ -42,7 +40,6 @@ func (c Gitea) GetOrgRepos(targetOrg string) ([]Repo, error) {
 		Page:     1,
 		PageSize: c.perPage,
 	}})
-
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			err = fmt.Errorf("org \"%s\" not found", targetOrg)
@@ -69,7 +66,6 @@ func (c Gitea) GetUserRepos(targetUsername string) ([]Repo, error) {
 		Page:     1,
 		PageSize: c.perPage,
 	}})
-
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			err = fmt.Errorf("user \"%s\" not found", targetUsername)
@@ -132,7 +128,7 @@ func (Gitea) NewClient() (Client, error) {
 	}
 	client := Gitea{Client: c}
 
-	//set small limit so gitea most likely will have a bigger one
+	// set small limit so gitea most likely will have a bigger one
 	client.perPage = 10
 	if conf, _, err := client.GetGlobalAPISettings(); err == nil && conf != nil {
 		// gitea >= 1.13 will tell us the limit it has

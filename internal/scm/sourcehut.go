@@ -15,9 +15,7 @@ import (
 	"github.com/blairham/ghorg/internal/colorlog"
 )
 
-var (
-	_ Client = Sourcehut{}
-)
+var _ Client = Sourcehut{}
 
 func init() {
 	registerClient(Sourcehut{})
@@ -258,7 +256,7 @@ func (c Sourcehut) filter(rps []repository, apiUsername string, localUsername st
 		repoPathWithTilde := path.Join(rp.Owner.CanonicalName, rp.Name)
 
 		if os.Getenv("GHORG_BRANCH") == "" {
-			var defaultBranch = ""
+			defaultBranch := ""
 			if strings.HasPrefix(rp.HEAD.Name, "refs/heads/") {
 				defaultBranch = rp.HEAD.Name[len("refs/heads/"):]
 			}

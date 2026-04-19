@@ -40,7 +40,6 @@ func (Github) GetType() string {
 
 // GetOrgRepos gets org repos with parallel pagination for performance
 func (c Github) GetOrgRepos(targetOrg string) ([]Repo, error) {
-
 	opt := &github.RepositoryListByOrgOptions{
 		Type:        "all",
 		ListOptions: github.ListOptions{PerPage: c.perPage},
@@ -143,13 +142,11 @@ func (Github) NewClient() (Client, error) {
 	if os.Getenv("GHORG_GITHUB_APP_PEM_PATH") != "" {
 		// If the user has set GHORG_GITHUB_APP_INSTALLATION_ID, we assume they want to use a GitHub App
 		installID, err := strconv.ParseInt(os.Getenv("GHORG_GITHUB_APP_INSTALLATION_ID"), 10, 64)
-
 		if err != nil {
 			return nil, fmt.Errorf("GHORG_GITHUB_APP_INSTALLATION_ID must be set if GHORG_GITHUB_APP_PEM_PATH is set")
 		}
 
 		appID, err := strconv.ParseInt(os.Getenv("GHORG_GITHUB_APP_ID"), 10, 64)
-
 		if err != nil {
 			return nil, fmt.Errorf("GHORG_GITHUB_APP_ID must be set if GHORG_GITHUB_APP_PEM_PATH is set")
 		}
@@ -166,7 +163,6 @@ func (Github) NewClient() (Client, error) {
 		tc = &http.Client{Transport: itr}
 		// get the token from the itr and update the GHORT_GITHUB_TOKEN env var
 		token, err := itr.Token(ctx)
-
 		if err != nil {
 			return nil, err
 		}

@@ -78,7 +78,6 @@ func TestRecloneServerFlags_Parse(t *testing.T) {
 			var opts RecloneServerFlags
 			parser := createTestParser(&opts)
 			_, err := parser.ParseArgs(tt.args)
-
 			if err != nil {
 				t.Fatalf("Failed to parse args: %v", err)
 			}

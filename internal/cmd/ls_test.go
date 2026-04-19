@@ -86,7 +86,6 @@ func TestLsFlags_Parse(t *testing.T) {
 			var opts LsFlags
 			parser := createTestParser(&opts)
 			_, err := parser.ParseArgs(tt.args)
-
 			if err != nil {
 				t.Fatalf("Failed to parse args: %v", err)
 			}
@@ -105,7 +104,7 @@ func TestLsCommand_RunWithTempDir(t *testing.T) {
 	// Create a temporary directory structure
 	tmpDir := t.TempDir()
 	orgDir := filepath.Join(tmpDir, "test-org")
-	if err := os.MkdirAll(orgDir, 0755); err != nil {
+	if err := os.MkdirAll(orgDir, 0o755); err != nil {
 		t.Fatalf("Failed to create test directory: %v", err)
 	}
 
@@ -113,7 +112,7 @@ func TestLsCommand_RunWithTempDir(t *testing.T) {
 	repos := []string{"repo1", "repo2", "repo3"}
 	for _, repo := range repos {
 		repoPath := filepath.Join(orgDir, repo)
-		if err := os.MkdirAll(repoPath, 0755); err != nil {
+		if err := os.MkdirAll(repoPath, 0o755); err != nil {
 			t.Fatalf("Failed to create repo directory: %v", err)
 		}
 	}
@@ -147,7 +146,7 @@ func TestLsCommand_RunWithSpecificDir(t *testing.T) {
 	// Create a temporary directory structure
 	tmpDir := t.TempDir()
 	orgDir := filepath.Join(tmpDir, "test-org")
-	if err := os.MkdirAll(orgDir, 0755); err != nil {
+	if err := os.MkdirAll(orgDir, 0o755); err != nil {
 		t.Fatalf("Failed to create test directory: %v", err)
 	}
 
@@ -155,7 +154,7 @@ func TestLsCommand_RunWithSpecificDir(t *testing.T) {
 	repos := []string{"repo1", "repo2"}
 	for _, repo := range repos {
 		repoPath := filepath.Join(orgDir, repo)
-		if err := os.MkdirAll(repoPath, 0755); err != nil {
+		if err := os.MkdirAll(repoPath, 0o755); err != nil {
 			t.Fatalf("Failed to create repo directory: %v", err)
 		}
 	}

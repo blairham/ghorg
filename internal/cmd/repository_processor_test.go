@@ -137,7 +137,7 @@ func TestRepositoryProcessor_ProcessRepository_ExistingRepository(t *testing.T) 
 
 	// Create existing repo directory
 	repoDir := filepath.Join(dir, "test-repo")
-	err = os.MkdirAll(repoDir, 0755)
+	err = os.MkdirAll(repoDir, 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func TestRepositoryProcessor_ProcessRepository_BackupMode(t *testing.T) {
 
 	// Create existing repo directory
 	repoDir := filepath.Join(dir, "test-repo")
-	err = os.MkdirAll(repoDir, 0755)
+	err = os.MkdirAll(repoDir, 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,7 +304,7 @@ func TestRepositoryProcessor_ProcessRepository_NoCleanMode(t *testing.T) {
 
 	// Create existing repo directory
 	repoDir := filepath.Join(dir, "test-repo")
-	err = os.MkdirAll(repoDir, 0755)
+	err = os.MkdirAll(repoDir, 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,7 +345,7 @@ func TestRepositoryProcessor_ProcessRepository_NoCleanModeWithFetchAllDisabled(t
 
 	// Create existing repo directory
 	repoDir := filepath.Join(dir, "test-repo")
-	err = os.MkdirAll(repoDir, 0755)
+	err = os.MkdirAll(repoDir, 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,7 +390,7 @@ func TestRepositoryProcessor_ProcessRepository_NoCleanModeWithFetchAllEnabled(t 
 
 	// Create existing repo directory
 	repoDir := filepath.Join(dir, "test-repo")
-	err = os.MkdirAll(repoDir, 0755)
+	err = os.MkdirAll(repoDir, 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
