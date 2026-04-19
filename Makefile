@@ -1,4 +1,4 @@
-.PHONY: build build-local build-docker install homebrew fmt test test-race test-git test-sync \
+.PHONY: build build-local build-docker install fmt test test-race test-git test-sync \
        test-helpers test-all test-coverage test-coverage-func lint clean release \
        release-dry release-check examples deps-install deps-verify
 
@@ -17,10 +17,6 @@ build-docker: deps-verify ## Build Docker images locally (no push)
 ## Install targets
 
 install: build-local ## Build + copy sample config to ~/.config/ghorg/
-	mkdir -p $(HOME)/.config/ghorg
-	cp sample-conf.yaml $(HOME)/.config/ghorg/conf.yaml
-
-homebrew: ## Copy sample config for homebrew installation
 	mkdir -p $(HOME)/.config/ghorg
 	cp sample-conf.yaml $(HOME)/.config/ghorg/conf.yaml
 

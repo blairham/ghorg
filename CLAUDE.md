@@ -226,7 +226,6 @@ All tokens accept either a literal value or a path to a file containing the toke
 - **GoReleaser v2** config in `.goreleaser.yml`
 - **Platforms:** Linux (amd64/arm64/arm), macOS (amd64/arm64), Windows (amd64)
 - **Docker:** Published to `ghcr.io/blairham/ghorg` (amd64/arm64/arm/v7)
-- **Homebrew:** Published to `blairham/homebrew-utils` tap
 - **Triggered by:** Git tag push (`v*`) or manual `workflow_dispatch`
 - **Static binaries:** `CGO_ENABLED=0` for full portability
 - **Dependencies:** Fetched via Go module proxy (no vendor directory)
