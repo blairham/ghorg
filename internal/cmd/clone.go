@@ -148,6 +148,23 @@ type CloneFlags struct {
 	GitHubAppID              string `long:"github-app-id" description:"GHORG_GITHUB_APP_ID - GitHub App ID, for authenticating with GitHub App"`
 	GitHubFilterLanguage     string `long:"github-filter-language" description:"GHORG_GITHUB_FILTER_LANGUAGE - Filter repos by a language. Can be a comma separated value with no spaces"`
 	GitHubUserOption         string `long:"github-user-option" description:"GHORG_GITHUB_USER_OPTION - Only available when also using GHORG_CLONE_TYPE: user e.g. --clone-type=user can be one of: all, owner, member (default: owner)"`
+	GitHubUserGists          bool   `long:"github-user-gists" description:"GHORG_GITHUB_USER_GISTS - Additionally clone all of a GitHub user's gists into a ghorg-gists subdirectory (only available with --clone-type=user --scm=github)"`
+
+	// SSH flags
+	SSHHostname string `long:"ssh-hostname" description:"GHORG_SSH_HOSTNAME - Replace the hostname in SSH clone URLs with a custom hostname (useful for SSH host aliases in ~/.ssh/config)"`
+
+	// GitLab specific flags
+	GitlabGroupMatchRegex string `long:"gitlab-group-match-regex" description:"GHORG_GITLAB_GROUP_MATCH_REGEX - Only clone gitlab groups that match name to regex provided"`
+
+	// Fetch flags
+	FetchPrune bool `long:"fetch-prune" description:"GHORG_FETCH_PRUNE - Appends --prune to git fetch --all, removing stale remote-tracking branches (only takes effect when --fetch-all is also used)"`
+
+	// Protect local flags
+	ProtectLocal bool `long:"protect-local" description:"GHORG_PROTECT_LOCAL - Skip repos with uncommitted changes or unpushed commits instead of overwriting them"`
+
+	// Bitbucket additional auth flags
+	BitbucketAPIToken string `long:"bitbucket-api-token" description:"GHORG_BITBUCKET_API_TOKEN - Bitbucket Cloud API token for authentication (newer alternative to app passwords)"`
+	BitbucketAPIEmail string `long:"bitbucket-api-email" description:"GHORG_BITBUCKET_API_EMAIL - Email associated with the Bitbucket Cloud API token"`
 }
 
 func (c *CloneCommand) Help() string {
@@ -177,18 +194,30 @@ Options:
   --no-clean                           Only clone new repos, don't clean existing
   --prune                              Delete local repos not found on remote
   --fetch-all                          Fetch all remote branches
+  --fetch-prune                        Remove stale remote-tracking branches during fetch
+  --protect-local                      Skip repos with uncommitted changes or unpushed commits
+  --ssh-hostname                       Replace SSH hostname (for ~/.ssh/config aliases)
   --dry-run                            Perform a dry run
   --backup                             Backup mode (clone as mirror)
   --include-submodules                 Include submodules
   --clone-wiki                         Clone wiki pages
+  --github-user-gists                  Clone GitHub user's gists (--clone-type=user only)
+  --gitlab-group-match-regex           Include only GitLab groups matching regex
+  --bitbucket-api-token                Bitbucket Cloud API token authentication
   --quiet                              Emit critical output only
   --stats-enabled                      Create stats CSV file
 
 Examples:
-  ghorg clone kubernetes
-  ghorg clone --scm gitlab my-org
-  ghorg clone --clone-type user my-user
-  ghorg clone --branch develop my-org
+  ghorg clone kubernetes                                  # Clone all repos in a GitHub org
+  ghorg clone --scm gitlab my-org                         # Clone from GitLab
+  ghorg clone --clone-type user my-user                   # Clone a user's repos
+  ghorg clone --branch develop my-org                     # Clone with specific branch
+  ghorg clone --protocol ssh my-org                       # Clone using SSH
+  ghorg clone --match-regex "^api-" my-org                # Clone repos matching a regex
+  ghorg clone --skip-archived --skip-forks my-org         # Skip archived repos and forks
+  ghorg clone --protect-local my-org                      # Skip repos with local changes
+  ghorg clone --fetch-all --fetch-prune my-org            # Fetch all branches and prune stale
+  ghorg clone --clone-type user --github-user-gists user  # Clone user's gists
 `
 }
 
@@ -230,6 +259,10 @@ func applyStringFlags(opts *CloneFlags) {
 		{"GHORG_GIT_FILTER", opts.GitFilter, nil},
 		{"GHORG_GIT_BACKEND", opts.GitBackend, nil},
 		{"GHORG_OUTPUT_DIR", opts.OutputDir, nil},
+		{"GHORG_SSH_HOSTNAME", opts.SSHHostname, nil},
+		{"GHORG_GITLAB_GROUP_MATCH_REGEX", opts.GitlabGroupMatchRegex, nil},
+		{"GHORG_BITBUCKET_API_TOKEN", opts.BitbucketAPIToken, nil},
+		{"GHORG_BITBUCKET_API_EMAIL", opts.BitbucketAPIEmail, nil},
 		{"GHORG_CLONE_TYPE", opts.CloneType, strings.ToLower},
 		{"GHORG_SCM_TYPE", opts.SCMType, strings.ToLower},
 		{"GHORG_ABSOLUTE_PATH_TO_CLONE_TO", opts.Path, configs.EnsureTrailingSlashOnFilePath},
@@ -276,6 +309,9 @@ func applyBoolFlags(opts *CloneFlags) {
 		{"GHORG_PRESERVE_DIRECTORY_STRUCTURE", opts.PreserveDir},
 		{"GHORG_BACKUP", opts.Backup},
 		{"GHORG_SYNC_DEFAULT_BRANCH", opts.SyncDefaultBranch},
+		{"GHORG_FETCH_PRUNE", opts.FetchPrune},
+		{"GHORG_PROTECT_LOCAL", opts.ProtectLocal},
+		{"GHORG_GITHUB_USER_GISTS", opts.GitHubUserGists},
 	}
 
 	for _, m := range boolMappings {
@@ -300,7 +336,9 @@ func setTokenForSCM(opts *CloneFlags) {
 	case "gitlab":
 		os.Setenv("GHORG_GITLAB_TOKEN", token)
 	case "bitbucket":
-		if opts.BitbucketUsername != "" {
+		if opts.BitbucketAPIEmail != "" {
+			os.Setenv("GHORG_BITBUCKET_API_TOKEN", token)
+		} else if opts.BitbucketUsername != "" {
 			os.Setenv("GHORG_BITBUCKET_APP_PASSWORD", token)
 		} else {
 			os.Setenv("GHORG_BITBUCKET_OAUTH_TOKEN", token)
@@ -404,6 +442,35 @@ func setupRepoClone() {
 	cachedDirSizeMB = 0
 	isDirSizeCached = false
 
+	if os.Getenv("GHORG_GITHUB_USER_GISTS") == "true" {
+		if os.Getenv("GHORG_SCM_TYPE") != "github" {
+			colorlog.PrintErrorAndExit("GHORG_GITHUB_USER_GISTS is only supported for GitHub, please set --scm=github")
+		}
+		if os.Getenv("GHORG_CLONE_TYPE") != "user" {
+			colorlog.PrintErrorAndExit("GHORG_GITHUB_USER_GISTS is only supported for user clones, please set --clone-type=user")
+		}
+
+		gistTargets, err := getAllUserGistCloneUrls()
+		if err != nil {
+			colorlog.PrintError("Encountered an error fetching gists, aborting")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if len(gistTargets) == 0 {
+			colorlog.PrintInfo("No gists found for github user: " + targetCloneSource + ", please verify you have sufficient permissions, double check spelling and try again.")
+			os.Exit(0)
+		}
+
+		// Clone gists into a ghorg-gists subdirectory within the user's clone directory
+		originalOutputDirAbsolutePath := outputDirAbsolutePath
+		outputDirAbsolutePath = filepath.Join(originalOutputDirAbsolutePath, "ghorg-gists")
+		g := git.NewGit()
+		CloneAllRepos(g, gistTargets)
+		outputDirAbsolutePath = originalOutputDirAbsolutePath
+		return
+	}
+
 	var cloneTargets []scm.Repo
 	var err error
 
@@ -436,6 +503,23 @@ func getAllOrgCloneUrls() ([]scm.Repo, error) {
 
 func getAllUserCloneUrls() ([]scm.Repo, error) {
 	return getCloneUrls(false)
+}
+
+func getAllUserGistCloneUrls() ([]scm.Repo, error) {
+	asciiTime()
+	PrintConfigs()
+	client, err := scm.GetClient("github")
+	if err != nil {
+		colorlog.PrintError(err)
+		os.Exit(1)
+	}
+
+	githubClient, ok := client.(scm.Github)
+	if !ok {
+		colorlog.PrintErrorAndExit("Unable to cast client to GitHub client for gist fetching")
+	}
+
+	return githubClient.GetUserGists(targetCloneSource)
 }
 
 func getCloneUrls(isOrg bool) ([]scm.Repo, error) {
@@ -606,19 +690,21 @@ func trimCollisionFilename(filename string) string {
 	return filename
 }
 
-func getCloneableInventory(allRepos []scm.Repo) (int, int, int, int) {
-	var wikis, snippets, repos, total int
+func getCloneableInventory(allRepos []scm.Repo) (int, int, int, int, int) {
+	var wikis, snippets, repos, gists, total int
 	for _, repo := range allRepos {
 		if repo.IsGitLabSnippet {
 			snippets++
 		} else if repo.IsWiki {
 			wikis++
+		} else if repo.IsGitHubGist {
+			gists++
 		} else {
 			repos++
 		}
 	}
-	total = repos + snippets + wikis
-	return total, repos, snippets, wikis
+	total = repos + snippets + wikis + gists
+	return total, repos, snippets, wikis, gists
 }
 
 func isGitRepository(path string) bool {
@@ -645,9 +731,11 @@ func getRelativePathRepositories(root string) ([]string, error) {
 }
 
 // printCloneInventory prints a summary of what will be cloned
-func printCloneInventory(totalResources, repos, snippets, wikis int) {
-	if os.Getenv("GHORG_CLONE_WIKI") == "true" && os.Getenv("GHORG_CLONE_SNIPPETS") == "true" {
-		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos, %v snippets, and %v wikis\n", totalResources, targetCloneSource, snippets, repos, wikis))
+func printCloneInventory(totalResources, repos, snippets, wikis, gists int) {
+	if os.Getenv("GHORG_GITHUB_USER_GISTS") == "true" {
+		colorlog.PrintInfo(fmt.Sprintf("%v gists found for %v\n", gists, targetCloneSource))
+	} else if os.Getenv("GHORG_CLONE_WIKI") == "true" && os.Getenv("GHORG_CLONE_SNIPPETS") == "true" {
+		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos, %v snippets, and %v wikis\n", totalResources, targetCloneSource, repos, snippets, wikis))
 	} else if os.Getenv("GHORG_CLONE_WIKI") == "true" {
 		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos and %v wikis\n", totalResources, targetCloneSource, repos, wikis))
 	} else if os.Getenv("GHORG_CLONE_SNIPPETS") == "true" {
@@ -667,6 +755,9 @@ func printCloneInventory(totalResources, repos, snippets, wikis int) {
 // resolveRepoSlug determines the directory name for a repo
 func resolveRepoSlug(repo *scm.Repo) string {
 	if os.Getenv("GHORG_SCM_TYPE") == "sourcehut" {
+		return repo.Name
+	}
+	if repo.IsGitHubGist {
 		return repo.Name
 	}
 	if repo.IsGitLabSnippet && !repo.IsGitLabRootLevelSnippet {
@@ -753,8 +844,8 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	filter := NewRepositoryFilter()
 	cloneTargets = filter.ApplyAllFilters(cloneTargets)
 
-	totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount := getCloneableInventory(cloneTargets)
-	printCloneInventory(totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount)
+	totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount, gistsToCloneCount := getCloneableInventory(cloneTargets)
+	printCloneInventory(totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount, gistsToCloneCount)
 
 	if os.Getenv("GHORG_DRY_RUN") == "true" {
 		printDryRun(cloneTargets)
@@ -805,7 +896,7 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	cloneErrors = stats.CloneErrors
 
 	printRemainingMessages()
-	printCloneStatsMessage(stats.CloneCount, stats.PulledCount, stats.SkippedCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, untouchedPrunes, stats.TotalDurationSeconds)
+	printCloneStatsMessage(stats.CloneCount, stats.PulledCount, stats.SkippedCount, stats.ProtectedCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, untouchedPrunes, stats.TotalDurationSeconds)
 	printCollisionWarning(hasCollisions, repoNameWithCollisions)
 
 	var pruneCount int
@@ -1038,7 +1129,7 @@ func formatDurationText(durationSeconds int) string {
 	}
 }
 
-func printCloneStatsMessage(cloneCount, pulledCount, skippedCount, updateRemoteCount, newCommits, syncedCount, untouchedPrunes, durationSeconds int) {
+func printCloneStatsMessage(cloneCount, pulledCount, skippedCount, protectedCount, updateRemoteCount, newCommits, syncedCount, untouchedPrunes, durationSeconds int) {
 	durationText := formatDurationText(durationSeconds)
 
 	// Build the stats line dynamically to avoid combinatorial explosion
@@ -1048,6 +1139,9 @@ func printCloneStatsMessage(cloneCount, pulledCount, skippedCount, updateRemoteC
 	}
 	if skippedCount > 0 {
 		parts = append(parts, fmt.Sprintf("Skipped: %v", skippedCount))
+	}
+	if protectedCount > 0 {
+		parts = append(parts, fmt.Sprintf("Protected: %v", protectedCount))
 	}
 	if newCommits > 0 {
 		parts = append(parts, fmt.Sprintf("total new commits: %v", newCommits))
@@ -1202,7 +1296,23 @@ func PrintConfigs() {
 		colorlog.PrintInfo("* Prune         : " + "true" + noConfirmText)
 	}
 	if os.Getenv("GHORG_FETCH_ALL") == "true" {
-		colorlog.PrintInfo("* Fetch All     : " + "true")
+		fetchPruneText := ""
+		if os.Getenv("GHORG_FETCH_PRUNE") == "true" {
+			fetchPruneText = " (with --prune)"
+		}
+		colorlog.PrintInfo("* Fetch All     : " + "true" + fetchPruneText)
+	}
+	if os.Getenv("GHORG_PROTECT_LOCAL") == "true" {
+		colorlog.PrintInfo("* Protect Local : " + "true")
+	}
+	if os.Getenv("GHORG_SSH_HOSTNAME") != "" {
+		colorlog.PrintInfo("* SSH Hostname  : " + os.Getenv("GHORG_SSH_HOSTNAME"))
+	}
+	if os.Getenv("GHORG_GITLAB_GROUP_MATCH_REGEX") != "" {
+		colorlog.PrintInfo("* GL Grp Match  : " + os.Getenv("GHORG_GITLAB_GROUP_MATCH_REGEX"))
+	}
+	if os.Getenv("GHORG_GITHUB_USER_GISTS") == "true" {
+		colorlog.PrintInfo("* User Gists    : " + "true")
 	}
 	if os.Getenv("GHORG_DRY_RUN") == "true" {
 		colorlog.PrintInfo("* Dry Run       : " + "true")

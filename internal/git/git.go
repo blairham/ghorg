@@ -26,6 +26,9 @@ type Gitter interface {
 	Clean(scm.Repo) error
 	Checkout(scm.Repo) error
 
+	// Branch checkout by name
+	CheckoutBranch(scm.Repo, string) error
+
 	// Remote operations
 	UpdateRemote(scm.Repo) error
 	FetchAll(scm.Repo) error
@@ -251,6 +254,13 @@ func (g GitClient) Checkout(repo scm.Repo) error {
 	return runGitCommand(cmd, repo)
 }
 
+// CheckoutBranch checks out the specified branch by name.
+func (g GitClient) CheckoutBranch(repo scm.Repo, branch string) error {
+	cmd := exec.Command("git", "checkout", branch)
+	cmd.Dir = repo.HostPath
+	return runGitCommand(cmd, repo)
+}
+
 // Clean removes untracked files and directories from the working tree.
 func (g GitClient) Clean(repo scm.Repo) error {
 	cmd := exec.Command("git", "clean", "-f", "-d")
@@ -291,12 +301,16 @@ func (g GitClient) Reset(repo scm.Repo) error {
 }
 
 // FetchAll fetches from all remotes.
-// Respects configuration for depth.
+// Respects configuration for depth and prune.
 func (g GitClient) FetchAll(repo scm.Repo) error {
 	args := []string{"fetch", "--all"}
 
 	if depth := getCloneDepth(); depth != "" {
 		args = insertArg(args, 1, fmt.Sprintf("--depth=%s", depth))
+	}
+
+	if os.Getenv("GHORG_FETCH_PRUNE") == "true" {
+		args = append(args, "--prune")
 	}
 
 	cmd := exec.Command("git", args...)
