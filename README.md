@@ -52,7 +52,6 @@ Use ghorg to quickly clone all of an orgs, or users repos into a single director
 
 There are a installation methods available, please choose the one that suits your fancy:
 - [Prebuilt Binaries](#prebuilt-binaries)
-- [Homebrew](#homebrew)
 - [Golang](#golang)
 - [Docker](#docker)
 - [Windows Support](#windows-support)
@@ -74,12 +73,6 @@ See [latest release](https://github.com/blairham/ghorg/releases/latest) to downl
 - Linux
 
 If you don't know which to choose its likely going to be the x86_64 version for your operating system.
-
-### Homebrew
-
-```bash
-brew install blairham/tap/ghorg
-```
 
 ### Golang
 
