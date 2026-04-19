@@ -1,6 +1,14 @@
 # Running locally https://yonatankra.com/how-to-test-github-actions-locally-using-act/
 name: Go
-on: pull_request
+on:
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Makefile'
+      - '.golangci.yml'
+      - '.github/workflows/go-test.yml'
 jobs:
   lint:
     name: Lint
