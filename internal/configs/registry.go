@@ -1,5 +1,7 @@
 package configs
 
+import "sync"
+
 // ConfigKey represents a single configuration key with all its representations.
 type ConfigKey struct {
 	// DotNotation is the canonical key name (e.g., "scm.type").
@@ -562,20 +564,20 @@ var AllKeys = []ConfigKey{
 
 // indexes built on first access
 var (
-	byDot    map[string]*ConfigKey
-	byEnvVar map[string]*ConfigKey
+	byDot     map[string]*ConfigKey
+	byEnvVar  map[string]*ConfigKey
+	indexOnce sync.Once
 )
 
 func buildIndexes() {
-	if byDot != nil {
-		return
-	}
-	byDot = make(map[string]*ConfigKey, len(AllKeys))
-	byEnvVar = make(map[string]*ConfigKey, len(AllKeys))
-	for i := range AllKeys {
-		byDot[AllKeys[i].DotNotation] = &AllKeys[i]
-		byEnvVar[AllKeys[i].EnvVar] = &AllKeys[i]
-	}
+	indexOnce.Do(func() {
+		byDot = make(map[string]*ConfigKey, len(AllKeys))
+		byEnvVar = make(map[string]*ConfigKey, len(AllKeys))
+		for i := range AllKeys {
+			byDot[AllKeys[i].DotNotation] = &AllKeys[i]
+			byEnvVar[AllKeys[i].EnvVar] = &AllKeys[i]
+		}
+	})
 }
 
 // LookupByDot returns the ConfigKey for a dot-notation key, or nil if not found.
