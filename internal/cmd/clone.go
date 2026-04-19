@@ -401,7 +401,6 @@ func setupRepoClone() {
 	// to prevent memory leaks in long-running processes like reclone-server
 	cloneErrors = nil
 	cloneInfos = nil
-	cloneSkipped = nil
 	cachedDirSizeMB = 0
 	isDirSizeCached = false
 
@@ -804,7 +803,6 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 
 	cloneInfos = stats.CloneInfos
 	cloneErrors = stats.CloneErrors
-	cloneSkipped = stats.CloneSkipped
 
 	printRemainingMessages()
 	printCloneStatsMessage(stats.CloneCount, stats.PulledCount, stats.SkippedCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, untouchedPrunes, stats.TotalDurationSeconds)
