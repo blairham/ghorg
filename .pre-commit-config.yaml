@@ -1,25 +1,37 @@
-# See https://pre-commit.com for more information
-# See https://pre-commit.com/hooks.html for more hooks
 repos:
-  # General hooks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: trailing-whitespace
-        args: [ --markdown-linebreak-ext=md ]
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-added-large-files
-        args: [ '--maxkb=1000' ]
-      - id: check-merge-conflict
-      - id: detect-private-key
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: trailing-whitespace
+    exclude: ^dist/
+  - id: end-of-file-fixer
+    exclude: ^dist/
+  - id: check-yaml
+  - id: check-added-large-files
+    args: [ "--maxkb=500" ]
+  - id: check-merge-conflict
+  - id: detect-private-key
 
-  # golangci-lint - uses local installation and existing .golangci.yml configuration
-  - repo: local
-    hooks:
-      - id: golangci-lint
-        name: golangci-lint
-        entry: golangci-lint run --config=.golangci.yml ./...
-        language: system
-        types: [ go ]
-        pass_filenames: false
+- repo: https://github.com/TekWizely/pre-commit-golang
+  rev: v1.0.0-rc.1
+  hooks:
+  - id: go-mod-tidy
+  - id: go-fumpt
+
+- repo: https://github.com/Yelp/detect-secrets
+  rev: v1.5.0
+  hooks:
+  - id: detect-secrets
+    args: [ "--baseline", ".secrets.baseline" ]
+    exclude: (^dist/|go\.sum$)
+
+- repo: https://github.com/gitleaks/gitleaks
+  rev: v8.24.0
+  hooks:
+  - id: gitleaks
+    exclude: ^dist/
+
+- repo: https://github.com/golangci/golangci-lint
+  rev: v2.11.4
+  hooks:
+  - id: golangci-lint-full
