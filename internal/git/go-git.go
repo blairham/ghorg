@@ -224,6 +224,15 @@ func (g goGitClient) Checkout(repo scm.Repo) error {
 		return err
 	}
 
+	// Skip checkout if already on the target branch
+	head, err := r.Head()
+	if err == nil {
+		targetRef := plumbing.NewBranchReferenceName(repo.CloneBranch)
+		if head.Name() == targetRef {
+			return nil
+		}
+	}
+
 	w, err := r.Worktree()
 	if err != nil {
 		return err
@@ -233,8 +242,8 @@ func (g goGitClient) Checkout(repo scm.Repo) error {
 	err = w.Checkout(&gogit.CheckoutOptions{
 		Branch: plumbing.NewBranchReferenceName(repo.CloneBranch),
 	})
-	if err != nil {
-		// If branch doesn't exist locally, try to create it from remote
+	if err != nil && errors.Is(err, plumbing.ErrReferenceNotFound) {
+		// Branch doesn't exist locally, try to create it from remote
 		err = w.Checkout(&gogit.CheckoutOptions{
 			Branch: plumbing.NewBranchReferenceName(repo.CloneBranch),
 			Create: true,
