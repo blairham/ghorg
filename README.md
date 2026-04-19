@@ -14,9 +14,10 @@ Use ghorg to quickly clone all of an orgs, or users repos into a single director
 
 > With default configuration ghorg performs two actions.
 > 1. Will clone a repo if its not inside the clone directory.
-> 2. If repo does exists locally in the clone directory it will perform a git pull and git clean on the repo.
+> 2. If repo does exist locally in the clone directory it will perform a git pull and git clean on the repo.
+> 3. Repos with uncommitted local changes are automatically skipped to avoid overwriting your work.
 
-> So when running ghorg a second time on the same org/user, all local changes in the cloned directory by default will be overwritten by what's on GitHub. If you want to work out of this directory, make sure you either rename the directory or set the `--no-clean` flag on all future clones to prevent losing your changes locally.
+> So when running ghorg a second time on the same org/user, repos without local changes will be updated from the remote. Repos with uncommitted changes will be skipped and reported. If you want to prevent any cleaning of repos, set the `--no-clean` flag.
 
 > **New Sync Feature**: You can optionally enable the `--sync-default-branch` flag (or set `GHORG_SYNC_DEFAULT_BRANCH=true`) to keep your default branch synchronized with upstream changes. This feature intelligently merges upstream changes into your local default branch, even when you're working on a different branch. See [Syncing Default Branch](#syncing-default-branch) for more details.
 
@@ -26,15 +27,15 @@ Use ghorg to quickly clone all of an orgs, or users repos into a single director
 
 ## Supported Providers
 - GitHub (Self Hosted & Cloud)
-  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#github-setup) | [Examples](https://github.com/blairham/ghorg/blob/master/examples/github.md)
+  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#github-setup) | [Examples](https://github.com/blairham/ghorg/blob/main/examples/github.md)
 - GitLab (Self Hosted & Cloud)
-  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#gitlab-setup)  | [Examples](https://github.com/blairham/ghorg/blob/master/examples/gitlab.md)
+  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#gitlab-setup)  | [Examples](https://github.com/blairham/ghorg/blob/main/examples/gitlab.md)
 - Bitbucket (Cloud & Self-hosted Server)
-  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#bitbucket-setup)  | [Examples](https://github.com/blairham/ghorg/blob/master/examples/bitbucket.md)
+  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#bitbucket-setup)  | [Examples](https://github.com/blairham/ghorg/blob/main/examples/bitbucket.md)
 - Gitea (Self Hosted Only)
-  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#gitea-setup)  | [Examples](https://github.com/blairham/ghorg/blob/master/examples/gitea.md)
+  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#gitea-setup)  | [Examples](https://github.com/blairham/ghorg/blob/main/examples/gitea.md)
 - Sourcehut (Limited Features)
-  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#sourcehut-setup)  | [Examples](https://github.com/blairham/ghorg/blob/master/examples/sourcehut.md)
+  - [Install](https://github.com/blairham/ghorg#installation) | [Setup](https://github.com/blairham/ghorg#sourcehut-setup)  | [Examples](https://github.com/blairham/ghorg/blob/main/examples/sourcehut.md)
 
 > The terminology used in ghorg is that of GitHub, mainly orgs/repos. GitLab and BitBucket use different terminology. There is a handy chart thanks to GitLab that translates terminology [here](https://about.gitlab.com/images/blogimages/gitlab-terminology.png). Note, some features may be different for certain providers.
 
@@ -60,7 +61,7 @@ For each installation method, optionally create a ghorg configuration file. See 
 
 ```bash
 mkdir -p $HOME/.config/ghorg
-curl https://raw.githubusercontent.com/blairham/ghorg/master/sample-conf.yaml > $HOME/.config/ghorg/conf.yaml
+curl https://raw.githubusercontent.com/blairham/ghorg/main/sample-conf.yaml > $HOME/.config/ghorg/conf.yaml
 vi $HOME/.config/ghorg/conf.yaml # To update your configuration
 ```
 
@@ -77,28 +78,33 @@ If you don't know which to choose its likely going to be the x86_64 version for 
 ### Homebrew
 
 ```bash
-brew install blairham/utils/ghorg
+brew install blairham/tap/ghorg
 ```
 
 ### Golang
 
 ```bash
 # ensure $HOME/go/bin is in your path ($ echo $PATH | grep $HOME/go/bin)
-
-# if using go 1.16+ locally
-go install github.com/blairham/ghorg@latest
-
-# older go versions can run
-go get github.com/blairham/ghorg
+go install github.com/blairham/ghorg/cmd/ghorg@latest
 ```
+
+## Quick Start
+
+The easiest way to get started is with the interactive setup wizard:
+
+```bash
+ghorg init
+```
+
+This will prompt you to select your SCM provider, enter your token, and configure your clone path. Use `ghorg init --dry-run` to preview the config without writing to disk.
 
 ## Configuration
 
-Precedence for configuration is first given to the flags set on the command-line, then to what's set in your `$HOME/.config/ghorg/conf.yaml`. This file comes from the [sample-conf.yaml](https://github.com/blairham/ghorg/blob/master/sample-conf.yaml) and can be installed by performing the following.
+Precedence for configuration is first given to the flags set on the command-line, then to what's set in your `$HOME/.config/ghorg/conf.yaml`. This file comes from the [sample-conf.yaml](https://github.com/blairham/ghorg/blob/main/sample-conf.yaml) and can be installed by performing the following.
 
 ```bash
 mkdir -p $HOME/.config/ghorg
-curl https://raw.githubusercontent.com/blairham/ghorg/master/sample-conf.yaml > $HOME/.config/ghorg/conf.yaml
+curl https://raw.githubusercontent.com/blairham/ghorg/main/sample-conf.yaml > $HOME/.config/ghorg/conf.yaml
 vi $HOME/.config/ghorg/conf.yaml # To update your configuration
 ```
 
@@ -110,6 +116,22 @@ If you have multiple different orgs/users/configurations to clone see the `ghorg
 
 Note: ghorg will respect the `XDG_CONFIG_HOME` [environment variable](https://wiki.archlinux.org/title/XDG_Base_Directory) if set.
 
+### Color Output
+
+Color output is disabled by default. Enable it with the global `--color` flag (works with any command):
+
+```bash
+ghorg --color clone kubernetes
+ghorg --color ls
+```
+
+Or set it permanently via environment variable or config file:
+
+```bash
+export GHORG_COLOR=enabled
+# or in conf.yaml: GHORG_COLOR: enabled
+```
+
 ## SCM Provider Setup
 
 > Note: if you are running into issues, read the troubleshooting and known issues section below
@@ -117,7 +139,7 @@ Note: ghorg will respect the `XDG_CONFIG_HOME` [environment variable](https://wi
 ### GitHub Setup
 1. Create [Personal Access Token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line) with all `repo` scopes. Update `GHORG_GITHUB_TOKEN` in your `ghorg/conf.yaml` or as a cli flag or place it in a file and add the path to `GHORG_GITHUB_TOKEN`. If your org has Saml SSO in front you will need to give your token those permissions as well, see [this doc](https://docs.github.com/en/github/authenticating-to-github/authenticating-with-saml-single-sign-on/authorizing-a-personal-access-token-for-use-with-saml-single-sign-on).
 1. For cloning GitHub Enterprise (self hosted github instances) repos you must set `--base-url` e.g. `ghorg clone <github_org> --base-url=https://internal.github.com`
-1. See [examples/github.md](https://github.com/blairham/ghorg/blob/master/examples/github.md) on how to run
+1. See [examples/github.md](https://github.com/blairham/ghorg/blob/main/examples/github.md) on how to run
 
 #### GitHub App Authentication (Advanced)
 
@@ -132,14 +154,14 @@ Note: ghorg will respect the `XDG_CONFIG_HOME` [environment variable](https://wi
 1. Create [Personal Access Token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) with the `read_api` scope (or `api` for self-managed GitLab older than 12.10). This token can be added to your `ghorg/conf.yaml` or as a cli flag.
 1. Update the `GitLab Specific` config in your `ghorg/conf.yaml` or via cli flags or place it in a file and add the path to `GHORG_GITLAB_TOKEN`
 1. Update `GHORG_SCM_TYPE` to `gitlab` in your `ghorg/conf.yaml` or via cli flags
-1. See [examples/gitlab.md](https://github.com/blairham/ghorg/blob/master/examples/gitlab.md) on how to run
+1. See [examples/gitlab.md](https://github.com/blairham/ghorg/blob/main/examples/gitlab.md) on how to run
 
 ### Gitea Setup
 
 1. Create [Access Token](https://docs.gitea.io/en-us/api-usage/) (Settings -> Applications -> Generate Token)
 1. Update `GHORG_GITEA_TOKEN` in your `ghorg/conf.yaml` or use the (--token, -t) flag or place it in a file and add the path to `GHORG_GITEA_TOKEN`.
 1. Update `GHORG_SCM_TYPE` to `gitea` in your `ghorg/conf.yaml` or via cli flags
-1. See [examples/gitea.md](https://github.com/blairham/ghorg/blob/master/examples/gitea.md) on how to run
+1. See [examples/gitea.md](https://github.com/blairham/ghorg/blob/main/examples/gitea.md) on how to run
 
 ### Sourcehut Setup
 
@@ -150,7 +172,7 @@ Note: ghorg will respect the `XDG_CONFIG_HOME` [environment variable](https://wi
 
 > **Note on usernames**: You can specify sourcehut usernames with or without the `~` prefix (e.g., both `ghorg clone username` and `ghorg clone ~username` work). Local folder paths will never include the `~` prefix to avoid shell expansion issues.
 
-> **For detailed examples, API limitations, and sourcehut-specific features, see [examples/sourcehut.md](https://github.com/blairham/ghorg/blob/master/examples/sourcehut.md)**
+> **For detailed examples, API limitations, and sourcehut-specific features, see [examples/sourcehut.md](https://github.com/blairham/ghorg/blob/main/examples/sourcehut.md)**
 
 ### Bitbucket Setup
 
@@ -159,27 +181,27 @@ Note: ghorg will respect the `XDG_CONFIG_HOME` [environment variable](https://wi
 #### App Passwords
 
 1. To configure with bitbucket you will need to create a new [app password](https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html) and update your `$HOME/.config/ghorg/conf.yaml` or use the (--token, -t) and (--bitbucket-username) flags.
-1. Update [SCM type](https://github.com/blairham/ghorg/blob/master/sample-conf.yaml#L54-L57) to `bitbucket` in your `ghorg/conf.yaml` or via cli flags
-1. See [examples/bitbucket.md](https://github.com/blairham/ghorg/blob/master/examples/bitbucket.md) on how to run
+1. Update [SCM type](https://github.com/blairham/ghorg/blob/main/sample-conf.yaml#L54-L57) to `bitbucket` in your `ghorg/conf.yaml` or via cli flags
+1. See [examples/bitbucket.md](https://github.com/blairham/ghorg/blob/main/examples/bitbucket.md) on how to run
 
 #### PAT/OAuth token
 
 1. Create a [PAT](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html)
 1. Set the token with `GHORG_BITBUCKET_OAUTH_TOKEN` in your `$HOME/.config/ghorg/conf.yaml` or using the `--token` flag. Make sure you do not have `--bitbucket-username` set.
 1. Update SCM TYPE to `bitbucket` in your `ghorg/conf.yaml` or via cli flags
-1. See [examples/bitbucket.md](https://github.com/blairham/ghorg/blob/master/examples/bitbucket.md) on how to run
+1. See [examples/bitbucket.md](https://github.com/blairham/ghorg/blob/main/examples/bitbucket.md) on how to run
 
 #### Bitbucket Server (Self-hosted)
 
 1. To configure with Bitbucket Server you will need to provide your instance URL via `GHORG_SCM_BASE_URL` in your `$HOME/.config/ghorg/conf.yaml` or use the `--base-url` flag.
 1. Create credentials (username/password or app password) and update your configuration or use the `--bitbucket-username` and `--token` flags.
 1. For insecure connections (HTTP), set `GHORG_INSECURE_BITBUCKET_CLIENT=true`
-1. Update [SCM type](https://github.com/blairham/ghorg/blob/master/sample-conf.yaml#L54-L57) to `bitbucket` in your `ghorg/conf.yaml` or via cli flags
-1. See [examples/bitbucket.md](https://github.com/blairham/ghorg/blob/master/examples/bitbucket.md) on how to run
+1. Update [SCM type](https://github.com/blairham/ghorg/blob/main/sample-conf.yaml#L54-L57) to `bitbucket` in your `ghorg/conf.yaml` or via cli flags
+1. See [examples/bitbucket.md](https://github.com/blairham/ghorg/blob/main/examples/bitbucket.md) on how to run
 
 ## How to Use
 
-See [examples](https://github.com/blairham/ghorg/tree/master/examples) directory for more SCM specific docs or use the examples command e.g. `ghorg examples gitlab`
+See [examples](https://github.com/blairham/ghorg/tree/main/examples) directory for more SCM specific docs or use the examples command e.g. `ghorg examples gitlab`
 
 ```bash
 $ ghorg clone kubernetes --token=bGVhdmUgYSBjb21tZW50IG9uIGlzc3VlIDY2
@@ -374,7 +396,7 @@ git checkout master
 
 The `ghorg reclone` command is a way to store all your `ghorg clone` commands in one configuration file and makes calling long or multiple `ghorg clone` commands easier.
 
-Once your [reclone.yaml](https://github.com/blairham/ghorg/blob/master/sample-reclone.yaml) configuration is set you can call `ghorg reclone` to clone each entry individually or clone all at once, see examples below.
+Once your [reclone.yaml](https://github.com/blairham/ghorg/blob/main/sample-reclone.yaml) configuration is set you can call `ghorg reclone` to clone each entry individually or clone all at once, see examples below.
 
 Each reclone entry can have:
 - `cmd`: The ghorg clone command to execute (required)
@@ -427,10 +449,10 @@ ghorg reclone --list
 
 #### Setup
 
-Add a [reclone.yaml](https://github.com/blairham/ghorg/blob/master/sample-reclone.yaml) to your `$HOME/.config/ghorg` directory. You can use the following command to set it for you with examples to use as a template
+Add a [reclone.yaml](https://github.com/blairham/ghorg/blob/main/sample-reclone.yaml) to your `$HOME/.config/ghorg` directory. You can use the following command to set it for you with examples to use as a template
 
 ```
-curl https://raw.githubusercontent.com/blairham/ghorg/master/sample-reclone.yaml > $HOME/.config/ghorg/reclone.yaml
+curl https://raw.githubusercontent.com/blairham/ghorg/main/sample-reclone.yaml > $HOME/.config/ghorg/reclone.yaml
 ```
 
 Update file with the commands you wish to run.
@@ -536,7 +558,7 @@ The provided images are built for both `amd64` and `arm64` architectures and are
 docker run --rm ghcr.io/blairham/ghorg:latest
 ```
 
-> Note: There are also tags available for the latest on trunk, such as `master` or `master-<commit SHA 7 chars>`, but these **are not recommended**.
+> Note: There are also tags available for the latest on trunk, such as `main` or `main-<commit SHA 7 chars>`, but these **are not recommended**.
 
 The commands for ghorg are parsed as docker commands. The entrypoint is the `ghorg` binary, hence you only need to enter remaining arguments as follows:
 

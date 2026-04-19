@@ -3,12 +3,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [1.11.8] - unreleased
+## [1.11.8] - 4/19/26
 ### Added
+- `ghorg init` interactive setup wizard command
+- `--color` global flag for enabling colored output on any command
+- `PrintWarning` function for yellow-colored non-suppressible output
+- Skip repos with uncommitted local changes instead of overwriting them
+- Skipped repo count in clone summary stats
 ### Changed
+- Version is now injected via ldflags; dev builds show git SHA
+- Clone summary format simplified: "Cloned: N, Updated: N, Skipped: N"
+- `printCloneStatsMessage` refactored from combinatorial if/else to dynamic builder
+- go-git checkout skips when already on target branch (avoids errors with dirty worktrees)
+- go-git checkout only tries `Create: true` on `ErrReferenceNotFound`
 ### Deprecated
 ### Removed
 ### Fixed
+- go-git checkout error "a branch named refs/heads/main already exists"
+- go-git checkout error "worktree contains unstaged changes" on repos already on target branch
 ### Security
 
 ## [1.11.7] - 12/6/25
