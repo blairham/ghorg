@@ -494,7 +494,10 @@ func (Gitlab) NewClient() (Client, error) {
 	var c *gitlab.Client
 	if baseURL != "" {
 		if os.Getenv("GHORG_INSECURE_GITLAB_CLIENT") == "true" {
-			defaultTransport, _ := http.DefaultTransport.(*http.Transport)
+			defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+			if !ok {
+				return nil, fmt.Errorf("http.DefaultTransport is not *http.Transport; cannot create insecure client")
+			}
 			// Create new Transport that ignores self-signed SSL
 			customTransport := &http.Transport{
 				Proxy:                 defaultTransport.Proxy,

@@ -644,3 +644,54 @@ func TestGitlab_BranchOverride(t *testing.T) {
 		t.Errorf("expected 'custom-branch', got %q", repos[0].CloneBranch)
 	}
 }
+
+func TestGitlab_GetGroupRepos_MultiPage_ErrorOnPage(t *testing.T) {
+	client, mux, _, teardown := setupGitlabTest(t)
+	defer teardown()
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	os.Setenv("GHORG_GITLAB_TOKEN", "test-token")
+	os.Setenv("GHORG_SKIP_ARCHIVED", "")
+	os.Setenv("GHORG_SKIP_FORKS", "")
+	os.Setenv("GHORG_BRANCH", "")
+	os.Setenv("GHORG_TOPICS", "")
+	os.Setenv("GHORG_CLONE_WIKI", "")
+	os.Setenv("GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX", "")
+
+	mux.HandleFunc("/api/v4/groups/error-group/projects", func(w http.ResponseWriter, r *http.Request) {
+		page := r.URL.Query().Get("page")
+		w.Header().Set("X-Total-Pages", "3")
+
+		switch page {
+		case "", "1":
+			w.Header().Set("X-Page", "1")
+			writeJSON(w, []map[string]any{
+				{
+					"id": 1, "name": "repo1", "default_branch": "main",
+					"path_with_namespace": "error-group/repo1",
+					"http_url_to_repo":    "https://gitlab.com/error-group/repo1.git",
+					"ssh_url_to_repo":     "git@gitlab.com:error-group/repo1.git",
+					"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
+				},
+			})
+		case "2":
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		case "3":
+			w.Header().Set("X-Page", "3")
+			writeJSON(w, []map[string]any{
+				{
+					"id": 3, "name": "repo3", "default_branch": "main",
+					"path_with_namespace": "error-group/repo3",
+					"http_url_to_repo":    "https://gitlab.com/error-group/repo3.git",
+					"ssh_url_to_repo":     "git@gitlab.com:error-group/repo3.git",
+					"archived":            false, "topics": []string{}, "wiki_access_level": "disabled",
+				},
+			})
+		}
+	})
+
+	_, err := client.GetGroupRepos("error-group")
+	if err == nil {
+		t.Fatal("expected error when page 2 returns 500, got nil")
+	}
+}

@@ -644,35 +644,117 @@ func getRelativePathRepositories(root string) ([]string, error) {
 	return relativePaths, err
 }
 
-// CloneAllRepos clones all repos
-func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
-	// Initialize filter and apply all filtering
-	filter := NewRepositoryFilter()
-	cloneTargets = filter.ApplyAllFilters(cloneTargets)
-
-	totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount := getCloneableInventory(cloneTargets)
-
+// printCloneInventory prints a summary of what will be cloned
+func printCloneInventory(totalResources, repos, snippets, wikis int) {
 	if os.Getenv("GHORG_CLONE_WIKI") == "true" && os.Getenv("GHORG_CLONE_SNIPPETS") == "true" {
-		m := fmt.Sprintf("%v resources to clone found in %v, %v repos, %v snippets, and %v wikis\n", totalResourcesToClone, targetCloneSource, snippetToCloneCount, reposToCloneCount, wikisToCloneCount)
-		colorlog.PrintInfo(m)
+		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos, %v snippets, and %v wikis\n", totalResources, targetCloneSource, snippets, repos, wikis))
 	} else if os.Getenv("GHORG_CLONE_WIKI") == "true" {
-		m := fmt.Sprintf("%v resources to clone found in %v, %v repos and %v wikis\n", totalResourcesToClone, targetCloneSource, reposToCloneCount, wikisToCloneCount)
-		colorlog.PrintInfo(m)
+		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos and %v wikis\n", totalResources, targetCloneSource, repos, wikis))
 	} else if os.Getenv("GHORG_CLONE_SNIPPETS") == "true" {
-		m := fmt.Sprintf("%v resources to clone found in %v, %v repos and %v snippets\n", totalResourcesToClone, targetCloneSource, reposToCloneCount, snippetToCloneCount)
-		colorlog.PrintInfo(m)
+		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos and %v snippets\n", totalResources, targetCloneSource, repos, snippets))
 	} else {
-		colorlog.PrintInfo(strconv.Itoa(reposToCloneCount) + " repos found in " + targetCloneSource + "\n")
+		colorlog.PrintInfo(strconv.Itoa(repos) + " repos found in " + targetCloneSource + "\n")
 	}
 
-	// Show concurrency adjustment message if it was auto-adjusted
 	if os.Getenv("GHORG_CONCURRENCY_AUTO_ADJUSTED") == "true" {
 		if delaySeconds, hasDelay := getCloneDelaySeconds(); hasDelay {
 			colorlog.PrintInfo(fmt.Sprintf("GHORG_CLONE_DELAY_SECONDS is set to %d seconds. Automatically setting GHORG_CONCURRENCY to 1 for predictable rate limiting.", delaySeconds))
 		}
-		// Clear the tracking variable
 		os.Unsetenv("GHORG_CONCURRENCY_AUTO_ADJUSTED")
 	}
+}
+
+// resolveRepoSlug determines the directory name for a repo
+func resolveRepoSlug(repo *scm.Repo) string {
+	if os.Getenv("GHORG_SCM_TYPE") == "sourcehut" {
+		return repo.Name
+	}
+	if repo.IsGitLabSnippet && !repo.IsGitLabRootLevelSnippet {
+		return getAppNameFromURL(repo.GitLabSnippetInfo.URLOfRepo)
+	}
+	if repo.IsGitLabRootLevelSnippet {
+		return repo.Name
+	}
+	return getAppNameFromURL(repo.URL)
+}
+
+// pruneUntouchedRepos prompts for confirmation (if needed) and removes repos not touched during clone
+func pruneUntouchedRepos(untouchedReposToPrune []string) int {
+	if os.Getenv("GHORG_PRUNE_UNTOUCHED") != "true" || len(untouchedReposToPrune) == 0 {
+		return 0
+	}
+
+	if os.Getenv("GHORG_PRUNE_UNTOUCHED_NO_CONFIRM") != "true" {
+		colorlog.PrintSuccess(fmt.Sprintf("PLEASE CONFIRM: The following %d untouched repositories will be deleted. Press enter to confirm: ", len(untouchedReposToPrune)))
+		for _, repoPath := range untouchedReposToPrune {
+			colorlog.PrintInfo(fmt.Sprintf("- %s", repoPath))
+		}
+		_, _ = fmt.Scanln()
+	}
+
+	var pruned int
+	for _, repoPath := range untouchedReposToPrune {
+		err := os.RemoveAll(repoPath)
+		if err != nil {
+			colorlog.PrintError(fmt.Sprintf("Failed to prune repository at %s: %v", repoPath, err))
+		} else {
+			pruned++
+			colorlog.PrintSuccess(fmt.Sprintf("Successfully deleted %s", repoPath))
+		}
+	}
+	return pruned
+}
+
+// printCollisionWarning prints a warning if repo name collisions were detected
+func printCollisionWarning(hasCollisions bool, repoNameWithCollisions map[string]bool) {
+	if !hasCollisions {
+		return
+	}
+	fmt.Println("")
+	colorlog.PrintInfo("ATTENTION: ghorg detected collisions in repo names from the groups that were cloned. This occurs when one or more groups share common repo names trying to be cloned to the same directory. The repos that would have collisions were renamed with the group/subgroup appended.")
+	if os.Getenv("GHORG_DEBUG") != "" {
+		fmt.Println("")
+		colorlog.PrintInfo("Collisions Occured in the following repos...")
+		for repoName, collision := range repoNameWithCollisions {
+			if collision {
+				colorlog.PrintInfo("- " + repoName)
+			}
+		}
+	}
+}
+
+// handleExitCodes exits with appropriate codes based on clone results
+func handleExitCodes(cloneInfosCount, cloneErrorsCount int) {
+	if os.Getenv("GHORG_DONT_EXIT_UNDER_TEST") == "true" {
+		return
+	}
+
+	if os.Getenv("GHORG_EXIT_CODE_ON_CLONE_INFOS") != "0" && cloneInfosCount > 0 {
+		exitCode, err := strconv.Atoi(os.Getenv("GHORG_EXIT_CODE_ON_CLONE_INFOS"))
+		if err != nil {
+			colorlog.PrintError("Could not convert GHORG_EXIT_CODE_ON_CLONE_INFOS from string to integer")
+			os.Exit(1)
+		}
+		os.Exit(exitCode)
+	}
+
+	if cloneErrorsCount > 0 {
+		exitCode, err := strconv.Atoi(os.Getenv("GHORG_EXIT_CODE_ON_CLONE_ISSUES"))
+		if err != nil {
+			colorlog.PrintError("Could not convert GHORG_EXIT_CODE_ON_CLONE_ISSUES from string to integer")
+			os.Exit(1)
+		}
+		os.Exit(exitCode)
+	}
+}
+
+// CloneAllRepos clones all repos
+func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
+	filter := NewRepositoryFilter()
+	cloneTargets = filter.ApplyAllFilters(cloneTargets)
+
+	totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount := getCloneableInventory(cloneTargets)
+	printCloneInventory(totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount)
 
 	if os.Getenv("GHORG_DRY_RUN") == "true" {
 		printDryRun(cloneTargets)
@@ -684,7 +766,6 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 		os.Exit(1)
 	}
 
-	// check for duplicate names will cause issues for some clone types on gitlab
 	repoNameWithCollisions, hasCollisions := hasRepoNameCollisions(cloneTargets)
 
 	l, err := strconv.Atoi(os.Getenv("GHORG_CONCURRENCY"))
@@ -693,28 +774,11 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	}
 
 	limit := limiter.NewConcurrencyLimiter(l)
-
-	// Initialize repository processor
 	processor := NewRepositoryProcessor(git)
 
 	for i := range cloneTargets {
 		repo := cloneTargets[i]
-
-		// We use this because we dont want spaces in the final directory, using the web address makes it more file friendly
-		// In the case of root level snippets we use the title which will have spaces in it, the url uses an ID so its not possible to use name from url
-		// With snippets that originate on repos, we use that repo name
-		var repoSlug string
-		if os.Getenv("GHORG_SCM_TYPE") == "sourcehut" {
-			// The URL handling in getAppNameFromURL makes strong presumptions that the URL will end in an
-			// extension like '.git', but this is not the case for sourcehut (and possibly other forges).
-			repoSlug = repo.Name
-		} else if repo.IsGitLabSnippet && !repo.IsGitLabRootLevelSnippet {
-			repoSlug = getAppNameFromURL(repo.GitLabSnippetInfo.URLOfRepo)
-		} else if repo.IsGitLabRootLevelSnippet {
-			repoSlug = repo.Name
-		} else {
-			repoSlug = getAppNameFromURL(repo.URL)
-		}
+		repoSlug := resolveRepoSlug(&repo)
 
 		if !isPathSegmentSafe(repoSlug) {
 			log.Fatal("Unsafe path segment found in SCM output")
@@ -725,70 +789,27 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 			if repo.Path != "" && os.Getenv("GHORG_PRESERVE_DIRECTORY_STRUCTURE") == "true" {
 				repoSlug = repo.Path
 			}
-
 			processor.ProcessRepository(&repo, repoNameWithCollisions, hasCollisions, repoSlug, i)
 		})
-
 	}
 
 	limit.WaitAndClose()
 
-	// Calculate total duration from command start (including SCM API calls) and set it on the processor
 	totalDuration := time.Since(commandStartTime)
-	totalDurationSeconds := int(totalDuration.Seconds() + 0.5) // Round to nearest second
-	processor.SetTotalDuration(totalDurationSeconds)
+	processor.SetTotalDuration(int(totalDuration.Seconds() + 0.5))
 
-	// Get statistics and untouched repos from processor
 	stats := processor.GetStats()
-	untouchedReposToPrune := processor.GetUntouchedRepos()
-	var untouchedPrunes int
+	untouchedPrunes := pruneUntouchedRepos(processor.GetUntouchedRepos())
 
-	if os.Getenv("GHORG_PRUNE_UNTOUCHED") == "true" && len(untouchedReposToPrune) > 0 {
-		if os.Getenv("GHORG_PRUNE_UNTOUCHED_NO_CONFIRM") != "true" {
-			colorlog.PrintSuccess(fmt.Sprintf("PLEASE CONFIRM: The following %d untouched repositories will be deleted. Press enter to confirm: ", len(untouchedReposToPrune)))
-			for _, repoPath := range untouchedReposToPrune {
-				colorlog.PrintInfo(fmt.Sprintf("- %s", repoPath))
-			}
-			_, _ = fmt.Scanln()
-		}
-
-		for _, repoPath := range untouchedReposToPrune {
-			err := os.RemoveAll(repoPath)
-			if err != nil {
-				colorlog.PrintError(fmt.Sprintf("Failed to prune repository at %s: %v", repoPath, err))
-			} else {
-				untouchedPrunes++
-				colorlog.PrintSuccess(fmt.Sprintf("Successfully deleted %s", repoPath))
-			}
-		}
-	}
-
-	// Update global error/info arrays for backward compatibility
 	cloneInfos = stats.CloneInfos
 	cloneErrors = stats.CloneErrors
 
 	printRemainingMessages()
 	printCloneStatsMessage(stats.CloneCount, stats.PulledCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, untouchedPrunes, stats.TotalDurationSeconds)
-
-	if hasCollisions {
-		fmt.Println("")
-		colorlog.PrintInfo("ATTENTION: ghorg detected collisions in repo names from the groups that were cloned. This occurs when one or more groups share common repo names trying to be cloned to the same directory. The repos that would have collisions were renamed with the group/subgroup appended.")
-		if os.Getenv("GHORG_DEBUG") != "" {
-			fmt.Println("")
-			colorlog.PrintInfo("Collisions Occured in the following repos...")
-			for repoName, collision := range repoNameWithCollisions {
-				if collision {
-					colorlog.PrintInfo("- " + repoName)
-				}
-			}
-		}
-	}
+	printCollisionWarning(hasCollisions, repoNameWithCollisions)
 
 	var pruneCount int
-	cloneInfosCount := len(stats.CloneInfos)
-	cloneErrorsCount := len(stats.CloneErrors)
 	allReposToCloneCount := len(cloneTargets)
-	// Now, clean up local repos that don't exist in remote, if prune flag is set
 	if os.Getenv("GHORG_PRUNE") == "true" {
 		pruneCount = pruneRepos(cloneTargets)
 	}
@@ -801,35 +822,12 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 		}
 	}
 
-	// This needs to be called after printFinishedWithDirSize()
 	if os.Getenv("GHORG_STATS_ENABLED") == "true" {
 		date := time.Now().Format("2006-01-02 15:04:05")
-		_ = writeGhorgStats(date, allReposToCloneCount, stats.CloneCount, stats.PulledCount, cloneInfosCount, cloneErrorsCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, pruneCount, stats.TotalDurationSeconds, hasCollisions)
+		_ = writeGhorgStats(date, allReposToCloneCount, stats.CloneCount, stats.PulledCount, len(stats.CloneInfos), len(stats.CloneErrors), stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, pruneCount, stats.TotalDurationSeconds, hasCollisions)
 	}
 
-	if os.Getenv("GHORG_DONT_EXIT_UNDER_TEST") != "true" {
-		if os.Getenv("GHORG_EXIT_CODE_ON_CLONE_INFOS") != "0" && cloneInfosCount > 0 {
-			exitCode, err := strconv.Atoi(os.Getenv("GHORG_EXIT_CODE_ON_CLONE_INFOS"))
-			if err != nil {
-				colorlog.PrintError("Could not convert GHORG_EXIT_CODE_ON_CLONE_INFOS from string to integer")
-				os.Exit(1)
-			}
-
-			os.Exit(exitCode)
-		}
-	}
-
-	if os.Getenv("GHORG_DONT_EXIT_UNDER_TEST") != "true" {
-		if cloneErrorsCount > 0 {
-			exitCode, err := strconv.Atoi(os.Getenv("GHORG_EXIT_CODE_ON_CLONE_ISSUES"))
-			if err != nil {
-				colorlog.PrintError("Could not convert GHORG_EXIT_CODE_ON_CLONE_ISSUES from string to integer")
-				os.Exit(1)
-			}
-			os.Exit(exitCode)
-		}
-	}
-
+	handleExitCodes(len(stats.CloneInfos), len(stats.CloneErrors))
 }
 
 func getGhorgStatsFilePath() string {

@@ -669,3 +669,121 @@ func TestSetTokensUsername(t *testing.T) {
 		}
 	})
 }
+
+func TestGetOrgRepos_MultiPage_ErrorOnPage(t *testing.T) {
+	client, mux, serverURL, teardown := setup()
+	defer teardown()
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	os.Setenv("GHORG_GITHUB_TOKEN", "test-token")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	defer os.Unsetenv("GHORG_GITHUB_TOKEN")
+
+	mux.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"login": "testuser"}`)
+	})
+
+	mux.HandleFunc("/orgs/failorg/repos", func(w http.ResponseWriter, r *http.Request) {
+		page := r.URL.Query().Get("page")
+
+		switch page {
+		case "", "1":
+			linkURL := serverURL + baseURLPath + "/orgs/failorg/repos?page=3"
+			w.Header().Set("Link", fmt.Sprintf(`<%s>; rel="last"`, linkURL))
+			fmt.Fprint(w, `[
+				{"id":1, "clone_url": "https://github.com/failorg/repo1.git", "name": "repo1", "archived": false, "fork": false, "topics": [], "ssh_url": "git@github.com:failorg/repo1.git", "default_branch": "main", "has_wiki": false}
+			]`)
+		case "2":
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		case "3":
+			fmt.Fprint(w, `[
+				{"id":3, "clone_url": "https://github.com/failorg/repo3.git", "name": "repo3", "archived": false, "fork": false, "topics": [], "ssh_url": "git@github.com:failorg/repo3.git", "default_branch": "main", "has_wiki": false}
+			]`)
+		}
+	})
+
+	github := Github{Client: client, perPage: 1}
+
+	_, err := github.GetOrgRepos("failorg")
+	if err == nil {
+		t.Fatal("expected error when page 2 returns 500, got nil")
+	}
+}
+
+func TestGetUserRepos_MultiPage(t *testing.T) {
+	client, mux, serverURL, teardown := setup()
+	defer teardown()
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	os.Setenv("GHORG_GITHUB_TOKEN", "test-token")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	defer os.Unsetenv("GHORG_GITHUB_TOKEN")
+
+	mux.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"login": "tokenowner"}`)
+	})
+
+	mux.HandleFunc("/users/multiuser/repos", func(w http.ResponseWriter, r *http.Request) {
+		page := r.URL.Query().Get("page")
+
+		switch page {
+		case "", "1":
+			linkURL := serverURL + baseURLPath + "/users/multiuser/repos?page=2"
+			w.Header().Set("Link", fmt.Sprintf(`<%s>; rel="last"`, linkURL))
+			fmt.Fprint(w, `[
+				{"id":1, "clone_url": "https://github.com/multiuser/repo1.git", "name": "repo1", "archived": false, "fork": false, "topics": [], "ssh_url": "git@github.com:multiuser/repo1.git", "owner": {"login": "multiuser", "type": "User"}, "default_branch": "main", "has_wiki": false}
+			]`)
+		case "2":
+			fmt.Fprint(w, `[
+				{"id":2, "clone_url": "https://github.com/multiuser/repo2.git", "name": "repo2", "archived": false, "fork": false, "topics": [], "ssh_url": "git@github.com:multiuser/repo2.git", "owner": {"login": "multiuser", "type": "User"}, "default_branch": "main", "has_wiki": false}
+			]`)
+		}
+	})
+
+	github := Github{Client: client, perPage: 1}
+
+	resp, err := github.GetUserRepos("multiuser")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(resp) != 2 {
+		t.Errorf("expected 2 repos across 2 pages, got %d", len(resp))
+	}
+}
+
+func TestGetUserRepos_MultiPage_ErrorOnPage(t *testing.T) {
+	client, mux, serverURL, teardown := setup()
+	defer teardown()
+
+	os.Setenv("GHORG_CLONE_PROTOCOL", "https")
+	os.Setenv("GHORG_GITHUB_TOKEN", "test-token")
+	defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
+	defer os.Unsetenv("GHORG_GITHUB_TOKEN")
+
+	mux.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"login": "tokenowner"}`)
+	})
+
+	mux.HandleFunc("/users/failuser/repos", func(w http.ResponseWriter, r *http.Request) {
+		page := r.URL.Query().Get("page")
+
+		switch page {
+		case "", "1":
+			linkURL := serverURL + baseURLPath + "/users/failuser/repos?page=2"
+			w.Header().Set("Link", fmt.Sprintf(`<%s>; rel="last"`, linkURL))
+			fmt.Fprint(w, `[
+				{"id":1, "clone_url": "https://github.com/failuser/repo1.git", "name": "repo1", "archived": false, "fork": false, "topics": [], "ssh_url": "git@github.com:failuser/repo1.git", "owner": {"login": "failuser", "type": "User"}, "default_branch": "main", "has_wiki": false}
+			]`)
+		case "2":
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+	})
+
+	github := Github{Client: client, perPage: 1}
+
+	_, err := github.GetUserRepos("failuser")
+	if err == nil {
+		t.Fatal("expected error when page 2 returns 500, got nil")
+	}
+}
