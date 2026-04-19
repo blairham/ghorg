@@ -57,10 +57,10 @@ test-coverage-func: ## Coverage with function-level detail for git helpers
 ## Code quality
 
 fmt: ## Format all Go files
-	gofmt -s -w $$(find . -name '*.go' -not -path './vendor/*')
+	go tool gofumpt -w .
 
 lint: ## Run golangci-lint
-	golangci-lint run ./...
+	go tool golangci-lint run ./...
 
 ## Release targets
 
@@ -83,15 +83,13 @@ clean: ## Remove build artifacts
 
 ## Dependency management
 
-deps-install: ## Install goreleaser and golangci-lint
+deps-install: ## Install goreleaser
 	go install github.com/goreleaser/goreleaser@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 deps-verify: ## Check required tools are available
 	@which go > /dev/null || (echo "missing: go" && exit 1)
 	@which git > /dev/null || (echo "missing: git" && exit 1)
 	@which goreleaser > /dev/null || (echo "missing: goreleaser" && exit 1)
-	@which golangci-lint > /dev/null || (echo "missing: golangci-lint" && exit 1)
 
 ## Help
 
