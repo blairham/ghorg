@@ -1040,41 +1040,32 @@ func formatDurationText(durationSeconds int) string {
 	}
 }
 
-func printCloneStatsMessage(cloneCount, pulledCount, updateRemoteCount, newCommits, syncedCount, untouchedPrunes, durationSeconds int) {
+func printCloneStatsMessage(cloneCount, pulledCount, skippedCount, updateRemoteCount, newCommits, syncedCount, untouchedPrunes, durationSeconds int) {
 	durationText := formatDurationText(durationSeconds)
 
-	if updateRemoteCount > 0 {
-		if syncedCount > 0 {
-			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v, remotes updated: %v, default branches synced: %v%s", cloneCount, pulledCount, newCommits, updateRemoteCount, syncedCount, durationText))
-		} else {
-			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v, remotes updated: %v%s", cloneCount, pulledCount, newCommits, updateRemoteCount, durationText))
-		}
-		return
+	// Build the stats line dynamically to avoid combinatorial explosion
+	parts := []string{
+		fmt.Sprintf("Cloned: %v", cloneCount),
+		fmt.Sprintf("Updated: %v", pulledCount),
 	}
-
+	if skippedCount > 0 {
+		parts = append(parts, fmt.Sprintf("Skipped: %v", skippedCount))
+	}
 	if newCommits > 0 {
-		if syncedCount > 0 {
-			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v, default branches synced: %v%s", cloneCount, pulledCount, newCommits, syncedCount, durationText))
-		} else {
-			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total new commits: %v%s", cloneCount, pulledCount, newCommits, durationText))
-		}
-		return
+		parts = append(parts, fmt.Sprintf("total new commits: %v", newCommits))
 	}
-
-	if untouchedPrunes > 0 {
-		if syncedCount > 0 {
-			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total prunes: %v, default branches synced: %v%s", cloneCount, pulledCount, untouchedPrunes, syncedCount, durationText))
-		} else {
-			colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, total prunes: %v%s", cloneCount, pulledCount, untouchedPrunes, durationText))
-		}
-		return
+	if updateRemoteCount > 0 {
+		parts = append(parts, fmt.Sprintf("remotes updated: %v", updateRemoteCount))
 	}
-
 	if syncedCount > 0 {
-		colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v, default branches synced: %v%s", cloneCount, pulledCount, syncedCount, durationText))
-	} else {
-		colorlog.PrintSuccess(fmt.Sprintf("New clones: %v, existing resources pulled: %v%s", cloneCount, pulledCount, durationText))
+		parts = append(parts, fmt.Sprintf("default branches synced: %v", syncedCount))
 	}
+	if untouchedPrunes > 0 {
+		parts = append(parts, fmt.Sprintf("total prunes: %v", untouchedPrunes))
+	}
+
+	fmt.Println()
+	colorlog.PrintSuccess(strings.Join(parts, ", ") + durationText)
 }
 
 func interactiveYesNoPrompt(prompt string) bool {
