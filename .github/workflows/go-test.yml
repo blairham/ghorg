@@ -14,8 +14,6 @@ jobs:
           go-version: "1.26"
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
-        with:
-          version: v2.7.2
   test:
     environment: actions
     name: Test
