@@ -1071,6 +1071,7 @@ func TestPrintCloneStatsMessage_WithTiming(t *testing.T) {
 		name              string
 		cloneCount        int
 		pulledCount       int
+		skippedCount      int
 		updateRemoteCount int
 		newCommits        int
 		syncedCount       int
@@ -1134,7 +1135,7 @@ func TestPrintCloneStatsMessage_WithTiming(t *testing.T) {
 			// and the timing formatting logic is correct
 
 			// This should not panic and should execute successfully
-			printCloneStatsMessage(tc.cloneCount, tc.pulledCount, tc.updateRemoteCount,
+			printCloneStatsMessage(tc.cloneCount, tc.pulledCount, tc.skippedCount, tc.updateRemoteCount,
 				tc.newCommits, tc.syncedCount, tc.untouchedPrunes, tc.durationSeconds)
 
 			// The expectedText should be present in the output (in a real test with output capture)

@@ -39,6 +39,7 @@ type RepositoryProcessor struct {
 type CloneStats struct {
 	CloneCount           int
 	PulledCount          int
+	SkippedCount         int
 	UpdateRemoteCount    int
 	NewCommits           int
 	UntouchedPrunes      int
@@ -46,6 +47,7 @@ type CloneStats struct {
 	TotalDurationSeconds int
 	CloneInfos           []string
 	CloneErrors          []string
+	CloneSkipped         []string
 }
 
 // NewRepositoryProcessor creates a new repository processor
@@ -81,6 +83,16 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 	// Determine if this repo exists locally
 	repoWillBePulled := repoExistsLocally(*repo)
 	var action string
+
+	// Skip repos with local modifications to avoid overwriting user's work
+	if repoWillBePulled {
+		status, statusErr := rp.git.ShortStatus(*repo)
+		if statusErr == nil && status != "" {
+			colorlog.PrintWarning(fmt.Sprintf("Skipped %s (has local changes)", repo.URL))
+			rp.addSkipped(fmt.Sprintf("%s: has uncommitted local changes", repo.URL))
+			return
+		}
+	}
 
 	// Process the repository (clone or update)
 	if repoWillBePulled {
@@ -530,6 +542,14 @@ func (rp *RepositoryProcessor) addInfo(msg string) {
 	rp.mutex.Unlock()
 }
 
+// addSkipped adds a skipped message to the stats in a thread-safe manner
+func (rp *RepositoryProcessor) addSkipped(msg string) {
+	rp.mutex.Lock()
+	rp.stats.SkippedCount++
+	rp.stats.CloneSkipped = append(rp.stats.CloneSkipped, msg)
+	rp.mutex.Unlock()
+}
+
 // GetStats returns a copy of the current statistics
 func (rp *RepositoryProcessor) GetStats() CloneStats {
 	rp.mutex.RLock()
@@ -538,6 +558,7 @@ func (rp *RepositoryProcessor) GetStats() CloneStats {
 	return CloneStats{
 		CloneCount:           rp.stats.CloneCount,
 		PulledCount:          rp.stats.PulledCount,
+		SkippedCount:         rp.stats.SkippedCount,
 		UpdateRemoteCount:    rp.stats.UpdateRemoteCount,
 		NewCommits:           rp.stats.NewCommits,
 		UntouchedPrunes:      rp.stats.UntouchedPrunes,
@@ -545,6 +566,7 @@ func (rp *RepositoryProcessor) GetStats() CloneStats {
 		TotalDurationSeconds: rp.stats.TotalDurationSeconds,
 		CloneInfos:           append([]string(nil), rp.stats.CloneInfos...),
 		CloneErrors:          append([]string(nil), rp.stats.CloneErrors...),
+		CloneSkipped:         append([]string(nil), rp.stats.CloneSkipped...),
 	}
 }
 

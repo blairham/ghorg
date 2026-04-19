@@ -23,6 +23,7 @@ var (
 	targetCloneSource     string
 	cloneErrors           []string
 	cloneInfos            []string
+	cloneSkipped          []string
 	cachedDirSizeMB       float64
 	isDirSizeCached       bool
 	commandStartTime      time.Time
