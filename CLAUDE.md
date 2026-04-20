@@ -9,7 +9,7 @@ ghorg is a CLI tool that bulk-clones all repositories from a GitHub, GitLab, Git
 - **Flag parsing:** `jessevdk/go-flags`
 - **Config parsing:** `knadh/koanf` (YAML)
 - **Git backends:** `go-git/go-git` (pure Go, default) or system `git` binary (`exec` mode)
-- **Entry point:** `cmd/ghorg/main.go`
+- **Entry point:** `main.go` (root)
 
 ## Quick Reference — Build Commands
 
@@ -38,8 +38,7 @@ Run `make help` for a full list.
 ## Project Structure
 
 ```
-cmd/ghorg/
-  main.go                       # Entry point — creates CLI, registers commands, runs
+main.go                         # Entry point — creates CLI, registers commands, runs
 
 internal/
   cmd/
