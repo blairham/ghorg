@@ -78,7 +78,7 @@ If you don't know which to choose its likely going to be the x86_64 version for 
 
 ```bash
 # ensure $HOME/go/bin is in your path ($ echo $PATH | grep $HOME/go/bin)
-go install github.com/blairham/ghorg/cmd/ghorg@latest
+go install github.com/blairham/ghorg@latest
 ```
 
 ## Quick Start
