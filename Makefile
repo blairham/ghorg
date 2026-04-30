@@ -1,18 +1,18 @@
 .PHONY: build build-local build-docker install fmt test test-race test-git test-sync \
        test-helpers test-all test-coverage test-coverage-func lint clean release \
-       release-dry release-check examples deps-install deps-verify
+       release-dry release-check examples
 
 ## Build targets
 
-build: deps-verify ## Multi-platform build via GoReleaser snapshot
-	goreleaser build --snapshot --clean
+build: ## Multi-platform build via GoReleaser snapshot
+	go tool goreleaser build --snapshot --clean
 
 build-local: fmt ## Fast local dev build
 	@mkdir -p dist
 	go build -ldflags "-X github.com/blairham/ghorg/internal/cmd.version=$$(git describe --tags --always --dirty)" -o dist/ghorg .
 
-build-docker: deps-verify ## Build Docker images locally (no push)
-	goreleaser release --snapshot --clean --skip=publish
+build-docker: ## Build Docker images locally (no push)
+	go tool goreleaser release --snapshot --clean --skip=publish
 
 ## Install targets
 
@@ -64,14 +64,14 @@ lint: ## Run golangci-lint
 
 ## Release targets
 
-release: deps-verify test ## Full GoReleaser release (requires GITHUB_TOKEN)
-	goreleaser release --clean
+release: test ## Full GoReleaser release (requires GITHUB_TOKEN)
+	go tool goreleaser release --clean
 
-release-dry: deps-verify ## Dry-run release (no publish)
-	goreleaser release --snapshot --clean
+release-dry: ## Dry-run release (no publish)
+	go tool goreleaser release --snapshot --clean
 
 release-check: ## Validate goreleaser configuration
-	goreleaser check
+	go tool goreleaser check
 
 ## Misc targets
 
@@ -80,16 +80,6 @@ examples: ## Copy example files
 
 clean: ## Remove build artifacts
 	rm -rf dist coverage.out coverage.html
-
-## Dependency management
-
-deps-install: ## Install goreleaser
-	go install github.com/goreleaser/goreleaser@latest
-
-deps-verify: ## Check required tools are available
-	@which go > /dev/null || (echo "missing: go" && exit 1)
-	@which git > /dev/null || (echo "missing: git" && exit 1)
-	@which goreleaser > /dev/null || (echo "missing: goreleaser" && exit 1)
 
 ## Help
 
