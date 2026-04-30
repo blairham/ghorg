@@ -132,6 +132,10 @@ type CloneFlags struct {
 	CloneDepth        string `long:"clone-depth" description:"GHORG_CLONE_DEPTH - Create a shallow clone with a history truncated to the specified number of commits"`
 	GitFilter         string `long:"git-filter" description:"GHORG_GIT_FILTER - Allows you to pass arguments to git's filter flag. Useful for filtering out binary objects from repos with --git-filter=blob:none, this requires git version 2.19 or greater"`
 	GitBackend        string `long:"git-backend" description:"GHORG_GIT_BACKEND - Git backend to use: 'golang' (default, pure Go implementation) or 'exec' (uses system git)"`
+	SparseCheckout    string `long:"sparse-checkout" description:"GHORG_SPARSE_CHECKOUT_PATTERNS - Comma-separated cone-mode sparse-checkout patterns applied to each clone (e.g. 'docs,src/api'). Requires --git-backend=exec; the go-git backend will warn and skip"`
+
+	// Resumability
+	RetryFailed bool `long:"retry-failed" description:"GHORG_RETRY_FAILED - Only attempt repos that failed during the previous run (reads _ghorg_state.json from the clone target directory). Composes with other filters. If no state file exists, falls back to cloning everything"`
 
 	// Exit code flags
 	ExitCodeOnCloneInfos  string `long:"exit-code-on-clone-infos" description:"GHORG_EXIT_CODE_ON_CLONE_INFOS - Allows you to control the exit code when ghorg runs into a problem (info level message) cloning a repo from the remote. Info messages will appear after a clone is complete, similar to success messages. (default 0)"`
@@ -258,6 +262,7 @@ func applyStringFlags(opts *CloneFlags) {
 		{"GHORG_TARGET_REPOS_PATH", opts.TargetReposPath, nil},
 		{"GHORG_GIT_FILTER", opts.GitFilter, nil},
 		{"GHORG_GIT_BACKEND", opts.GitBackend, nil},
+		{"GHORG_SPARSE_CHECKOUT_PATTERNS", opts.SparseCheckout, nil},
 		{"GHORG_OUTPUT_DIR", opts.OutputDir, nil},
 		{"GHORG_SSH_HOSTNAME", opts.SSHHostname, nil},
 		{"GHORG_GITLAB_GROUP_MATCH_REGEX", opts.GitlabGroupMatchRegex, nil},
@@ -312,6 +317,7 @@ func applyBoolFlags(opts *CloneFlags) {
 		{"GHORG_FETCH_PRUNE", opts.FetchPrune},
 		{"GHORG_PROTECT_LOCAL", opts.ProtectLocal},
 		{"GHORG_GITHUB_USER_GISTS", opts.GitHubUserGists},
+		{"GHORG_RETRY_FAILED", opts.RetryFailed},
 	}
 
 	for _, m := range boolMappings {
@@ -866,6 +872,15 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	limit := limiter.NewConcurrencyLimiter(l)
 	processor := NewRepositoryProcessor(git)
 
+	statePath := getGhorgStateFilePath()
+	scmType := strings.ToLower(os.Getenv("GHORG_SCM_TYPE"))
+	state, stateErr := LoadState(statePath, scmType, targetCloneSource)
+	if stateErr != nil {
+		colorlog.PrintInfo(fmt.Sprintf("Could not load state file %s, starting fresh: %v", statePath, stateErr))
+		state = NewStateManifest(scmType, targetCloneSource)
+	}
+	processor.SetState(state)
+
 	for i := range cloneTargets {
 		repo := cloneTargets[i]
 		repoSlug := resolveRepoSlug(&repo)
@@ -917,7 +932,22 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 		_ = writeGhorgStats(date, allReposToCloneCount, stats.CloneCount, stats.PulledCount, len(stats.CloneInfos), len(stats.CloneErrors), stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, pruneCount, stats.TotalDurationSeconds, hasCollisions)
 	}
 
+	if err := SaveState(statePath, state); err != nil {
+		colorlog.PrintInfo(fmt.Sprintf("Could not write state file %s: %v", statePath, err))
+	}
+
 	handleExitCodes(len(stats.CloneInfos), len(stats.CloneErrors))
+}
+
+// getGhorgStateFilePath returns the path of the per-repo state manifest,
+// kept as a sibling of _ghorg_stats.csv.
+func getGhorgStateFilePath() string {
+	absolutePath := os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO")
+	if os.Getenv("GHORG_PRESERVE_SCM_HOSTNAME") == "true" {
+		originalAbsolutePath := os.Getenv("GHORG_ORIGINAL_ABSOLUTE_PATH_TO_CLONE_TO")
+		return filepath.Join(originalAbsolutePath, StateFileName)
+	}
+	return filepath.Join(absolutePath, StateFileName)
 }
 
 func getGhorgStatsFilePath() string {

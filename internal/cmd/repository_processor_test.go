@@ -726,3 +726,89 @@ func TestCloneStats_NewStruct(t *testing.T) {
 		t.Errorf("Expected 1 CloneError, got %d", len(stats.CloneErrors))
 	}
 }
+
+func TestProcessRepository_RecordsStateOnSuccess(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+
+	dir := t.TempDir()
+	outputDirAbsolutePath = dir
+
+	mockGit := NewExtendedMockGit()
+	processor := NewRepositoryProcessor(mockGit)
+	state := NewStateManifest("github", "org")
+	processor.SetState(state)
+
+	repo := scm.Repo{
+		Name:        "ok-repo",
+		URL:         "https://github.com/org/ok-repo",
+		CloneBranch: "main",
+	}
+
+	processor.ProcessRepository(&repo, make(map[string]bool), false, "ok-repo", 0)
+
+	entry, found := state.Repos["https://github.com/org/ok-repo"]
+	if !found {
+		t.Fatal("Expected ok-repo to be recorded in state manifest")
+	}
+	if entry.LastStatus != StateStatusOK {
+		t.Errorf("LastStatus = %q, want %q", entry.LastStatus, StateStatusOK)
+	}
+	if entry.LastError != "" {
+		t.Errorf("Expected empty LastError on success, got %q", entry.LastError)
+	}
+}
+
+func TestProcessRepository_RecordsStateOnFailure(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+
+	dir := t.TempDir()
+	outputDirAbsolutePath = dir
+
+	mockGit := NewExtendedMockGit()
+	mockGit.shouldFailClone = true
+	processor := NewRepositoryProcessor(mockGit)
+	state := NewStateManifest("github", "org")
+	processor.SetState(state)
+
+	repo := scm.Repo{
+		Name:        "broken",
+		URL:         "https://github.com/org/broken",
+		CloneBranch: "main",
+	}
+
+	processor.ProcessRepository(&repo, make(map[string]bool), false, "broken", 0)
+
+	entry, found := state.Repos["https://github.com/org/broken"]
+	if !found {
+		t.Fatal("Expected broken to be recorded in state manifest")
+	}
+	if entry.LastStatus != StateStatusError {
+		t.Errorf("LastStatus = %q, want %q", entry.LastStatus, StateStatusError)
+	}
+	if entry.LastError == "" {
+		t.Error("Expected LastError to capture clone failure message")
+	}
+
+	failed := state.FailedRepos()
+	if len(failed) != 1 || failed[0] != "https://github.com/org/broken" {
+		t.Errorf("FailedRepos = %v, want [.../broken]", failed)
+	}
+}
+
+func TestProcessRepository_StateNilDoesNotPanic(t *testing.T) {
+	defer UnsetEnv("GHORG_")()
+
+	dir := t.TempDir()
+	outputDirAbsolutePath = dir
+
+	mockGit := NewExtendedMockGit()
+	processor := NewRepositoryProcessor(mockGit)
+	// Deliberately do NOT call SetState; default behavior must be a no-op.
+
+	repo := scm.Repo{
+		Name:        "no-state",
+		URL:         "https://github.com/org/no-state",
+		CloneBranch: "main",
+	}
+	processor.ProcessRepository(&repo, make(map[string]bool), false, "no-state", 0)
+}
