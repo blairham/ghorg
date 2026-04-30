@@ -31,6 +31,7 @@ func applyCloneDelay(repoURL string) {
 type RepositoryProcessor struct {
 	git            git.Gitter
 	stats          *CloneStats
+	state          *StateManifest
 	mutex          *sync.RWMutex
 	untouchedRepos []string
 	protectedRepos []string
@@ -59,6 +60,58 @@ func NewRepositoryProcessor(git git.Gitter) *RepositoryProcessor {
 		stats: &CloneStats{},
 		mutex: &sync.RWMutex{},
 	}
+}
+
+// SetState attaches a state manifest. Per-repo outcomes will be recorded as
+// repositories are processed. Pass nil to disable state tracking (the default).
+func (rp *RepositoryProcessor) SetState(state *StateManifest) {
+	rp.mutex.Lock()
+	defer rp.mutex.Unlock()
+	rp.state = state
+}
+
+// State returns the attached state manifest, or nil if none.
+func (rp *RepositoryProcessor) State() *StateManifest {
+	rp.mutex.RLock()
+	defer rp.mutex.RUnlock()
+	return rp.state
+}
+
+// findLastMessageFor returns the most recent error or info message that
+// references repo.URL, or an empty string. Caller must NOT hold rp.mutex.
+func (rp *RepositoryProcessor) findLastMessageFor(repoURL string) string {
+	rp.mutex.RLock()
+	defer rp.mutex.RUnlock()
+	for i := len(rp.stats.CloneErrors) - 1; i >= 0; i-- {
+		if strings.Contains(rp.stats.CloneErrors[i], repoURL) {
+			return rp.stats.CloneErrors[i]
+		}
+	}
+	for i := len(rp.stats.CloneInfos) - 1; i >= 0; i-- {
+		if strings.Contains(rp.stats.CloneInfos[i], repoURL) {
+			return rp.stats.CloneInfos[i]
+		}
+	}
+	return ""
+}
+
+// recordOutcome records the per-repo outcome to the state manifest if one is
+// attached. Best-effort; any HEAD-SHA read errors are ignored.
+func (rp *RepositoryProcessor) recordOutcome(repo *scm.Repo, status string) {
+	rp.mutex.RLock()
+	state := rp.state
+	rp.mutex.RUnlock()
+	if state == nil {
+		return
+	}
+	var sha, errStr string
+	switch status {
+	case StateStatusOK:
+		sha, _ = rp.git.HeadSHA(*repo)
+	case StateStatusError:
+		errStr = rp.findLastMessageFor(repo.URL)
+	}
+	state.Record(*repo, status, sha, errStr)
 }
 
 // ProcessRepository handles the cloning or updating of a single repository
@@ -116,6 +169,7 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 	if repoWillBePulled {
 		success := rp.handleExistingRepository(repo, &action)
 		if !success {
+			rp.recordOutcome(repo, StateStatusError)
 			return
 		}
 		// Restore original branch if protect-local and we were on a different branch
@@ -127,9 +181,12 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 	} else {
 		success := rp.handleNewRepository(repo, &action)
 		if !success {
+			rp.recordOutcome(repo, StateStatusError)
 			return
 		}
 	}
+
+	rp.recordOutcome(repo, StateStatusOK)
 
 	// Print unified success message (matching original behavior)
 	if repo.SyncedDefaultBranch {

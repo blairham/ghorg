@@ -712,3 +712,99 @@ func TestErrorHandlingEdgeCases(t *testing.T) {
 		}
 	})
 }
+
+func TestCloneWithSparseCheckout(t *testing.T) {
+	// Build a source repo with files in multiple top-level dirs, push to a bare
+	// remote, then clone via GitClient.Clone with sparse-checkout patterns set
+	// and assert only the patterned dirs are checked out.
+	srcDir := t.TempDir()
+	bareDir := t.TempDir()
+
+	mustRun := func(name string, args ...string) {
+		t.Helper()
+		cmd := exec.Command(name, args...)
+		cmd.Dir = srcDir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("%s %v failed: %v\n%s", name, args, err, out)
+		}
+	}
+
+	if err := exec.Command("git", "init", "--bare", bareDir).Run(); err != nil {
+		t.Fatalf("init bare: %v", err)
+	}
+	mustRun("git", "init")
+	mustRun("git", "config", "user.email", "t@e.com")
+	mustRun("git", "config", "user.name", "t")
+	mustRun("git", "checkout", "-b", "main")
+
+	for _, p := range []string{"docs/a.md", "docs/b.md", "src/main.go", "scripts/run.sh"} {
+		full := filepath.Join(srcDir, p)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mustRun("git", "add", ".")
+	mustRun("git", "-c", "commit.gpgsign=false", "commit", "-m", "init")
+	mustRun("git", "remote", "add", "origin", bareDir)
+	mustRun("git", "push", "origin", "main")
+
+	cloneInto := filepath.Join(t.TempDir(), "clone")
+
+	t.Setenv("GHORG_SPARSE_CHECKOUT_PATTERNS", "docs,scripts")
+	defer os.Unsetenv("GHORG_SPARSE_CHECKOUT_PATTERNS")
+
+	repo := scm.Repo{CloneURL: bareDir, HostPath: cloneInto, CloneBranch: "main"}
+	if err := NewExecGit().Clone(repo); err != nil {
+		t.Fatalf("Clone failed: %v", err)
+	}
+
+	// docs and scripts should be present.
+	for _, want := range []string{"docs/a.md", "scripts/run.sh"} {
+		if _, err := os.Stat(filepath.Join(cloneInto, want)); err != nil {
+			t.Errorf("expected %s in working tree: %v", want, err)
+		}
+	}
+	// src should be absent (sparse-excluded).
+	if _, err := os.Stat(filepath.Join(cloneInto, "src", "main.go")); !os.IsNotExist(err) {
+		t.Errorf("expected src/main.go to be sparse-excluded, stat err = %v", err)
+	}
+}
+
+func TestHeadSHA(t *testing.T) {
+	repoPath, cleanup := createTestGitRepo(t)
+	defer cleanup()
+
+	client := NewExecGit()
+	repo := scm.Repo{HostPath: repoPath, CloneBranch: "main"}
+
+	t.Run("Returns 40-char SHA matching rev-parse HEAD", func(t *testing.T) {
+		sha, err := client.HeadSHA(repo)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if len(sha) != 40 {
+			t.Errorf("Expected 40-char SHA, got %d chars: %q", len(sha), sha)
+		}
+
+		cmd := exec.Command("git", "rev-parse", "HEAD")
+		cmd.Dir = repoPath
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("rev-parse HEAD failed: %v", err)
+		}
+		expected := strings.TrimSpace(string(out))
+		if sha != expected {
+			t.Errorf("SHA mismatch: got %q, want %q", sha, expected)
+		}
+	})
+
+	t.Run("Returns error for invalid repo path", func(t *testing.T) {
+		bad := scm.Repo{HostPath: "/nonexistent/path", CloneBranch: "main"}
+		if _, err := client.HeadSHA(bad); err == nil {
+			t.Error("Expected error for nonexistent repo path")
+		}
+	})
+}

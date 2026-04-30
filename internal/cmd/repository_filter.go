@@ -57,7 +57,48 @@ func (rf *RepositoryFilter) ApplyAllFilters(cloneTargets []scm.Repo) []scm.Repo 
 	// Apply ghorgignore filter
 	cloneTargets = rf.FilterByGhorgignore(cloneTargets)
 
+	// Apply --retry-failed filter LAST so it composes with all the others.
+	if os.Getenv("GHORG_RETRY_FAILED") == "true" {
+		cloneTargets = rf.FilterByRetryFailed(cloneTargets)
+	}
+
 	return cloneTargets
+}
+
+// FilterByRetryFailed restricts the clone set to repos whose last recorded
+// status in _ghorg_state.json was an error. If the state file is missing or
+// unreadable, returns the input unchanged so a fresh run isn't blocked.
+func (rf *RepositoryFilter) FilterByRetryFailed(repos []scm.Repo) []scm.Repo {
+	statePath := getGhorgStateFilePath()
+	state, err := LoadState(statePath, os.Getenv("GHORG_SCM_TYPE"), targetCloneSource)
+	if err != nil {
+		colorlog.PrintInfo(fmt.Sprintf("--retry-failed: could not read %s (%v); cloning all repos", statePath, err))
+		return repos
+	}
+	if len(state.Repos) == 0 {
+		colorlog.PrintInfo("--retry-failed: no prior state found; cloning all repos")
+		return repos
+	}
+
+	failed := make(map[string]bool, len(state.Repos))
+	for url, r := range state.Repos {
+		if r.LastStatus == StateStatusError {
+			failed[url] = true
+		}
+	}
+	if len(failed) == 0 {
+		colorlog.PrintInfo("--retry-failed: no repos in error state; nothing to retry")
+		return []scm.Repo{}
+	}
+
+	colorlog.PrintInfo(fmt.Sprintf("--retry-failed: filtering to %d previously-failed repos", len(failed)))
+	out := make([]scm.Repo, 0, len(failed))
+	for _, repo := range repos {
+		if failed[repo.URL] {
+			out = append(out, repo)
+		}
+	}
+	return out
 }
 
 // FilterByRegexMatch filters repositories that match the regex pattern

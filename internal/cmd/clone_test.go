@@ -13,6 +13,25 @@ import (
 	"github.com/blairham/ghorg/internal/scm"
 )
 
+// repoDirEntries returns the entries in dir excluding ghorg artifacts
+// (_ghorg_state.json, _ghorg_stats.csv) so tests can count cloned repos.
+func repoDirEntries(t *testing.T, dir string) []os.DirEntry {
+	t.Helper()
+	all, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("ReadDir(%s): %v", dir, err)
+	}
+	out := all[:0]
+	for _, e := range all {
+		switch e.Name() {
+		case StateFileName, "_ghorg_stats.csv":
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
+}
+
 func TestShouldLowerRegularString(t *testing.T) {
 	upperName := "RepoName"
 	defer setOutputDirName([]string{""})
@@ -237,6 +256,10 @@ func (g MockGitClient) UpdateRef(repo scm.Repo, refName string, commitRef string
 	return nil
 }
 
+func (g MockGitClient) HeadSHA(repo scm.Repo) (string, error) {
+	return "", nil
+}
+
 func TestInitialClone(t *testing.T) {
 	defer UnsetEnv("GHORG_")()
 	dir, err := os.MkdirTemp("", "ghorg_test_initial")
@@ -258,7 +281,7 @@ func TestInitialClone(t *testing.T) {
 	mockGit := NewMockGit()
 	commandStartTime = time.Now() // Set command start time for timing functionality
 	CloneAllRepos(mockGit, testRepos)
-	got, _ := os.ReadDir(dir)
+	got := repoDirEntries(t, dir)
 	expected := len(testRepos)
 	if len(got) != expected {
 		t.Errorf("Wrong number of repos in clone, expected: %v, got: %v", expected, got)
@@ -342,7 +365,7 @@ func TestMatchPrefix(t *testing.T) {
 	mockGit := NewMockGit()
 	commandStartTime = time.Now() // Set command start time for timing functionality
 	CloneAllRepos(mockGit, testRepos)
-	got, _ := os.ReadDir(dir)
+	got := repoDirEntries(t, dir)
 	expected := 3
 	if len(got) != expected {
 		t.Errorf("Wrong number of repos in clone, expected: %v, got: %v", expected, len(got))
@@ -382,7 +405,7 @@ func TestExcludeMatchPrefix(t *testing.T) {
 	mockGit := NewMockGit()
 	commandStartTime = time.Now() // Set command start time for timing functionality
 	CloneAllRepos(mockGit, testRepos)
-	got, _ := os.ReadDir(dir)
+	got := repoDirEntries(t, dir)
 	expected := 2
 	if len(got) != expected {
 		t.Errorf("Wrong number of repos in clone, expected: %v, got: %v", expected, got)
@@ -422,7 +445,7 @@ func TestMatchRegex(t *testing.T) {
 	mockGit := NewMockGit()
 	commandStartTime = time.Now() // Set command start time for timing functionality
 	CloneAllRepos(mockGit, testRepos)
-	got, _ := os.ReadDir(dir)
+	got := repoDirEntries(t, dir)
 	expected := 3
 	if len(got) != expected {
 		t.Errorf("Wrong number of repos in clone, expected: %v, got: %v", expected, got)
@@ -464,7 +487,7 @@ func TestExcludeMatchRegex(t *testing.T) {
 	mockGit := NewMockGit()
 	commandStartTime = time.Now() // Set command start time for timing functionality
 	CloneAllRepos(mockGit, testRepos)
-	got, _ := os.ReadDir(dir)
+	got := repoDirEntries(t, dir)
 	expected := 2
 	if len(got) != expected {
 		t.Errorf("Wrong number of repos in clone, expected: %v, got: %v", expected, got)
@@ -884,7 +907,7 @@ func TestCloneAllRepos_Timing(t *testing.T) {
 
 	// Since we can't easily access the processor from this test,
 	// we verify that the timing functionality doesn't break anything
-	got, _ := os.ReadDir(dir)
+	got := repoDirEntries(t, dir)
 	expected := len(testRepos)
 	if len(got) != expected {
 		t.Errorf("Wrong number of repos in clone (timing test), expected: %v, got: %v", expected, got)
@@ -1058,7 +1081,7 @@ func TestCommandTiming_IncludesFullDuration(t *testing.T) {
 	}
 
 	// Verify that timing functionality works without breaking anything
-	got, _ := os.ReadDir(dir)
+	got := repoDirEntries(t, dir)
 	expected := len(testRepos)
 	if len(got) != expected {
 		t.Errorf("Wrong number of repos cloned, expected: %v, got: %v", expected, len(got))

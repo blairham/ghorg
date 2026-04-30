@@ -175,6 +175,12 @@ func (g goGitClient) Clone(repo scm.Repo) error {
 		colorlog.PrintInfo(fmt.Sprintf("Warning: git filter '%s' is not supported by go-git backend, ignoring\n", filter))
 	}
 
+	// Sparse-checkout requires the system git binary. Warn so the user knows
+	// the patterns are being ignored on this backend.
+	if patterns := getSparseCheckoutPatterns(); len(patterns) > 0 {
+		colorlog.PrintInfo(fmt.Sprintf("Warning: sparse-checkout patterns '%s' are not supported by go-git backend, ignoring (set GHORG_GIT_BACKEND=exec to enable)\n", strings.Join(patterns, ",")))
+	}
+
 	_, err := gogit.PlainClone(repo.HostPath, false, cloneOpts)
 	return err
 }
@@ -806,6 +812,11 @@ func (g goGitClient) GetCurrentBranch(repo scm.Repo) (string, error) {
 
 	// Detached HEAD - return the hash
 	return head.Hash().String()[:7], nil
+}
+
+// HeadSHA returns the commit hash that HEAD currently points to.
+func (g goGitClient) HeadSHA(repo scm.Repo) (string, error) {
+	return g.GetRefHash(repo, "HEAD")
 }
 
 // GetRefHash returns the commit hash for the given ref.

@@ -596,6 +596,41 @@ alias ghorg="docker run --rm -v $HOME/.config/ghorg:/config -v $HOME/repositorie
 ghorg clone kubernetes --match-regex=^sig
 ```
 
+## Resumability and `--retry-failed`
+
+After every clone run, ghorg writes a per-repo manifest to `_ghorg_state.json` in the clone target directory (next to `_ghorg_stats.csv`). The file records the last-known SHA, status (`ok` / `error` / `skipped`), branch, and error message for each repo.
+
+Pass `--retry-failed` (or `GHORG_RETRY_FAILED=true`) to clone only repos whose last status was `error`. This composes with all other filters, so you can scope retries further with `--match-regex`, ghorgignore, etc.
+
+```bash
+ghorg clone kubernetes               # full run; some repos fail
+ghorg clone kubernetes --retry-failed  # only re-attempt the previously-failed repos
+```
+
+If `_ghorg_state.json` is missing, `--retry-failed` falls back to cloning everything (and prints a notice). The manifest is JSON, human-readable, and safe to delete or hand-edit.
+
+## Partial-clone and sparse-checkout
+
+For code-search and audit use cases the full git history is usually unnecessary. ghorg supports several space- and time-saving clone modes:
+
+| Flag                  | Env var                         | Backend support |
+|-----------------------|---------------------------------|-----------------|
+| `--clone-depth N`     | `GHORG_CLONE_DEPTH`             | both backends   |
+| `--git-filter blob:none` | `GHORG_GIT_FILTER`           | exec only       |
+| `--sparse-checkout PATTERNS` | `GHORG_SPARSE_CHECKOUT_PATTERNS` | exec only |
+| `--backup` (mirror)   | `GHORG_BACKUP`                  | both backends   |
+| `--include-submodules` | `GHORG_INCLUDE_SUBMODULES`     | both backends   |
+
+Use `--git-backend=exec` when you need the exec-only features. Example: a lean code-search clone that fetches only the latest commit of one subtree across an entire org:
+
+```bash
+ghorg clone kubernetes \
+  --git-backend=exec \
+  --clone-depth=1 \
+  --git-filter=blob:none \
+  --sparse-checkout="docs,README.md"
+```
+
 ## Tracking Clone Data Over Time
 
 To track data on your clones over time, you can use the ghorg stats feature. It is recommended to enable ghorg stats in your configuration file by setting `GHORG_STATS_ENABLED=true`. This ensures that each clone operation is logged automatically without needing to set the command line flag `--stats-enabled` every time. **The ghorg stats feature is disabled by default and needs to be enabled.**

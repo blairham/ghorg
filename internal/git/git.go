@@ -53,6 +53,9 @@ type Gitter interface {
 	SyncDefaultBranch(scm.Repo) (bool, error)
 	MergeIntoDefaultBranch(scm.Repo, string) error
 	UpdateRef(scm.Repo, string, string) error
+
+	// HeadSHA returns the commit hash that HEAD currently points to.
+	HeadSHA(scm.Repo) (string, error)
 }
 
 // Environment variable names used for git configuration
@@ -65,6 +68,7 @@ const (
 	envOutputDir         = "GHORG_OUTPUT_DIR"
 	envAbsolutePathTo    = "GHORG_ABSOLUTE_PATH_TO_CLONE_TO"
 	envGitBackend        = "GHORG_GIT_BACKEND"
+	envSparseCheckout    = "GHORG_SPARSE_CHECKOUT_PATTERNS"
 )
 
 // Git backend types
@@ -91,6 +95,27 @@ func includeSubmodules() bool {
 // getGitFilter returns the configured git filter, or empty string if not set
 func getGitFilter() string {
 	return os.Getenv(envGitFilter)
+}
+
+// getSparseCheckoutPatterns returns the configured cone-mode sparse-checkout
+// patterns as a slice, or nil if not set.
+func getSparseCheckoutPatterns() []string {
+	raw := os.Getenv(envSparseCheckout)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := parts[:0]
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // isBackupMode returns true if backup mode is enabled
@@ -230,7 +255,35 @@ func (g GitClient) Clone(repo scm.Repo) error {
 	}
 
 	cmd := exec.Command("git", args...)
-	return runGitCommand(cmd, repo)
+	if err := runGitCommand(cmd, repo); err != nil {
+		return err
+	}
+
+	// Apply sparse-checkout patterns post-clone, if configured. Mirror clones
+	// have no working tree, so skip.
+	if !isBackupMode() {
+		if patterns := getSparseCheckoutPatterns(); len(patterns) > 0 {
+			return g.applySparseCheckout(repo, patterns)
+		}
+	}
+	return nil
+}
+
+// applySparseCheckout initializes cone-mode sparse-checkout in repo.HostPath
+// and applies the given patterns. Best-effort: failure is returned to the caller.
+func (g GitClient) applySparseCheckout(repo scm.Repo, patterns []string) error {
+	initCmd := exec.Command("git", "sparse-checkout", "init", "--cone")
+	initCmd.Dir = repo.HostPath
+	if err := runGitCommand(initCmd, repo); err != nil {
+		return fmt.Errorf("git sparse-checkout init failed: %w", err)
+	}
+	setArgs := append([]string{"sparse-checkout", "set"}, patterns...)
+	setCmd := exec.Command("git", setArgs...)
+	setCmd.Dir = repo.HostPath
+	if err := runGitCommand(setCmd, repo); err != nil {
+		return fmt.Errorf("git sparse-checkout set failed: %w", err)
+	}
+	return nil
 }
 
 // SetOriginWithCredentials sets the origin remote URL using the clone URL (which may include credentials).
@@ -462,6 +515,11 @@ func (g GitClient) GetRefHash(repo scm.Repo, ref string) (string, error) {
 	cmd := exec.Command("git", "rev-parse", ref)
 	cmd.Dir = repo.HostPath
 	return runGitCommandWithOutput(cmd, repo)
+}
+
+// HeadSHA returns the commit hash that HEAD currently points to.
+func (g GitClient) HeadSHA(repo scm.Repo) (string, error) {
+	return g.GetRefHash(repo, "HEAD")
 }
 
 // HasCommitsNotOnDefaultBranch returns true if currentBranch contains commits not present on the default branch.

@@ -30,8 +30,6 @@ Run `make help` for a full list.
 | `make fmt` | Format all Go files (`gofumpt -w`) |
 | `make lint` | Run golangci-lint (47 linters enabled) |
 | `make clean` | Remove build artifacts |
-| `make deps-install` | Install goreleaser |
-| `make deps-verify` | Check required tools are available |
 | `make release` | Full GoReleaser release (requires `GITHUB_TOKEN`) |
 | `make release-dry` | Dry-run release (no publish) |
 

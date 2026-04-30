@@ -490,3 +490,66 @@ func BenchmarkRepositoryFilter_FilterByPrefix(b *testing.B) {
 		filter.FilterByMatchPrefix(repos)
 	}
 }
+
+func TestFilterByRetryFailed(t *testing.T) {
+	filter := NewRepositoryFilter()
+	repos := []scm.Repo{
+		{Name: "ok", URL: "https://github.com/o/ok"},
+		{Name: "broken", URL: "https://github.com/o/broken"},
+		{Name: "another-bad", URL: "https://github.com/o/another-bad"},
+	}
+
+	t.Run("Missing state file returns input unchanged", func(t *testing.T) {
+		defer UnsetEnv("GHORG_")()
+		dir := t.TempDir()
+		os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", dir)
+		os.Setenv("GHORG_SCM_TYPE", "github")
+
+		got := filter.FilterByRetryFailed(repos)
+		if !reflect.DeepEqual(got, repos) {
+			t.Errorf("Expected unchanged, got %v", got)
+		}
+	})
+
+	t.Run("Returns only previously-failed repos", func(t *testing.T) {
+		defer UnsetEnv("GHORG_")()
+		dir := t.TempDir()
+		os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", dir)
+		os.Setenv("GHORG_SCM_TYPE", "github")
+
+		state := NewStateManifest("github", "o")
+		state.Record(scm.Repo{Name: "ok", URL: "https://github.com/o/ok", CloneBranch: "main"}, StateStatusOK, "abc", "")
+		state.Record(scm.Repo{Name: "broken", URL: "https://github.com/o/broken", CloneBranch: "main"}, StateStatusError, "", "fail")
+		state.Record(scm.Repo{Name: "another-bad", URL: "https://github.com/o/another-bad", CloneBranch: "main"}, StateStatusError, "", "fail2")
+		if err := SaveState(getGhorgStateFilePath(), state); err != nil {
+			t.Fatal(err)
+		}
+
+		got := filter.FilterByRetryFailed(repos)
+		if len(got) != 2 {
+			t.Fatalf("Expected 2 failed repos, got %d: %v", len(got), got)
+		}
+		names := map[string]bool{got[0].Name: true, got[1].Name: true}
+		if !names["broken"] || !names["another-bad"] {
+			t.Errorf("Expected broken and another-bad, got %v", got)
+		}
+	})
+
+	t.Run("Empty state with no errors returns empty slice", func(t *testing.T) {
+		defer UnsetEnv("GHORG_")()
+		dir := t.TempDir()
+		os.Setenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO", dir)
+		os.Setenv("GHORG_SCM_TYPE", "github")
+
+		state := NewStateManifest("github", "o")
+		state.Record(scm.Repo{Name: "ok", URL: "https://github.com/o/ok", CloneBranch: "main"}, StateStatusOK, "abc", "")
+		if err := SaveState(getGhorgStateFilePath(), state); err != nil {
+			t.Fatal(err)
+		}
+
+		got := filter.FilterByRetryFailed(repos)
+		if len(got) != 0 {
+			t.Errorf("Expected empty result when no errors recorded, got %v", got)
+		}
+	})
+}

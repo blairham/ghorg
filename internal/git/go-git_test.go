@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/blairham/ghorg/internal/scm"
@@ -912,4 +913,40 @@ func containsHelper(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestGoGitHeadSHA(t *testing.T) {
+	repoPath, cleanup := setupTestRepo(t)
+	defer cleanup()
+
+	client := GoGitClient()
+	repo := scm.Repo{HostPath: repoPath, CloneBranch: "main"}
+
+	t.Run("Matches git rev-parse HEAD", func(t *testing.T) {
+		sha, err := client.HeadSHA(repo)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if len(sha) != 40 {
+			t.Errorf("Expected 40-char SHA, got %d chars: %q", len(sha), sha)
+		}
+
+		cmd := exec.Command("git", "rev-parse", "HEAD")
+		cmd.Dir = repoPath
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("rev-parse HEAD failed: %v", err)
+		}
+		expected := strings.TrimSpace(string(out))
+		if sha != expected {
+			t.Errorf("SHA mismatch: got %q, want %q", sha, expected)
+		}
+	})
+
+	t.Run("Returns error for invalid repo path", func(t *testing.T) {
+		bad := scm.Repo{HostPath: "/nonexistent/path", CloneBranch: "main"}
+		if _, err := client.HeadSHA(bad); err == nil {
+			t.Error("Expected error for nonexistent repo path")
+		}
+	})
 }
