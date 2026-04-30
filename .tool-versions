@@ -1,2 +1,9 @@
+# ghorg tool versions managed by asdf
+# See https://asdf-vm.com for usage
+# Install all: asdf install
+#
+# Go-based tools (golangci-lint, gofumpt, goreleaser) are declared in
+# go.mod's `tool` block — invoke them via `go tool <name>`.
+
+# Go compiler — keep in sync with go.mod
 golang 1.26.2
-goreleaser 2.15.3
