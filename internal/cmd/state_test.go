@@ -40,7 +40,7 @@ func TestStateRoundTrip(t *testing.T) {
 	m.Record(scm.Repo{
 		Name: "ghorg", URL: "https://github.com/blairham/ghorg",
 		HostPath: "/tmp/ghorg", CloneBranch: "main",
-	}, StateStatusOK, "abc123def456abc123def456abc123def456abcd", "") // pragma: allowlist secret
+	}, StateStatusOK, "abc123def456abc123def456abc123def456abcd", "")
 	m.Record(scm.Repo{
 		Name: "broken", URL: "https://github.com/blairham/broken",
 		HostPath: "/tmp/broken", CloneBranch: "main",
