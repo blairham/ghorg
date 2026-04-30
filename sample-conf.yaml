@@ -113,12 +113,32 @@ auth:
 git:
   # Git filter options (e.g., blob:none for partial clones)
   # Requires git >= 2.19, only applies to initial clones
+  # Backend support: exec only — go-git ignores with a warning
   # flag: --git-filter
   # filter:
 
+  # Comma-separated cone-mode sparse-checkout patterns (e.g., "docs,src/api").
+  # Limits each clone's working tree to the matching paths. Combine with
+  # filter and depth for very lean code-search clones.
+  # Backend support: exec only — go-git ignores with a warning
+  # flag: --sparse-checkout
+  # sparse-checkout:
+
   # Git backend: golang (pure Go, default) or exec (system git)
+  # Backend feature matrix:
+  #   depth         — both backends
+  #   submodules    — both backends
+  #   mirror/backup — both backends
+  #   filter        — exec only
+  #   sparse-checkout — exec only
   # default: golang | flag: --git-backend
   backend: golang
+
+  # Only attempt repos whose last recorded status was "error" (reads
+  # _ghorg_state.json from the clone target directory). Composes with all
+  # other filters. If no state file exists, falls back to cloning everything.
+  # default: false | flag: --retry-failed
+  # retry-failed: false
 
 # ── Filtering ────────────────────────────────────────────────────────
 filter:
