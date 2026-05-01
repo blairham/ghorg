@@ -17,7 +17,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.4
 	github.com/korovkin/limiter v0.0.0-20260306054425-004398ae7895
-	github.com/ktrysmt/go-bitbucket v0.9.98
+	github.com/ktrysmt/go-bitbucket v0.9.100
 	github.com/mitchellh/go-homedir v1.1.0
 	gitlab.com/gitlab-org/api/client-go v1.46.0
 	go.yaml.in/yaml/v3 v3.0.4
