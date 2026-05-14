@@ -30,6 +30,16 @@ archives:
   - id: ghorg
     name_template: >-
       {{- .ProjectName }}_ {{- .Version }}_ {{- title .Os }}_ {{- if eq .Arch "amd64" }}x86_64 {{- else if eq .Arch "386" }}i386 {{- else }}{{ .Arch }}{{ end }} {{- if .Arm }}v{{ .Arm }}{{ end -}}
+
+homebrew_casks:
+  - name: ghorg
+    repository:
+      owner: blairham
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/blairham/ghorg
+    description: Quickly clone an entire org/users repositories into one directory
+    license: Apache-2.0
 checksum:
   name_template: "checksums.txt"
 changelog:
