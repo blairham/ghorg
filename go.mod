@@ -15,7 +15,7 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/knadh/koanf/parsers/yaml v1.1.0
 	github.com/knadh/koanf/providers/file v1.2.1
-	github.com/knadh/koanf/v2 v2.3.4
+	github.com/knadh/koanf/v2 v2.3.5
 	github.com/korovkin/limiter v0.0.0-20260306054425-004398ae7895
 	github.com/ktrysmt/go-bitbucket v0.9.100
 	github.com/mitchellh/go-homedir v1.1.0
