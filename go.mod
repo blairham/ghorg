@@ -3,7 +3,7 @@ module github.com/blairham/ghorg
 go 1.26.2
 
 require (
-	code.gitea.io/sdk/gitea v0.24.1
+	code.gitea.io/sdk/gitea v0.25.1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.18.0
 	github.com/briandowns/spinner v1.23.2
 	github.com/charmbracelet/lipgloss v1.1.0
