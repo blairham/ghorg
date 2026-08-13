@@ -25,6 +25,7 @@ issues:
 formatters:
   enable:
     - goimports # checks if the code and import statements are formatted according to the 'goimports' command
+    - gofumpt # stricter than gofmt; matches `make fmt` and the golangci-lint-fmt pre-commit hook
     #- golines # [DISABLED: line length formatting is acceptable] checks if code is formatted, and fixes long lines
     ## you may want to enable
     #- gci # checks if code and import statements are formatted, with additional rules
