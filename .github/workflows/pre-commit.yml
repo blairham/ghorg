@@ -18,4 +18,4 @@ jobs:
     - name: Install gofumpt
       run: go install mvdan.cc/gofumpt
     - name: Run pre-commit hooks
-      uses: blairham/go-pre-commit@v4.6.3
+      uses: blairham/go-pre-commit@v4.6.6
