@@ -20,6 +20,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
+        check-latest: true # setup-go's manifest lags fresh Go patch releases; resolve via go.dev
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v9
   test:
@@ -36,6 +37,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
+        check-latest: true # setup-go's manifest lags fresh Go patch releases; resolve via go.dev
       id: go
     - name: Configure Git for tests
       run: |
@@ -64,6 +66,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
+        check-latest: true # setup-go's manifest lags fresh Go patch releases; resolve via go.dev
       id: go
     - name: Set configuration file
       run: |

@@ -15,6 +15,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
+        check-latest: true # setup-go's manifest lags fresh Go patch releases; resolve via go.dev
     - name: Install gofumpt
       run: go install mvdan.cc/gofumpt
     - name: Run pre-commit hooks
