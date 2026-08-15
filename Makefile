@@ -1,6 +1,6 @@
 .PHONY: build build-local build-docker install fmt test test-race test-git test-sync \
        test-helpers test-all test-coverage test-coverage-func lint clean release \
-       release-dry release-check examples
+       release-dry release-check
 
 ## Build targets
 
@@ -74,9 +74,6 @@ release-check: ## Validate goreleaser configuration
 	go tool goreleaser check
 
 ## Misc targets
-
-examples: ## Copy example files
-	cp -rf examples/ internal/cmd/examples-copy/
 
 clean: ## Remove build artifacts
 	rm -rf dist coverage.out coverage.html
