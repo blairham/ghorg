@@ -42,7 +42,7 @@ Endpoints:
   /stats                                View stats (requires GHORG_STATS_ENABLED=true)
   /health                               Health check
 
-Read the documentation and examples in the Readme under Reclone Server heading.
+Read the documentation and examples in the Readme under the Reclone Server Command heading.
 `
 }
 

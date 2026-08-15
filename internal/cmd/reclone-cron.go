@@ -41,7 +41,7 @@ Examples:
   ghorg reclone-cron --minutes 60
   ghorg reclone-cron -m 30
 
-Read the documentation and examples in the Readme under Reclone Server heading.
+Read the documentation and examples in the Readme under the Reclone Cron Command heading.
 `
 }
 

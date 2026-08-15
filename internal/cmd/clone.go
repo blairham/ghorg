@@ -177,13 +177,9 @@ func (c *CloneCommand) Help() string {
 Clone user or org repos from GitHub, GitLab, Gitea or Bitbucket.
 See $HOME/.config/ghorg/conf.yaml for defaults.
 
-For complete examples of how to clone repos from each SCM provider, run:
-  ghorg examples github
-  ghorg examples gitlab
-  ghorg examples bitbucket
-  ghorg examples gitea
-
-Or see examples directory at https://github.com/blairham/ghorg/tree/master/examples
+For example commands for each SCM provider, see the "How to Use" and
+"SCM Provider Setup" sections of the README:
+https://github.com/blairham/ghorg#how-to-use
 
 Options:
   -p, --path                           Absolute path to clone repos to
