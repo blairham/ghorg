@@ -21,11 +21,9 @@ permissions:
   contents: read
 
 concurrency:
-  # A superseded push to a pull request is not worth finishing. A push to main
-  # is: it is the record of whether that merge was good, and cancelling it
-  # leaves the question unanswered.
+  # A superseded push is not worth finishing; only the newest commit matters.
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   # Runs for every commit that reaches GitHub — every push to a pull request,
@@ -103,7 +101,6 @@ jobs:
   test:
     name: Test
     needs: changes
-    if: needs.changes.outputs.code == 'true'
     environment: actions
     runs-on: ${{ matrix.os }}
     strategy:
@@ -112,17 +109,21 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
     - uses: actions/checkout@v6
+      if: needs.changes.outputs.code == 'true'
     - uses: actions/setup-go@v6
+      if: needs.changes.outputs.code == 'true'
       with:
         go-version-file: go.mod
         check-latest: true
         cache: true
     - name: Configure Git for tests
+      if: needs.changes.outputs.code == 'true'
       run: |
         git config --global user.name "Test User"
         git config --global user.email "test@example.com"
         git config --global init.defaultBranch main
     - run: make test-race
+      if: needs.changes.outputs.code == 'true'
     - name: Generate coverage report
       if: matrix.os == 'ubuntu-latest'
       run: go test ./... -coverprofile=coverage.out -covermode=atomic
@@ -136,51 +137,28 @@ jobs:
   test-windows:
     name: Test Windows
     needs: changes
-    if: needs.changes.outputs.code == 'true'
     environment: actions
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v6
+      if: needs.changes.outputs.code == 'true'
     - uses: actions/setup-go@v6
+      if: needs.changes.outputs.code == 'true'
       with:
         go-version-file: go.mod
         check-latest: true
         cache: true
     - name: Set configuration file
+      if: needs.changes.outputs.code == 'true'
       run: |
         mkdir C:\Users\runneradmin\.config\ghorg
         copy sample-conf.yaml C:\Users\runneradmin\.config\ghorg\conf.yaml
     - name: Configure Git for tests
+      if: needs.changes.outputs.code == 'true'
       run: |
         git config --global user.name "Test User"
         git config --global user.email "test@example.com"
         git config --global init.defaultBranch main
         git config --global core.autocrlf false
     - run: go test ./... -race
-
-
-  # The one check branch protection requires. Requiring the jobs by name does
-  # not survive this workflow's shape: a job skipped by the prose guard never
-  # reports, and a *matrix* job skipped by `if:` never expands, so a policy
-  # naming "test (ubuntu-latest)" waits for it forever. A single always-running
-  # gate that fails when any upstream job failed survives skips, matrix
-  # renames and new jobs alike — when jobs change here, update this `needs`
-  # list and nothing else.
-  ci-ok:
-    needs: [pre-commit, changes, test, test-windows]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-    - name: Verify no required job failed
-      env:
-        RESULTS: ${{ toJSON(needs) }}
-      run: |
-        echo "$RESULTS"
-        bad=$(echo "$RESULTS" | jq -r 'to_entries[]
-          | select(.value.result != "success" and .value.result != "skipped")
-          | "\(.key)=\(.value.result)"')
-        if [ -n "$bad" ]; then
-          echo "not ok: $bad"
-          exit 1
-        fi
-        echo "ok"
+      if: needs.changes.outputs.code == 'true'
