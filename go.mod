@@ -13,7 +13,7 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/hashicorp/cli v1.1.7
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/knadh/koanf/parsers/yaml v1.1.0
+	github.com/knadh/koanf/parsers/yaml v1.1.1
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.5
 	github.com/korovkin/limiter v0.0.0-20260306054425-004398ae7895
