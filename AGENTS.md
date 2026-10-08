@@ -28,15 +28,16 @@ Run `make help` for the full, current list.
 | `make test` | Run all tests (`go test ./... -v`) |
 | `make test-race` | Run all tests with race detector |
 | `make test-git` / `test-sync` / `test-helpers` | Focused test subsets |
-| `make test-all` | fmt + lint + test (full quality gate) |
+| `make test-all` | fmt + test |
 | `make test-coverage` | Tests with HTML coverage report → `coverage.html` |
 | `make fmt` | Format all Go files (`go tool gofumpt -w`) |
-| `make lint` | Run golangci-lint |
 | `make clean` | Remove build artifacts |
 | `make release` | Full GoReleaser release (requires `GITHUB_TOKEN`) |
 | `make release-dry` / `release-check` | Dry-run release / validate GoReleaser config |
 
 gofumpt, golangci-lint, and GoReleaser are all pinned in `go.mod`'s `tool` block — run them via `go tool`, never a separately installed binary.
+
+There is no `make lint` target: golangci-lint runs as a pre-commit hook and in CI, never by hand.
 
 ## Project Structure
 

@@ -1,5 +1,5 @@
 .PHONY: build build-local build-docker install fmt test test-race test-git test-sync \
-       test-helpers test-all test-coverage test-coverage-func lint clean release \
+       test-helpers test-all test-coverage test-coverage-func clean release \
        release-dry release-check
 
 ## Build targets
@@ -37,7 +37,8 @@ test-sync: ## Run sync-related tests only
 test-helpers: ## Run git helper function tests only
 	go test ./internal/git -v -run '^Test(GetRemoteURL|HasLocalChanges|HasUnpushedCommits|GetCurrentBranch|HasCommitsNotOnDefaultBranch|IsDefaultBranchBehindHead|MergeIntoDefaultBranch|UpdateRef)'
 
-test-all: fmt lint test ## fmt + lint + test (full quality gate)
+# There is no lint target: golangci-lint runs as a pre-commit hook and in CI.
+test-all: fmt test ## fmt + test (lint runs as a pre-commit hook and in CI)
 	@echo ""
 	@echo "=== All Tests Complete ==="
 
@@ -58,9 +59,6 @@ test-coverage-func: ## Coverage with function-level detail for git helpers
 
 fmt: ## Format all Go files
 	go tool gofumpt -w .
-
-lint: ## Run golangci-lint
-	go tool golangci-lint run ./...
 
 ## Release targets
 
