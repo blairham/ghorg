@@ -179,6 +179,12 @@ func sanitizeCmd(cmd string) string {
 				b.WriteByte(' ')
 				j++
 			}
+			// go-flags never takes a word starting with a dash as the value
+			// of `--token v`, so that word is the next flag, not the token.
+			if j < len(cmd) && cmd[j] == '-' {
+				i = j
+				continue
+			}
 		}
 		end := argEnd(cmd, j)
 		if end > j {

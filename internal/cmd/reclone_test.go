@@ -61,6 +61,11 @@ func Test_sanitizeCmd(t *testing.T) {
 			want: "ghorg clone foo --token=XXXXXXX --skip-forks",
 		},
 		{
+			name: "a flag is not the value of the flag before it",
+			args: args{cmd: "ghorg clone foo --token --token faketokenvalue"},
+			want: "ghorg clone foo --token --token XXXXXXX",
+		},
+		{
 			name: "flags that merely start with t are left alone",
 			args: args{cmd: "ghorg clone foo --topics=t1 -tx"},
 			want: "ghorg clone foo --topics=t1 -tx",
