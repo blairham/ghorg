@@ -2,12 +2,24 @@
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-10-09
+
 ### Security
+- `reclone-server`: the unauthenticated `/trigger/reclone?cmd=` value is now
+  only ever a reclone.yaml entry name. A value starting with `-` was parsed as
+  a `ghorg reclone` flag, so `--reclone-path=<file>` could run the
+  `ghorg clone` entries of any YAML file the server could read, with its
+  tokens (GHSA-77wq-45v4-4r3j, #78)
+- `reclone` masks every `-t`, `--token` and `--bitbucket-api-token` value in
+  the command it logs. Before, a token could be printed in full when another
+  flag's value contained `-t=`, a quoted token was masked only up to its
+  first space, and `--bitbucket-api-token` was not masked (#76)
 - Sign `checksums.txt` and the `ghcr.io/blairham/ghorg` image with keyless
   cosign, and attest SLSA build provenance for the archives and the image;
   `SECURITY.md` shows how to verify them
 - Pin the image's base by digest and move it to Alpine 3.23
 - Add `SECURITY.md` with the trust model and private vulnerability reporting
+- The stats CSV is created `0600`
 - Build with Go 1.26.9
 
 ### Build
@@ -18,8 +30,7 @@
 - Release and CI through blairham/.github's shared workflows, with the shared
   configuration baseline, CodeQL `security-extended` and OpenSSF Scorecard
 - Pin every action by commit SHA
-
-### CI/CD
+- Fuzz targets for the reclone command parser and token masking
 - Bump Go to 1.26.6, resolved in CI via check-latest
 - Consolidate open dependabot bumps
 - Warm the cross-compile build cache between releases
