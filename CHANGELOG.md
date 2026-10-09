@@ -10,6 +10,10 @@
 - Add `SECURITY.md` with the trust model and private vulnerability reporting
 - Build with Go 1.26.9
 
+### Build
+- go-git 5.19.3; consolidate the open Dependabot security bumps (sigstore,
+  grpc, in-toto, go-pkcs12, slack, MCP registry — GoReleaser's tool graph)
+
 ### CI/CD
 - Release and CI through blairham/.github's shared workflows, with the shared
   configuration baseline, CodeQL `security-extended` and OpenSSF Scorecard
