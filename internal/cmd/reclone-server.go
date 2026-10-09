@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	_ "embed"
 	"encoding/csv"
 	"encoding/json"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/cli"
@@ -84,7 +86,11 @@ func startReCloneServer() {
 	}
 
 	http.HandleFunc("/trigger/reclone", func(w http.ResponseWriter, r *http.Request) {
-		userCmd := r.URL.Query().Get("cmd")
+		args, err := recloneTriggerArgs(r.URL.Query().Get("cmd"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
 		if !mu.TryLock() {
 			http.Error(w, "Server is busy, please try again later", http.StatusTooManyRequests)
@@ -96,12 +102,9 @@ func startReCloneServer() {
 
 		go func() {
 			defer mu.Unlock()
-			var cmd *exec.Cmd
-			if userCmd == "" {
-				cmd = exec.Command("ghorg", "reclone")
-			} else {
-				cmd = exec.Command("ghorg", "reclone", userCmd)
-			}
+			// The reclone outlives the request that started it, so it is not
+			// tied to the request's context.
+			cmd := exec.CommandContext(context.Background(), "ghorg", args...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
@@ -182,4 +185,23 @@ func startReCloneServer() {
 	if err := http.ListenAndServe(serverPort, nil); err != nil {
 		fmt.Printf("Error starting server: %s\n", err)
 	}
+}
+
+// recloneSubcommand is the ghorg subcommand the trigger endpoint runs.
+const recloneSubcommand = "reclone"
+
+// recloneTriggerArgs returns the ghorg arguments for a /trigger/reclone
+// request whose cmd query parameter is userCmd: every reclone when it is
+// empty, otherwise the one reclone.yaml entry it names. The caller is
+// unauthenticated, so userCmd is only ever an entry name: one that starts with
+// a dash is refused, and `--` stops ghorg reading it as a flag either way
+// (`--reclone-path` would point reclone at a file of the caller's choosing).
+func recloneTriggerArgs(userCmd string) ([]string, error) {
+	if userCmd == "" {
+		return []string{recloneSubcommand}, nil
+	}
+	if strings.HasPrefix(userCmd, "-") {
+		return nil, fmt.Errorf("cmd must name a reclone.yaml entry, not a flag: %q", userCmd)
+	}
+	return []string{recloneSubcommand, "--", userCmd}, nil
 }
