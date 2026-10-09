@@ -27,7 +27,7 @@ Use ghorg to quickly clone all of an orgs, or users repos into a single director
 > **Sync Feature**: You can optionally enable the `--sync-default-branch` flag (or set `GHORG_SYNC_DEFAULT_BRANCH=true`) to keep your default branch synchronized with upstream changes. This feature intelligently merges upstream changes into your local default branch, even when you're working on a different branch. See [Syncing Default Branch](#syncing-default-branch) for more details.
 
 <p align="center">
-  <img width="648" alt="ghorg cli example" src="https://user-images.githubusercontent.com/1512282/63229247-5459f880-c1b3-11e9-9e5d-d20723046946.png">
+  <img width="720" alt="ghorg clone cloning six repositories" src="docs/images/clone.png">
 </p>
 
 ## Supported Providers
@@ -67,6 +67,12 @@ macOS and Linux, via the [blairham/homebrew-tap](https://github.com/blairham/hom
 ```bash
 brew install blairham/tap/ghorg
 ```
+
+homebrew-core also has a `ghorg` formula, built from the original
+[gabrie30/ghorg](https://github.com/gabrie30/ghorg). Homebrew installs both into
+the same `ghorg` keg, so only one can be installed at a time: `brew uninstall
+ghorg` before installing this one, and always use the fully qualified
+`blairham/tap/ghorg` name.
 
 ### Prebuilt Binaries
 
@@ -475,7 +481,7 @@ ghorg reclone --list
 ```
 
 <p align="center">
-  <img width="648" alt="ghorg reclone example" src="https://user-images.githubusercontent.com/1512282/183263986-50e56b86-12b9-479b-9c52-b1c74129228c.png">
+  <img width="720" alt="ghorg reclone running two reclone.yaml entries" src="docs/images/reclone.png">
 </p>
 
 #### Setup

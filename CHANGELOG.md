@@ -7,6 +7,10 @@
   1.18.7 (GO-2026-5841); `osv-scanner.toml` records the two advisories with
   no fix, which reach only GoReleaser's tool graph
 
+### Documentation
+- New README screenshots of `ghorg clone` and `ghorg reclone`, recorded from
+  VHS tapes in `docs/tapes/`; a note on the clash with homebrew-core's `ghorg`
+
 ## [0.1.6] - 2026-10-09
 
 ### Security
