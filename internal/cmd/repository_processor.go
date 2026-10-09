@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -115,7 +119,13 @@ func (rp *RepositoryProcessor) recordOutcome(repo *scm.Repo, status string) {
 }
 
 // ProcessRepository handles the cloning or updating of a single repository
-func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCollisions map[string]bool, hasCollisions bool, repoSlug string, index int) {
+func (rp *RepositoryProcessor) ProcessRepository(
+	repo *scm.Repo,
+	repoNameWithCollisions map[string]bool,
+	hasCollisions bool,
+	repoSlug string,
+	index int,
+) {
 	// Update repo slug for collisions if needed
 	finalRepoSlug := rp.handleNameCollisions(*repo, repoNameWithCollisions, hasCollisions, repoSlug, index)
 
@@ -139,21 +149,8 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 	repoWillBePulled := repoExistsLocally(*repo)
 	var action string
 
-	// Protect local: skip repos with uncommitted changes or unpushed commits
-	if repoWillBePulled && os.Getenv("GHORG_PROTECT_LOCAL") == "true" {
-		if rp.hasLocalChangesForProtect(*repo) {
-			colorlog.PrintWarning(fmt.Sprintf("Protected %s (has local changes or unpushed commits)", repo.URL))
-			rp.addProtected(fmt.Sprintf("%s: has local changes or unpushed commits", repo.URL))
-			return
-		}
-	} else if repoWillBePulled {
-		// Legacy behavior: skip repos with local modifications
-		status, statusErr := rp.git.ShortStatus(*repo)
-		if statusErr == nil && status != "" {
-			colorlog.PrintWarning(fmt.Sprintf("Skipped %s (has local changes)", repo.URL))
-			rp.addSkipped(fmt.Sprintf("%s: has uncommitted local changes", repo.URL))
-			return
-		}
+	if repoWillBePulled && rp.skipForLocalChanges(*repo) {
+		return
 	}
 
 	// Save current branch for restore if protect-local is enabled
@@ -188,22 +185,65 @@ func (rp *RepositoryProcessor) ProcessRepository(repo *scm.Repo, repoNameWithCol
 
 	rp.recordOutcome(repo, StateStatusOK)
 
-	// Print unified success message (matching original behavior)
+	printProcessSuccess(repo, action, repoWillBePulled)
+}
+
+// skipForLocalChanges reports whether an existing clone must be left alone
+// because of local work, and records why. With GHORG_PROTECT_LOCAL that is
+// uncommitted changes or unpushed commits; otherwise (the legacy behavior)
+// uncommitted changes only.
+func (rp *RepositoryProcessor) skipForLocalChanges(repo scm.Repo) bool {
+	if os.Getenv("GHORG_PROTECT_LOCAL") == "true" {
+		if rp.hasLocalChangesForProtect(repo) {
+			colorlog.PrintWarning(fmt.Sprintf("Protected %s (has local changes or unpushed commits)", repo.URL))
+			rp.addProtected(fmt.Sprintf("%s: has local changes or unpushed commits", repo.URL))
+			return true
+		}
+		return false
+	}
+
+	status, statusErr := rp.git.ShortStatus(repo)
+	if statusErr == nil && status != "" {
+		colorlog.PrintWarning(fmt.Sprintf("Skipped %s (has local changes)", repo.URL))
+		rp.addSkipped(fmt.Sprintf("%s: has uncommitted local changes", repo.URL))
+		return true
+	}
+	return false
+}
+
+// printProcessSuccess prints the one success line for a processed repository.
+func printProcessSuccess(repo *scm.Repo, action string, repoWillBePulled bool) {
 	if repo.SyncedDefaultBranch {
 		if repo.Commits.CountDiff > 0 {
-			colorlog.PrintSuccess(fmt.Sprintf("Success pull %s, branch: %s, new commits: %d", repo.URL, repo.CloneBranch, repo.Commits.CountDiff))
+			colorlog.PrintSuccess(
+				fmt.Sprintf("Success pull %s, branch: %s, new commits: %d", repo.URL, repo.CloneBranch, repo.Commits.CountDiff),
+			)
 		} else {
 			colorlog.PrintSuccess(fmt.Sprintf("Success pull %s, branch: %s", repo.URL, repo.CloneBranch))
 		}
 	} else if repoWillBePulled && repo.Commits.CountDiff > 0 {
-		colorlog.PrintSuccess(fmt.Sprintf("Success %s %s, branch: %s, new commits: %d", action, repo.URL, repo.CloneBranch, repo.Commits.CountDiff))
+		colorlog.PrintSuccess(
+			fmt.Sprintf(
+				"Success %s %s, branch: %s, new commits: %d",
+				action,
+				repo.URL,
+				repo.CloneBranch,
+				repo.Commits.CountDiff,
+			),
+		)
 	} else {
 		colorlog.PrintSuccess(fmt.Sprintf("Success %s %s, branch: %s", action, repo.URL, repo.CloneBranch))
 	}
 }
 
 // handleNameCollisions manages repository name collisions
-func (rp *RepositoryProcessor) handleNameCollisions(repo scm.Repo, repoNameWithCollisions map[string]bool, hasCollisions bool, repoSlug string, index int) string {
+func (rp *RepositoryProcessor) handleNameCollisions(
+	repo scm.Repo,
+	repoNameWithCollisions map[string]bool,
+	hasCollisions bool,
+	repoSlug string,
+	index int,
+) string {
 	if !hasCollisions {
 		return rp.addSuffixesIfNeeded(repo, repoSlug)
 	}
@@ -256,7 +296,11 @@ func (rp *RepositoryProcessor) addSuffixesIfNeeded(repo scm.Repo, repoSlug strin
 // buildHostPath constructs the final host path for the repository
 func (rp *RepositoryProcessor) buildHostPath(repo scm.Repo, repoSlug string) string {
 	if repo.IsGitLabRootLevelSnippet {
-		return filepath.Join(outputDirAbsolutePath, "_ghorg_root_level_snippets", repo.GitLabSnippetInfo.Title+"-"+repo.GitLabSnippetInfo.ID)
+		return filepath.Join(
+			outputDirAbsolutePath,
+			"_ghorg_root_level_snippets",
+			repo.GitLabSnippetInfo.Title+"-"+repo.GitLabSnippetInfo.ID,
+		)
 	}
 
 	if repo.IsGitLabSnippet {
@@ -308,7 +352,13 @@ func (rp *RepositoryProcessor) shouldPruneUntouched(repo *scm.Repo) bool {
 	// Check for new commits on the branch that exist locally but not on the remote
 	commits, err := rp.git.RevListCompare(*repo, "HEAD", "@{u}")
 	if err != nil {
-		colorlog.PrintError(fmt.Sprintf("Failed to get commit differences for repository %s. The repository may be empty or does not have a .git directory. Error: %v", repo.Name, err))
+		colorlog.PrintError(
+			fmt.Sprintf(
+				"Failed to get commit differences for repository %s. The repository may be empty or does not have a .git directory. Error: %v",
+				repo.Name,
+				err,
+			),
+		)
 		return false
 	}
 
@@ -385,7 +435,14 @@ func (rp *RepositoryProcessor) handleNewRepository(repo *scm.Repo, action *strin
 	if os.Getenv("GHORG_BRANCH") != "" {
 		checkoutErr := rp.git.Checkout(*repo)
 		if checkoutErr != nil {
-			rp.addInfo(fmt.Sprintf("Could not checkout out %s, branch may not exist or may not have any contents/commits, no changes to: %s Error: %v", repo.CloneBranch, repo.URL, checkoutErr))
+			rp.addInfo(
+				fmt.Sprintf(
+					"Could not checkout out %s, branch may not exist or may not have any contents/commits, no changes to: %s Error: %v",
+					repo.CloneBranch,
+					repo.URL,
+					checkoutErr,
+				),
+			)
 			return false
 		}
 	}
@@ -538,14 +595,35 @@ func (rp *RepositoryProcessor) handleStandardPull(repo *scm.Repo) bool {
 		if errRetry != nil {
 			hasRemoteHeads, errHasRemoteHeads := rp.git.HasRemoteHeads(*repo)
 			if errHasRemoteHeads != nil {
-				rp.addError(fmt.Sprintf("Could not checkout %s, branch may not exist or may not have any contents/commits, no changes made on: %s Errors: %v %v", repo.CloneBranch, repo.URL, errRetry, errHasRemoteHeads))
+				rp.addError(
+					fmt.Sprintf(
+						"Could not checkout %s, branch may not exist or may not have any contents/commits, no changes made on: %s Errors: %v %v",
+						repo.CloneBranch,
+						repo.URL,
+						errRetry,
+						errHasRemoteHeads,
+					),
+				)
 				return false
 			}
 			if hasRemoteHeads {
-				rp.addError(fmt.Sprintf("Could not checkout %s, branch may not exist or may not have any contents/commits, no changes made on: %s Error: %v", repo.CloneBranch, repo.URL, errRetry))
+				rp.addError(
+					fmt.Sprintf(
+						"Could not checkout %s, branch may not exist or may not have any contents/commits, no changes made on: %s Error: %v",
+						repo.CloneBranch,
+						repo.URL,
+						errRetry,
+					),
+				)
 				return false
 			} else {
-				rp.addInfo(fmt.Sprintf("Could not checkout %s due to repository being empty, no changes made on: %s", repo.CloneBranch, repo.URL))
+				rp.addInfo(
+					fmt.Sprintf(
+						"Could not checkout %s due to repository being empty, no changes made on: %s",
+						repo.CloneBranch,
+						repo.URL,
+					),
+				)
 				return false
 			}
 		}

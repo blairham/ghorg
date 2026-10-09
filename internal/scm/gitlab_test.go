@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -587,8 +591,20 @@ func TestGitlab_GetSnippets_CloudGroup(t *testing.T) {
 	})
 
 	cloneData := []Repo{
-		{ID: "1", Name: "repo-one", CloneURL: "https://gitlab.com/test-group/repo-one.git", URL: "https://gitlab.com/test-group/repo-one.git", Path: "/repo-one"},
-		{ID: "2", Name: "repo-two", CloneURL: "https://gitlab.com/test-group/repo-two.git", URL: "https://gitlab.com/test-group/repo-two.git", Path: "/repo-two"},
+		{
+			ID:       "1",
+			Name:     "repo-one",
+			CloneURL: "https://gitlab.com/test-group/repo-one.git",
+			URL:      "https://gitlab.com/test-group/repo-one.git",
+			Path:     "/repo-one",
+		},
+		{
+			ID:       "2",
+			Name:     "repo-two",
+			CloneURL: "https://gitlab.com/test-group/repo-two.git",
+			URL:      "https://gitlab.com/test-group/repo-two.git",
+			Path:     "/repo-two",
+		},
 	}
 
 	snippets, err := client.GetSnippets(cloneData, "test-group")

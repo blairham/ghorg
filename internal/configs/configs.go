@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package configs
 
 import (
@@ -10,47 +14,63 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/blairham/ghorg/internal/colorlog"
-	"github.com/blairham/ghorg/internal/scm"
-	"github.com/blairham/ghorg/internal/utils"
-
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 	"github.com/mitchellh/go-homedir"
+
+	"github.com/blairham/ghorg/internal/colorlog"
+	"github.com/blairham/ghorg/internal/scm"
+	"github.com/blairham/ghorg/internal/utils"
 )
 
 var (
 	// ErrNoGitHubToken error message when token is not found
 	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
-	ErrNoGitHubToken = errors.New("Could not find a valid github token. GHORG_GITHUB_TOKEN or (--token, -t) flag must be set. Create a personal access token, then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'GitHub Setup' in README.md")
+	ErrNoGitHubToken = errors.New(
+		"Could not find a valid github token. GHORG_GITHUB_TOKEN or (--token, -t) flag must be set. Create a personal access token, then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'GitHub Setup' in README.md",
+	)
 
 	// ErrNoGitLabToken error message when token is not found
 	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
-	ErrNoGitLabToken = errors.New("Could not find a valid gitlab token. GHORG_GITLAB_TOKEN or (--token, -t) flag must be set. Create a token from gitlab then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'GitLab Setup' in README.md")
+	ErrNoGitLabToken = errors.New(
+		"Could not find a valid gitlab token. GHORG_GITLAB_TOKEN or (--token, -t) flag must be set. Create a token from gitlab then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'GitLab Setup' in README.md",
+	)
 
 	// ErrNoGiteaToken error message when token is not found
 	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
-	ErrNoGiteaToken = errors.New("Could not find a valid gitea token. GHORG_GITEA_TOKEN or (--token, -t) flag must be set. Create a token from gitea then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'Gitea Setup' in README.md")
+	ErrNoGiteaToken = errors.New(
+		"Could not find a valid gitea token. GHORG_GITEA_TOKEN or (--token, -t) flag must be set. Create a token from gitea then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'Gitea Setup' in README.md",
+	)
 
 	// ErrNoSourcehutToken error message when token is not found
 	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
-	ErrNoSourcehutToken = errors.New("Could not find a valid sourcehut token. GHORG_SOURCEHUT_TOKEN or (--token, -t) flag must be set. Create a token from sourcehut then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'Sourcehut Setup' in README.md")
+	ErrNoSourcehutToken = errors.New(
+		"Could not find a valid sourcehut token. GHORG_SOURCEHUT_TOKEN or (--token, -t) flag must be set. Create a token from sourcehut then set it in your $HOME/.config/ghorg/conf.yaml or use the (--token, -t) flag, see 'Sourcehut Setup' in README.md",
+	)
 
 	// ErrNoBitbucketUsername error message when no username found
 	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
-	ErrNoBitbucketUsername = errors.New("Could not find bitbucket username. GHORG_BITBUCKET_USERNAME or (--bitbucket-username) must be set to clone repos from bitbucket, see 'BitBucket Setup' in README.md")
+	ErrNoBitbucketUsername = errors.New(
+		"Could not find bitbucket username. GHORG_BITBUCKET_USERNAME or (--bitbucket-username) must be set to clone repos from bitbucket, see 'BitBucket Setup' in README.md",
+	)
 
 	// ErrNoBitbucketAppPassword error message when no app password found
 	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
-	ErrNoBitbucketAppPassword = errors.New("Could not find a valid bitbucket app password. GHORG_BITBUCKET_APP_PASSWORD or (--token, -t) must be set to clone repos from bitbucket, see 'BitBucket Setup' in README.md")
+	ErrNoBitbucketAppPassword = errors.New(
+		"Could not find a valid bitbucket app password. GHORG_BITBUCKET_APP_PASSWORD or (--token, -t) must be set to clone repos from bitbucket, see 'BitBucket Setup' in README.md",
+	)
 
 	// ErrNoBitbucketCredentials error message when no valid bitbucket credentials are found
 	//nolint:staticcheck // ST1005: User-facing error message, capitalization is intentional
-	ErrNoBitbucketCredentials = errors.New("Could not find valid bitbucket credentials. Set one of: GHORG_BITBUCKET_API_TOKEN (with GHORG_BITBUCKET_API_EMAIL), GHORG_BITBUCKET_APP_PASSWORD (with GHORG_BITBUCKET_USERNAME), or GHORG_BITBUCKET_OAUTH_TOKEN")
+	ErrNoBitbucketCredentials = errors.New(
+		"Could not find valid bitbucket credentials. Set one of: GHORG_BITBUCKET_API_TOKEN (with GHORG_BITBUCKET_API_EMAIL), GHORG_BITBUCKET_APP_PASSWORD (with GHORG_BITBUCKET_USERNAME), or GHORG_BITBUCKET_OAUTH_TOKEN",
+	)
 
 	// ErrIncorrectScmType indicates an unsupported scm type being used
-	ErrIncorrectScmType = errors.New("GHORG_SCM_TYPE or --scm must be one of " + strings.Join(scm.SupportedClients(), ", "))
+	ErrIncorrectScmType = errors.New(
+		"GHORG_SCM_TYPE or --scm must be one of " + strings.Join(scm.SupportedClients(), ", "),
+	)
 
 	// ErrIncorrectCloneType indicates an unsupported clone type being used
 	ErrIncorrectCloneType = errors.New("GHORG_CLONE_TYPE or --clone-type must be one of org or user")
@@ -59,7 +79,9 @@ var (
 	ErrIncorrectProtocolType = errors.New("GHORG_CLONE_PROTOCOL or --protocol must be one of https or ssh")
 
 	// ErrIncorrectGithubUserOptionValue indicates an incorrectly set GHORG_GITHUB_USER_OPTION value
-	ErrIncorrectGithubUserOptionValue = errors.New("GHORG_GITHUB_USER_OPTION or --github-user-option must be one of 'owner', 'member', or 'all' and is only available to be used when GHORG_CLONE_TYPE: user or --clone-type=user is set")
+	ErrIncorrectGithubUserOptionValue = errors.New(
+		"GHORG_GITHUB_USER_OPTION or --github-user-option must be one of 'owner', 'member', or 'all' and is only available to be used when GHORG_CLONE_TYPE: user or --clone-type=user is set",
+	)
 )
 
 // Load triggers the configs to load first, not sure if this is actually needed

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package git
 
 import (
@@ -2811,5 +2814,9 @@ func TestSyncWithActualDefaultBranchDetection(t *testing.T) {
 		t.Logf("Local HEAD after sync: %s", localHeadSHA)
 	}
 
-	t.Logf("✓ Sync successfully updated from %s to %s (detected master branch despite CloneBranch=main)", firstCommitSHA, secondCommitSHA)
+	t.Logf(
+		"✓ Sync successfully updated from %s to %s (detected master branch despite CloneBranch=main)",
+		firstCommitSHA,
+		secondCommitSHA,
+	)
 }

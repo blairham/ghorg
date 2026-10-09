@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -85,7 +89,9 @@ func (Bitbucket) NewClient() (Client, error) {
 
 		// Handle insecure connections
 		if strings.HasPrefix(baseURL, "http://") && os.Getenv("GHORG_INSECURE_BITBUCKET_CLIENT") != "true" {
-			colorlog.PrintErrorAndExit("You are attempting to clone from an insecure Bitbucket instance. You must set GHORG_INSECURE_BITBUCKET_CLIENT environment variable to 'true' to proceed.")
+			colorlog.PrintErrorAndExit(
+				"You are attempting to clone from an insecure Bitbucket instance. You must set GHORG_INSECURE_BITBUCKET_CLIENT environment variable to 'true' to proceed.",
+			)
 		}
 
 		if os.Getenv("GHORG_INSECURE_BITBUCKET_CLIENT") == "true" {
@@ -172,7 +178,11 @@ func (c Bitbucket) getServerProjectRepos(projectKey string) ([]Repo, error) {
 	if resp.StatusCode != http.StatusOK {
 		body, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
-			return nil, fmt.Errorf("API request failed with status %d (could not read response body: %w)", resp.StatusCode, readErr)
+			return nil, fmt.Errorf(
+				"API request failed with status %d (could not read response body: %w)",
+				resp.StatusCode,
+				readErr,
+			)
 		}
 		colorlog.PrintError(fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
@@ -217,7 +227,11 @@ func (c Bitbucket) getServerUserRepos(username string) ([]Repo, error) {
 	if resp.StatusCode != http.StatusOK {
 		body, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
-			return nil, fmt.Errorf("API request failed with status %d (could not read response body: %w)", resp.StatusCode, readErr)
+			return nil, fmt.Errorf(
+				"API request failed with status %d (could not read response body: %w)",
+				resp.StatusCode,
+				readErr,
+			)
 		}
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}

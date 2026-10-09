@@ -1,0 +1,12 @@
+ghorg — clone every repository of an organization or user into one directory
+Copyright 2025 Blair Hamilton
+
+This product is licensed under the Apache License, Version 2.0.
+You may obtain a copy of the License in the LICENSE file, or at
+http://www.apache.org/licenses/LICENSE-2.0
+
+This product began as a fork of gabrie30/ghorg
+(https://github.com/gabrie30/ghorg), Copyright 2018 gabrie30 and the
+gabrie30/ghorg contributors, licensed under the Apache License, Version 2.0.
+Source files carried over from it say so in their SPDX-FileCopyrightText
+lines.

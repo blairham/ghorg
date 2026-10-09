@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -20,11 +23,11 @@ type ConfigCmdCommand struct {
 }
 
 type configFlags struct {
-	Get     bool `long:"get" description:"Get the value of a config key"`
-	Unset   bool `long:"unset" description:"Remove a config key"`
-	List    bool `long:"list" short:"l" description:"List all config settings"`
-	Global  bool `long:"global" description:"Use global config file (~/.config/ghorg/conf.yaml)"`
-	Local   bool `long:"local" description:"Use local config file (.ghorg/config.yaml in current directory)"`
+	Get     bool `long:"get"     description:"Get the value of a config key"`
+	Unset   bool `long:"unset"   description:"Remove a config key"`
+	List    bool `long:"list"    description:"List all config settings"                                        short:"l"`
+	Global  bool `long:"global"  description:"Use global config file (~/.config/ghorg/conf.yaml)"`
+	Local   bool `long:"local"   description:"Use local config file (.ghorg/config.yaml in current directory)"`
 	Migrate bool `long:"migrate" description:"Convert legacy GHORG_* config file to new nested format"`
 }
 

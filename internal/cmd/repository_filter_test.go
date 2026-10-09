@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -519,8 +523,18 @@ func TestFilterByRetryFailed(t *testing.T) {
 
 		state := NewStateManifest("github", "o")
 		state.Record(scm.Repo{Name: "ok", URL: "https://github.com/o/ok", CloneBranch: "main"}, StateStatusOK, "abc", "")
-		state.Record(scm.Repo{Name: "broken", URL: "https://github.com/o/broken", CloneBranch: "main"}, StateStatusError, "", "fail")
-		state.Record(scm.Repo{Name: "another-bad", URL: "https://github.com/o/another-bad", CloneBranch: "main"}, StateStatusError, "", "fail2")
+		state.Record(
+			scm.Repo{Name: "broken", URL: "https://github.com/o/broken", CloneBranch: "main"},
+			StateStatusError,
+			"",
+			"fail",
+		)
+		state.Record(
+			scm.Repo{Name: "another-bad", URL: "https://github.com/o/another-bad", CloneBranch: "main"},
+			StateStatusError,
+			"",
+			"fail2",
+		)
 		if err := SaveState(getGhorgStateFilePath(), state); err != nil {
 			t.Fatal(err)
 		}

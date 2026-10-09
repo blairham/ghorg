@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -146,7 +150,7 @@ func (c Gitlab) GetTopLevelGroups() ([]string, error) {
 // http snippet clone url https://gitlab.com/ghorg-test-group/subgroup-2/foobar/snippets/3711587.git
 // ssh clone target url git@gitlab.com:ghorg-test-group/subgroup-2/foobar.git
 // ssh snippet clone url git@gitlab.com:ghorg-test-group/subgroup-2/foobar/snippets/3711587.git
-func (c Gitlab) createRepoSnippetCloneURL(cloneTargetURL string, snippetID string) string {
+func (c Gitlab) createRepoSnippetCloneURL(cloneTargetURL, snippetID string) string {
 	// Split the cloneTargetURL into two parts at the ".git"
 	parts := strings.Split(cloneTargetURL, ".git")
 	// Insert the "/snippets/:id" before the ".git"
@@ -209,7 +213,13 @@ func (c Gitlab) getRepoSnippets(r Repo) []*gitlab.Snippet {
 		}
 
 		if err != nil {
-			colorlog.PrintError(fmt.Sprintf("Error fetching snippets for project %s: %v, ignoring error and proceeding to next project", r.Name, err))
+			colorlog.PrintError(
+				fmt.Sprintf(
+					"Error fetching snippets for project %s: %v, ignoring error and proceeding to next project",
+					r.Name,
+					err,
+				),
+			)
 			break
 		}
 
@@ -302,7 +312,9 @@ func (c Gitlab) GetSnippets(cloneData []Repo, target string) ([]Repo, error) {
 	// If it is a cloud group clone iterate over each project and try to get its snippets. We have to do this because if you use the /snippets/all endpoint it will return every public snippet from the cloud.
 	if os.Getenv("GHORG_CLONE_TYPE") != "user" && os.Getenv("GHORG_SCM_BASE_URL") == "" {
 		// Iterate over all projects in the group. If it has snippets add them
-		colorlog.PrintInfo("Note: only snippets you have access to will be cloned. This process may take a while depending on the size of group you are trying to clone, please be patient.")
+		colorlog.PrintInfo(
+			"Note: only snippets you have access to will be cloned. This process may take a while depending on the size of group you are trying to clone, please be patient.",
+		)
 		allSnippetsToClone = c.getRepoSnippetsParallel(cloneData)
 	} else {
 		allSnippets := c.getAllSnippets()
@@ -523,7 +535,7 @@ func (Gitlab) NewClient() (Client, error) {
 	return Gitlab{c}, err
 }
 
-func (Gitlab) addTokenToCloneURL(url string, token string) string {
+func (Gitlab) addTokenToCloneURL(url, token string) string {
 	// allows for http and https for local testing
 	splitURL := strings.Split(url, "://")
 	return splitURL[0] + "://oauth2:" + token + "@" + splitURL[1]

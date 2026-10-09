@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -101,8 +105,18 @@ func TestGetServerProjectRepos_SinglePage(t *testing.T) {
 	defer os.Unsetenv("GHORG_BRANCH")
 
 	repos := []ServerRepository{
-		newServerRepo("repo1", "PROJ", "https://bitbucket.example.com/scm/proj/repo1.git", "ssh://git@bitbucket.example.com:7999/proj/repo1.git"),
-		newServerRepo("repo2", "PROJ", "https://bitbucket.example.com/scm/proj/repo2.git", "ssh://git@bitbucket.example.com:7999/proj/repo2.git"),
+		newServerRepo(
+			"repo1",
+			"PROJ",
+			"https://bitbucket.example.com/scm/proj/repo1.git",
+			"ssh://git@bitbucket.example.com:7999/proj/repo1.git",
+		),
+		newServerRepo(
+			"repo2",
+			"PROJ",
+			"https://bitbucket.example.com/scm/proj/repo2.git",
+			"ssh://git@bitbucket.example.com:7999/proj/repo2.git",
+		),
 	}
 
 	mux.HandleFunc("/rest/api/1.0/projects/PROJ/repos", func(w http.ResponseWriter, r *http.Request) {
@@ -469,9 +483,24 @@ func TestGetServerUserRepos_SinglePage(t *testing.T) {
 	defer os.Unsetenv("GHORG_BRANCH")
 
 	repos := []ServerRepository{
-		newServerRepo("user-repo1", "~ADMIN", "https://bitbucket.example.com/scm/~admin/user-repo1.git", "ssh://git@bitbucket.example.com:7999/~admin/user-repo1.git"),
-		newServerRepo("user-repo2", "~ADMIN", "https://bitbucket.example.com/scm/~admin/user-repo2.git", "ssh://git@bitbucket.example.com:7999/~admin/user-repo2.git"),
-		newServerRepo("user-repo3", "~ADMIN", "https://bitbucket.example.com/scm/~admin/user-repo3.git", "ssh://git@bitbucket.example.com:7999/~admin/user-repo3.git"),
+		newServerRepo(
+			"user-repo1",
+			"~ADMIN",
+			"https://bitbucket.example.com/scm/~admin/user-repo1.git",
+			"ssh://git@bitbucket.example.com:7999/~admin/user-repo1.git",
+		),
+		newServerRepo(
+			"user-repo2",
+			"~ADMIN",
+			"https://bitbucket.example.com/scm/~admin/user-repo2.git",
+			"ssh://git@bitbucket.example.com:7999/~admin/user-repo2.git",
+		),
+		newServerRepo(
+			"user-repo3",
+			"~ADMIN",
+			"https://bitbucket.example.com/scm/~admin/user-repo3.git",
+			"ssh://git@bitbucket.example.com:7999/~admin/user-repo3.git",
+		),
 	}
 
 	mux.HandleFunc("/rest/api/1.0/repos", func(w http.ResponseWriter, _ *http.Request) {

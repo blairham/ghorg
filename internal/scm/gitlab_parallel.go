@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -76,7 +80,11 @@ func (c Gitlab) fetchTopLevelGroupsParallel(firstPageGroups []*gitlab.Group, tot
 }
 
 // fetchGroupReposParallel fetches remaining pages of group projects concurrently
-func (c Gitlab) fetchGroupReposParallel(targetGroup string, firstPageProjects []*gitlab.Project, totalPages int) ([]Repo, error) {
+func (c Gitlab) fetchGroupReposParallel(
+	targetGroup string,
+	firstPageProjects []*gitlab.Project,
+	totalPages int,
+) ([]Repo, error) {
 	// Create slice to hold all repos
 	repoData := make([]Repo, 0, len(firstPageProjects)*totalPages)
 	repoData = append(repoData, c.filter(targetGroup, firstPageProjects)...)

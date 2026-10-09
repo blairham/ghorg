@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package git
 
 import (
@@ -379,7 +383,7 @@ func (g GitClient) Branch(repo scm.Repo) (string, error) {
 }
 
 // RevListCompare returns the list of commits in the local branch that are not in the remote branch.
-func (g GitClient) RevListCompare(repo scm.Repo, localBranch string, remoteBranch string) (string, error) {
+func (g GitClient) RevListCompare(repo scm.Repo, localBranch, remoteBranch string) (string, error) {
 	cmd := exec.Command("git", "-C", repo.HostPath, "rev-list", localBranch, "^"+remoteBranch)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -592,7 +596,7 @@ func (g GitClient) MergeFastForward(repo scm.Repo) error {
 }
 
 // UpdateRef updates a local ref to point to the given remote ref (by resolving the remote ref SHA first).
-func (g GitClient) UpdateRef(repo scm.Repo, refName string, commitRef string) error {
+func (g GitClient) UpdateRef(repo scm.Repo, refName, commitRef string) error {
 	// Resolve commitRef to SHA
 	revCmd := exec.Command("git", "rev-parse", commitRef)
 	revCmd.Dir = repo.HostPath

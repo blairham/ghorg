@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -116,7 +120,11 @@ func startReCloneServer() {
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		if os.Getenv("GHORG_STATS_ENABLED") != "true" {
-			http.Error(w, "Stats collection is not enabled. Please set GHORG_STATS_ENABLED=true or use --stats-enabled flag", http.StatusPreconditionRequired)
+			http.Error(
+				w,
+				"Stats collection is not enabled. Please set GHORG_STATS_ENABLED=true or use --stats-enabled flag",
+				http.StatusPreconditionRequired,
+			)
 			return
 		}
 

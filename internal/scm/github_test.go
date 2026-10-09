@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -381,9 +385,39 @@ func TestGithub_Filter(t *testing.T) {
 		defer os.Unsetenv("GHORG_GITHUB_TOKEN")
 
 		repos := []*ghpkg.Repository{
-			makeRepo("go-repo", "https://github.com/org/go-repo.git", "git@github.com:org/go-repo.git", "Go", "main", false, false, false, nil),
-			makeRepo("py-repo", "https://github.com/org/py-repo.git", "git@github.com:org/py-repo.git", "Python", "main", false, false, false, nil),
-			makeRepo("another-go", "https://github.com/org/another-go.git", "git@github.com:org/another-go.git", "Go", "main", false, false, false, nil),
+			makeRepo(
+				"go-repo",
+				"https://github.com/org/go-repo.git",
+				"git@github.com:org/go-repo.git",
+				"Go",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
+			makeRepo(
+				"py-repo",
+				"https://github.com/org/py-repo.git",
+				"git@github.com:org/py-repo.git",
+				"Python",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
+			makeRepo(
+				"another-go",
+				"https://github.com/org/another-go.git",
+				"git@github.com:org/another-go.git",
+				"Go",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
 		}
 
 		result := gh.filter(repos)
@@ -404,9 +438,39 @@ func TestGithub_Filter(t *testing.T) {
 		defer os.Unsetenv("GHORG_GITHUB_TOKEN")
 
 		repos := []*ghpkg.Repository{
-			makeRepo("go-repo", "https://github.com/org/go-repo.git", "git@github.com:org/go-repo.git", "Go", "main", false, false, false, nil),
-			makeRepo("py-repo", "https://github.com/org/py-repo.git", "git@github.com:org/py-repo.git", "Python", "main", false, false, false, nil),
-			makeRepo("rust-repo", "https://github.com/org/rust-repo.git", "git@github.com:org/rust-repo.git", "Rust", "main", false, false, false, nil),
+			makeRepo(
+				"go-repo",
+				"https://github.com/org/go-repo.git",
+				"git@github.com:org/go-repo.git",
+				"Go",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
+			makeRepo(
+				"py-repo",
+				"https://github.com/org/py-repo.git",
+				"git@github.com:org/py-repo.git",
+				"Python",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
+			makeRepo(
+				"rust-repo",
+				"https://github.com/org/rust-repo.git",
+				"git@github.com:org/rust-repo.git",
+				"Rust",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
 		}
 
 		result := gh.filter(repos)
@@ -427,8 +491,28 @@ func TestGithub_Filter(t *testing.T) {
 		defer os.Unsetenv("GHORG_GITHUB_TOKEN")
 
 		repos := []*ghpkg.Repository{
-			makeRepo("go-repo", "https://github.com/org/go-repo.git", "git@github.com:org/go-repo.git", "Go", "main", false, false, false, nil),
-			makeRepo("nolang-repo", "https://github.com/org/nolang-repo.git", "git@github.com:org/nolang-repo.git", "", "main", false, false, false, nil),
+			makeRepo(
+				"go-repo",
+				"https://github.com/org/go-repo.git",
+				"git@github.com:org/go-repo.git",
+				"Go",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
+			makeRepo(
+				"nolang-repo",
+				"https://github.com/org/nolang-repo.git",
+				"git@github.com:org/nolang-repo.git",
+				"",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
 		}
 
 		result := gh.filter(repos)
@@ -449,8 +533,28 @@ func TestGithub_Filter(t *testing.T) {
 		defer os.Unsetenv("GHORG_GITHUB_TOKEN")
 
 		repos := []*ghpkg.Repository{
-			makeRepo("wiki-repo", "https://github.com/org/wiki-repo.git", "git@github.com:org/wiki-repo.git", "", "main", false, false, true, nil),
-			makeRepo("no-wiki-repo", "https://github.com/org/no-wiki-repo.git", "git@github.com:org/no-wiki-repo.git", "", "main", false, false, false, nil),
+			makeRepo(
+				"wiki-repo",
+				"https://github.com/org/wiki-repo.git",
+				"git@github.com:org/wiki-repo.git",
+				"",
+				"main",
+				false,
+				false,
+				true,
+				nil,
+			),
+			makeRepo(
+				"no-wiki-repo",
+				"https://github.com/org/no-wiki-repo.git",
+				"git@github.com:org/no-wiki-repo.git",
+				"",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
 		}
 
 		result := gh.filter(repos)
@@ -488,7 +592,17 @@ func TestGithub_Filter(t *testing.T) {
 		defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
 
 		repos := []*ghpkg.Repository{
-			makeRepo("ssh-repo", "https://github.com/org/ssh-repo.git", "git@github.com:org/ssh-repo.git", "", "main", false, false, false, nil),
+			makeRepo(
+				"ssh-repo",
+				"https://github.com/org/ssh-repo.git",
+				"git@github.com:org/ssh-repo.git",
+				"",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
 		}
 
 		result := gh.filter(repos)
@@ -509,7 +623,17 @@ func TestGithub_Filter(t *testing.T) {
 		defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
 
 		repos := []*ghpkg.Repository{
-			makeRepo("branch-repo", "https://github.com/org/branch-repo.git", "git@github.com:org/branch-repo.git", "", "main", false, false, false, nil),
+			makeRepo(
+				"branch-repo",
+				"https://github.com/org/branch-repo.git",
+				"git@github.com:org/branch-repo.git",
+				"",
+				"main",
+				false,
+				false,
+				false,
+				nil,
+			),
 		}
 
 		result := gh.filter(repos)
@@ -529,7 +653,17 @@ func TestGithub_Filter(t *testing.T) {
 		defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
 
 		repos := []*ghpkg.Repository{
-			makeRepo("default-branch-repo", "https://github.com/org/default-branch-repo.git", "git@github.com:org/default-branch-repo.git", "", "develop", false, false, false, nil),
+			makeRepo(
+				"default-branch-repo",
+				"https://github.com/org/default-branch-repo.git",
+				"git@github.com:org/default-branch-repo.git",
+				"",
+				"develop",
+				false,
+				false,
+				false,
+				nil,
+			),
 		}
 
 		result := gh.filter(repos)
@@ -549,7 +683,17 @@ func TestGithub_Filter(t *testing.T) {
 		defer os.Unsetenv("GHORG_CLONE_PROTOCOL")
 
 		repos := []*ghpkg.Repository{
-			makeRepo("no-default-repo", "https://github.com/org/no-default-repo.git", "git@github.com:org/no-default-repo.git", "", "", false, false, false, nil),
+			makeRepo(
+				"no-default-repo",
+				"https://github.com/org/no-default-repo.git",
+				"git@github.com:org/no-default-repo.git",
+				"",
+				"",
+				false,
+				false,
+				false,
+				nil,
+			),
 		}
 
 		result := gh.filter(repos)

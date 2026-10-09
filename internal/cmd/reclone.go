@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -20,9 +24,9 @@ type RecloneCommand struct {
 }
 
 type RecloneFlags struct {
-	ReclonePath   string `long:"reclone-path" description:"GHORG_RECLONE_PATH - If you want to set a path other than $HOME/.config/ghorg/reclone.yaml for your reclone configuration"`
-	Quiet         bool   `long:"quiet" description:"GHORG_RECLONE_QUIET - Quiet logging output"`
-	List          bool   `long:"list" description:"Prints reclone commands and optional descriptions to stdout then will exit 0. Does not obsfucate tokens, and is only available as a commandline argument"`
+	ReclonePath   string `long:"reclone-path"    description:"GHORG_RECLONE_PATH - If you want to set a path other than $HOME/.config/ghorg/reclone.yaml for your reclone configuration"`
+	Quiet         bool   `long:"quiet"           description:"GHORG_RECLONE_QUIET - Quiet logging output"`
+	List          bool   `long:"list"            description:"Prints reclone commands and optional descriptions to stdout then will exit 0. Does not obsfucate tokens, and is only available as a commandline argument"`
 	EnvConfigOnly bool   `long:"env-config-only" description:"GHORG_RECLONE_ENV_CONFIG_ONLY - Only use environment variables to set the configuration for all reclones"`
 }
 
@@ -245,7 +249,8 @@ func runReClone(rc ReClone, rcIdentifier string) {
 			ghorgEnv := strings.HasPrefix(env, "GHORG_")
 
 			// skip global flags and reclone flags which are set in the conf.yaml
-			if env == "GHORG_COLOR" || env == "GHORG_CONFIG" || env == "GHORG_RECLONE_QUIET" || env == "GHORG_RECLONE_PATH" || env == "GHORG_RECLONE_RUNNING" {
+			if env == "GHORG_COLOR" || env == "GHORG_CONFIG" || env == "GHORG_RECLONE_QUIET" || env == "GHORG_RECLONE_PATH" ||
+				env == "GHORG_RECLONE_RUNNING" {
 				continue
 			}
 			if ghorgEnv {
