@@ -1,0 +1,12 @@
+# Allow-list: the `ghorg` target builds the root package, which imports only
+# internal/, and the runtime stage copies the two sample configs. Anything new
+# the build needs has to be listed here.
+*
+
+!Dockerfile
+!go.mod
+!go.sum
+!main.go
+!internal/
+!sample-conf.yaml
+!sample-reclone.yaml

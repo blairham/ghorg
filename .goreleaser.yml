@@ -1,5 +1,7 @@
-# This is an example .goreleaser.yml file with some sensible defaults.
-# Make sure to check the documentation at https://goreleaser.com
+# GoReleaser builds and publishes the ghorg archives, the Homebrew formula and
+# the ghcr.io/blairham/ghorg image. It runs inside blairham/.github's
+# go-release.yml (see .github/workflows/release.yml), which also attests build
+# provenance for the archives and the image.
 version: 2
 project_name: ghorg
 before:
@@ -9,6 +11,7 @@ builds:
   - env:
       - CGO_ENABLED=0
     main: .
+    mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags:
       - -s -w -X github.com/blairham/ghorg/internal/cmd.version={{.Version}}
     goos:
@@ -35,7 +38,7 @@ archives:
 # no service; `brew services` and `brew test` are worth keeping, and formulae
 # work on Homebrew for Linux exactly as they do on macOS.
 #
-# GoReleaser marks `brews` deprecated in favour of `homebrew_casks`, on the
+# GoReleaser marks `brews` deprecated in favor of `homebrew_casks`, on the
 # grounds that formulae installing pre-compiled binaries are "hackyish" and
 # were only needed because Linuxbrew could not handle casks. There is no
 # announced removal date, and the Linuxbrew limitation is not our reason for
@@ -71,6 +74,32 @@ notarize:
 
 checksum:
   name_template: "checksums.txt"
+
+# Keyless cosign signature over checksums.txt, from the release workflow's own
+# GitHub OIDC identity: no key to store or leak. Signing checksums.txt covers
+# every archive, since it lists each one's digest. See SECURITY.md to verify.
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+
+# The image, by digest.
+docker_signs:
+  - cmd: cosign
+    args:
+      - sign
+      - "${artifact}@${digest}"
+      - "--yes"
+
+# The release notes are the tag's CHANGELOG.md section, passed by
+# go-release.yml with --release-notes, which replaces this generated list. Do
+# not set `changelog.disable`: it also skips the stage that loads
+# --release-notes, and the release would go out with empty notes.
 changelog:
   sort: asc
   groups:
@@ -87,12 +116,21 @@ changelog:
     - title: Other
       order: 999
 
+# --snapshot never builds the multi-arch index, and SBOM attestation is on by
+# default, so it is turned off. `--target=release` copies this build's binary;
+# the Dockerfile's default stage would compile it again.
 dockers_v2:
   - images:
       - "ghcr.io/blairham/ghorg"
+    dockerfile: Dockerfile
+    flags:
+      - --target=release
+    sbom: false
+    # Image tags have always carried the `v` (ghcr.io/blairham/ghorg:v0.1.5);
+    # `latest` moves only on a real release, never a prerelease.
     tags:
       - "{{ .Tag }}"
-      - "latest"
+      - "{{ if not .Prerelease }}latest{{ end }}"
     platforms:
       - linux/amd64
       - linux/arm64
@@ -102,6 +140,7 @@ dockers_v2:
       "org.opencontainers.image.description": "Quickly clone an entire org/users repositories into one directory"
       "org.opencontainers.image.url": "https://github.com/blairham/ghorg"
       "org.opencontainers.image.source": "https://github.com/blairham/ghorg"
+      "org.opencontainers.image.licenses": "Apache-2.0"
       "org.opencontainers.image.version": "{{ .Version }}"
       "org.opencontainers.image.revision": "{{ .FullCommit }}"
     extra_files:
