@@ -523,7 +523,7 @@ require (
 	mvdan.cc/unparam v0.0.0-20260823230713-2fa3d841b0c8 // indirect
 	sigs.k8s.io/kind v0.31.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
-	software.sslmate.com/src/go-pkcs12 v0.7.1 // indirect
+	software.sslmate.com/src/go-pkcs12 v0.7.2 // indirect
 )
 
 tool (
