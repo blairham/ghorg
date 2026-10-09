@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Security
+- golang.org/x/net 0.60.0 (five HTTP/2 advisories) and klauspost/compress
+  1.18.7 (GO-2026-5841); `osv-scanner.toml` records the two advisories with
+  no fix, which reach only GoReleaser's tool graph
+
 ## [0.1.6] - 2026-10-09
 
 ### Security

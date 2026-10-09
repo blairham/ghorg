@@ -1,0 +1,19 @@
+# OSV ignores, read by osv-scanner and by OpenSSF Scorecard's Vulnerabilities
+# check. Every entry names why it does not apply; re-check it when the module
+# graph changes rather than letting it outlive its reason.
+
+[[IgnoredVulns]]
+id = "GO-2026-5932"
+# golang.org/x/crypto/openpgp is deprecated, and this advisory covers every
+# x/crypto version with no fixed release. `go list -deps ./...` contains no
+# openpgp package (`go list -deps ./... tool` does: GoReleaser's tool graph),
+# and govulncheck, which checks reachability, reports nothing.
+reason = "x/crypto/openpgp is reached only by GoReleaser in the tool block, never by ghorg's build; the advisory flags all x/crypto versions"
+
+[[IgnoredVulns]]
+id = "GO-2026-6225"
+# docker-credential-acr-env leaks credentials to untrusted hosts and has no
+# fixed release. It is in go.mod only through GoReleaser's tool graph
+# (go-containerregistry's credential helpers): `go list -deps ./...` contains
+# none of it, `go list -deps ./... tool` does.
+reason = "reached only by GoReleaser in the tool block, never by ghorg's build; no fixed release exists"
