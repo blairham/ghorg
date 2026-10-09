@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -9,7 +13,11 @@ import (
 )
 
 // fetchOrgReposParallel fetches remaining pages of org repos concurrently
-func (c Github) fetchOrgReposParallel(targetOrg string, firstPageRepos []*github.Repository, lastPage int) ([]Repo, error) {
+func (c Github) fetchOrgReposParallel(
+	targetOrg string,
+	firstPageRepos []*github.Repository,
+	lastPage int,
+) ([]Repo, error) {
 	// Create slice to hold all repos with capacity for efficiency
 	allRepos := make([]*github.Repository, 0, len(firstPageRepos)*lastPage)
 	allRepos = append(allRepos, firstPageRepos...)
@@ -67,7 +75,11 @@ func (c Github) fetchOrgReposParallel(targetOrg string, firstPageRepos []*github
 }
 
 // fetchUserReposParallel fetches remaining pages of user repos concurrently
-func (c Github) fetchUserReposParallel(targetUser string, firstPageRepos []*github.Repository, lastPage int) ([]Repo, error) {
+func (c Github) fetchUserReposParallel(
+	targetUser string,
+	firstPageRepos []*github.Repository,
+	lastPage int,
+) ([]Repo, error) {
 	// Create slice to hold all repos with capacity for efficiency
 	allRepos := make([]*github.Repository, 0, len(firstPageRepos)*lastPage)
 	allRepos = append(allRepos, firstPageRepos...)
@@ -89,36 +101,7 @@ func (c Github) fetchUserReposParallel(targetUser string, firstPageRepos []*gith
 		go func(pageNum int) {
 			defer wg.Done()
 
-			opt := &github.ListOptions{PerPage: c.perPage, Page: pageNum}
-
-			var repos []*github.Repository
-			var err error
-
-			if targetUser == tokenUsername {
-				authOpt := &github.RepositoryListByAuthenticatedUserOptions{
-					Type:        os.Getenv("GHORG_GITHUB_USER_OPTION"),
-					ListOptions: *opt,
-				}
-				repos, _, err = c.Repositories.ListByAuthenticatedUser(context.Background(), authOpt)
-			} else {
-				userOpt := &github.RepositoryListByUserOptions{
-					Type:        os.Getenv("GHORG_GITHUB_USER_OPTION"),
-					ListOptions: *opt,
-				}
-				repos, _, err = c.Repositories.ListByUser(context.Background(), targetUser, userOpt)
-			}
-
-			// Filter user repos if needed
-			if targetUser != tokenUsername && err == nil {
-				userRepos := []*github.Repository{}
-				for _, repo := range repos {
-					if repo.Owner != nil && repo.Owner.Type != nil && *repo.Owner.Type == "User" {
-						userRepos = append(userRepos, repo)
-					}
-				}
-				repos = userRepos
-			}
-
+			repos, err := c.fetchUserReposPage(targetUser, pageNum)
 			resultChan <- pageResult{repos: repos, err: err, page: pageNum}
 		}(page)
 	}
@@ -146,4 +129,37 @@ func (c Github) fetchUserReposParallel(targetUser string, firstPageRepos []*gith
 	}
 
 	return c.filter(allRepos), nil
+}
+
+// fetchUserReposPage fetches one page of targetUser's repositories: every
+// repository the token can see when targetUser is the token's own user,
+// otherwise only those the user owns.
+func (c Github) fetchUserReposPage(targetUser string, pageNum int) ([]*github.Repository, error) {
+	opt := github.ListOptions{PerPage: c.perPage, Page: pageNum}
+
+	if targetUser == tokenUsername {
+		authOpt := &github.RepositoryListByAuthenticatedUserOptions{
+			Type:        os.Getenv("GHORG_GITHUB_USER_OPTION"),
+			ListOptions: opt,
+		}
+		repos, _, err := c.Repositories.ListByAuthenticatedUser(context.Background(), authOpt)
+		return repos, err
+	}
+
+	userOpt := &github.RepositoryListByUserOptions{
+		Type:        os.Getenv("GHORG_GITHUB_USER_OPTION"),
+		ListOptions: opt,
+	}
+	repos, _, err := c.Repositories.ListByUser(context.Background(), targetUser, userOpt)
+	if err != nil {
+		return nil, err
+	}
+
+	userRepos := []*github.Repository{}
+	for _, repo := range repos {
+		if repo.Owner != nil && repo.Owner.Type != nil && *repo.Owner.Type == "User" {
+			userRepos = append(userRepos, repo)
+		}
+	}
+	return userRepos, nil
 }

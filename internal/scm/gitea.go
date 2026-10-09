@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -94,7 +98,9 @@ func (Gitea) NewClient() (Client, error) {
 	isHTTP := strings.HasPrefix(baseURL, "http://")
 
 	if isHTTP && (os.Getenv("GHORG_INSECURE_GITEA_CLIENT") != "true") {
-		colorlog.PrintErrorAndExit("You are attempting clone from an insecure Gitea instance. You must set the (--insecure-gitea-client) flag to proceed.")
+		colorlog.PrintErrorAndExit(
+			"You are attempting clone from an insecure Gitea instance. You must set the (--insecure-gitea-client) flag to proceed.",
+		)
 	}
 
 	var err error
@@ -138,7 +144,7 @@ func (Gitea) NewClient() (Client, error) {
 	return client, nil
 }
 
-func (Gitea) addTokenToCloneURL(url string, token string) string {
+func (Gitea) addTokenToCloneURL(url, token string) string {
 	isHTTP := strings.HasPrefix(url, "http://")
 
 	if isHTTP {
@@ -146,7 +152,9 @@ func (Gitea) addTokenToCloneURL(url string, token string) string {
 			splitURL := strings.Split(url, "http://")
 			return "http://" + token + "@" + splitURL[1]
 		}
-		colorlog.PrintErrorAndExit("You are attempting clone from an insecure Gitea instance. You must set the (--insecure-gitea-client) flag to proceed.")
+		colorlog.PrintErrorAndExit(
+			"You are attempting clone from an insecure Gitea instance. You must set the (--insecure-gitea-client) flag to proceed.",
+		)
 	}
 
 	splitURL := strings.Split(url, "https://")

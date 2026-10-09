@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package git
 
 import (
@@ -178,7 +181,12 @@ func (g goGitClient) Clone(repo scm.Repo) error {
 	// Sparse-checkout requires the system git binary. Warn so the user knows
 	// the patterns are being ignored on this backend.
 	if patterns := getSparseCheckoutPatterns(); len(patterns) > 0 {
-		colorlog.PrintInfo(fmt.Sprintf("Warning: sparse-checkout patterns '%s' are not supported by go-git backend, ignoring (set GHORG_GIT_BACKEND=exec to enable)\n", strings.Join(patterns, ",")))
+		colorlog.PrintInfo(
+			fmt.Sprintf(
+				"Warning: sparse-checkout patterns '%s' are not supported by go-git backend, ignoring (set GHORG_GIT_BACKEND=exec to enable)\n",
+				strings.Join(patterns, ","),
+			),
+		)
 	}
 
 	_, err := gogit.PlainClone(repo.HostPath, false, cloneOpts)
@@ -490,7 +498,7 @@ func (g goGitClient) Branch(repo scm.Repo) (string, error) {
 }
 
 // RevListCompare returns the list of commits in the local branch that are not in the remote branch.
-func (g goGitClient) RevListCompare(repo scm.Repo, localBranch string, remoteBranch string) (string, error) {
+func (g goGitClient) RevListCompare(repo scm.Repo, localBranch, remoteBranch string) (string, error) {
 	g.debugLog("RevListCompare", repo, fmt.Sprintf("Local: %s, Remote: %s", localBranch, remoteBranch))
 
 	r, err := gogit.PlainOpen(repo.HostPath)
@@ -838,7 +846,11 @@ func (g goGitClient) GetRefHash(repo scm.Repo, ref string) (string, error) {
 
 // HasCommitsNotOnDefaultBranch returns true if currentBranch contains commits not present on the default branch.
 func (g goGitClient) HasCommitsNotOnDefaultBranch(repo scm.Repo, currentBranch string) (bool, error) {
-	g.debugLog("HasCommitsNotOnDefaultBranch", repo, fmt.Sprintf("Current: %s, Default: %s", currentBranch, repo.CloneBranch))
+	g.debugLog(
+		"HasCommitsNotOnDefaultBranch",
+		repo,
+		fmt.Sprintf("Current: %s, Default: %s", currentBranch, repo.CloneBranch),
+	)
 
 	r, err := gogit.PlainOpen(repo.HostPath)
 	if err != nil {
@@ -984,7 +996,7 @@ func (g goGitClient) MergeFastForward(repo scm.Repo) error {
 }
 
 // UpdateRef updates a local ref to point to the given remote ref.
-func (g goGitClient) UpdateRef(repo scm.Repo, refName string, commitRef string) error {
+func (g goGitClient) UpdateRef(repo scm.Repo, refName, commitRef string) error {
 	g.debugLog("UpdateRef", repo, fmt.Sprintf("Ref: %s, Target: %s", refName, commitRef))
 
 	r, err := gogit.PlainOpen(repo.HostPath)

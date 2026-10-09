@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -188,8 +192,8 @@ func (Github) NewClient() (Client, error) {
 	return client, nil
 }
 
-func (Github) addTokenToHTTPSCloneURL(url string, token string) string {
-	splitURL := strings.Split(url, "https://")
+func (Github) addTokenToHTTPSCloneURL(cloneURL, token string) string {
+	splitURL := strings.Split(cloneURL, "https://")
 	return "https://" + tokenUsername + ":" + token + "@" + splitURL[1]
 }
 

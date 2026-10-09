@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package scm
 
 import (
@@ -114,7 +118,9 @@ func (Sourcehut) NewClient() (Client, error) {
 	isHTTP := strings.HasPrefix(baseURL, "http://")
 
 	if isHTTP && (os.Getenv("GHORG_INSECURE_SOURCEHUT_CLIENT") != "true") {
-		colorlog.PrintErrorAndExit("You are attempting clone from an insecure sourcehut instance. You must set the (--insecure-sourcehut-client) flag to proceed.")
+		colorlog.PrintErrorAndExit(
+			"You are attempting clone from an insecure sourcehut instance. You must set the (--insecure-sourcehut-client) flag to proceed.",
+		)
 	}
 
 	var hc *http.Client
@@ -163,7 +169,10 @@ query repositories($cursor: Cursor, $filter: Filter) {
 }
 `
 
-func (c Sourcehut) queryRepositoriesPage(cursor sourcehutCursor, apiUsername string, localUsername string) ([]Repo, sourcehutCursor, error) {
+func (c Sourcehut) queryRepositoriesPage(
+	cursor sourcehutCursor,
+	apiUsername, localUsername string,
+) ([]Repo, sourcehutCursor, error) {
 	u, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, "", err
@@ -200,7 +209,11 @@ func (c Sourcehut) queryRepositoriesPage(cursor sourcehutCursor, apiUsername str
 	if rs.StatusCode != 200 {
 		body, readErr := io.ReadAll(io.LimitReader(rs.Body, 200))
 		if readErr != nil {
-			return nil, "", fmt.Errorf("unexpected response code %d from sourcehut (could not read response body: %w)", rs.StatusCode, readErr)
+			return nil, "", fmt.Errorf(
+				"unexpected response code %d from sourcehut (could not read response body: %w)",
+				rs.StatusCode,
+				readErr,
+			)
 		}
 		return nil, "", fmt.Errorf("unexpected response code %d from sourcehut: %q", rs.StatusCode, string(body))
 	}
@@ -226,15 +239,12 @@ func (c Sourcehut) queryRepositoriesPage(cursor sourcehutCursor, apiUsername str
 		return nil, "", fmt.Errorf("sourcehut api returned errors while listing repos: %s", string(response.Errors))
 	}
 
-	repos, err := c.filter(response.Data.Repositories.Results, apiUsername, localUsername)
-	if err != nil {
-		return nil, "", err
-	}
+	repos := c.filter(response.Data.Repositories.Results, apiUsername, localUsername)
 
 	return repos, sourcehutCursor(response.Data.Repositories.Cursor), nil
 }
 
-func (c Sourcehut) filter(rps []repository, apiUsername string, localUsername string) ([]Repo, error) {
+func (c Sourcehut) filter(rps []repository, apiUsername, localUsername string) []Repo {
 	var repos []Repo
 
 	for _, rp := range rps {
@@ -294,7 +304,7 @@ func (c Sourcehut) filter(rps []repository, apiUsername string, localUsername st
 		repos = append(repos, r)
 	}
 
-	return repos, nil
+	return repos
 }
 
 type repository struct {

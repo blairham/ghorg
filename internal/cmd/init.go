@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -16,13 +19,28 @@ import (
 	"github.com/blairham/ghorg/internal/configs"
 )
 
+// GHORG_SCM_TYPE values.
+const (
+	scmGitHub    = "github"
+	scmGitLab    = "gitlab"
+	scmGitea     = "gitea"
+	scmBitbucket = "bitbucket"
+	scmSourcehut = "sourcehut"
+)
+
+// GHORG_CLONE_TYPE values.
+const (
+	cloneTypeOrg  = "org"
+	cloneTypeUser = "user"
+)
+
 type InitCommand struct {
 	UI cli.Ui
 }
 
 type initFlags struct {
 	DryRun bool `long:"dry-run" description:"Preview the config without writing to disk"`
-	Force  bool `long:"force" description:"Overwrite existing config file"`
+	Force  bool `long:"force"   description:"Overwrite existing config file"`
 }
 
 func (c *InitCommand) Help() string {
@@ -67,14 +85,21 @@ func (c *InitCommand) Run(args []string) int {
 
 	reader := bufio.NewReader(os.Stdin)
 
-	scmType := promptSelect(reader, "SCM provider", []string{"github", "gitlab", "gitea", "bitbucket", "sourcehut"}, "github")
+	scmType := promptSelect(
+		reader,
+		"SCM provider",
+		[]string{scmGitHub, scmGitLab, scmGitea, scmBitbucket, scmSourcehut},
+		scmGitHub,
+	)
 
 	var token string
-	if scmType == "github" {
+	if scmType == scmGitHub {
 		if ghTokenAvailable() {
 			colorlog.PrintSuccess("GitHub token will be detected automatically via gh CLI at runtime")
 		} else {
-			colorlog.PrintInfo("Tip: install the gh CLI (https://cli.github.com) and run 'gh auth login' to skip token management")
+			colorlog.PrintInfo(
+				"Tip: install the gh CLI (https://cli.github.com) and run 'gh auth login' to skip token management",
+			)
 			token = promptString(reader, "GitHub personal access token (leave empty to skip)", "")
 		}
 	} else {
@@ -148,7 +173,7 @@ func promptSelect(reader *bufio.Reader, label string, options []string, defaultV
 	return defaultVal
 }
 
-func promptString(reader *bufio.Reader, label string, defaultVal string) string {
+func promptString(reader *bufio.Reader, label, defaultVal string) string {
 	if defaultVal != "" {
 		fmt.Printf("%s [%s]: ", label, defaultVal)
 	} else {
@@ -169,15 +194,15 @@ func ghTokenAvailable() bool {
 
 func scmTokenKey(scmType string) string {
 	switch scmType {
-	case "github":
+	case scmGitHub:
 		return "auth.github.token"
-	case "gitlab":
+	case scmGitLab:
 		return "auth.gitlab.token"
-	case "gitea":
+	case scmGitea:
 		return "auth.gitea.token"
-	case "bitbucket":
+	case scmBitbucket:
 		return "auth.bitbucket.app-password"
-	case "sourcehut":
+	case scmSourcehut:
 		return "auth.sourcehut.token"
 	default:
 		return ""

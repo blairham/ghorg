@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 // Package cmd encapsulates the logic for all cli commands
 package cmd
 
@@ -66,93 +70,93 @@ type CloneCommand struct {
 type CloneFlags struct {
 	// Global flags (these were on rootCmd in the old cobra version)
 	Config string `long:"config" description:"GHORG_CONFIG - Manually set the path to your config file"`
-	Color  string `long:"color" description:"GHORG_COLOR - Toggles colorful output, enabled/disabled (default: disabled)"`
+	Color  string `long:"color"  description:"GHORG_COLOR - Toggles colorful output, enabled/disabled (default: disabled)"`
 
 	// Path and protocol flags
-	Path     string `short:"p" long:"path" description:"GHORG_ABSOLUTE_PATH_TO_CLONE_TO - Absolute path to the home for ghorg clones. Must start with / (default $HOME/ghorg)"`
-	Protocol string `long:"protocol" description:"GHORG_CLONE_PROTOCOL - Protocol to clone with, ssh or https, (default https)"`
+	Path     string `short:"p" long:"path"     description:"GHORG_ABSOLUTE_PATH_TO_CLONE_TO - Absolute path to the home for ghorg clones. Must start with / (default $HOME/ghorg)"`
+	Protocol string `          long:"protocol" description:"GHORG_CLONE_PROTOCOL - Protocol to clone with, ssh or https, (default https)"`
 
 	// Branch and sync flags
-	Branch            string `short:"b" long:"branch" description:"GHORG_BRANCH - Branch left checked out for each repo cloned (default master)"`
-	SyncDefaultBranch bool   `long:"sync-default-branch" description:"GHORG_SYNC_DEFAULT_BRANCH - Automatically keep the default branch in sync with the remote by performing a fetch and fast-forward merge before cloning"`
+	Branch            string `short:"b" long:"branch"              description:"GHORG_BRANCH - Branch left checked out for each repo cloned (default master)"`
+	SyncDefaultBranch bool   `          long:"sync-default-branch" description:"GHORG_SYNC_DEFAULT_BRANCH - Automatically keep the default branch in sync with the remote by performing a fetch and fast-forward merge before cloning"`
 
 	// Token and auth flags
-	Token             string `short:"t" long:"token" description:"GHORG_GITHUB_TOKEN/GHORG_GITLAB_TOKEN/GHORG_GITEA_TOKEN/GHORG_BITBUCKET_APP_PASSWORD/GHORG_BITBUCKET_OAUTH_TOKEN/GHORG_SOURCEHUT_TOKEN - scm token to clone with"`
-	BitbucketUsername string `long:"bitbucket-username" description:"GHORG_BITBUCKET_USERNAME - Bitbucket only: username associated with the app password"`
-	NoToken           bool   `long:"no-token" description:"GHORG_NO_TOKEN - Allows you to run ghorg with no token (GHORG_<SCM>_TOKEN), SCM server needs to specify no auth required for api calls"`
+	Token             string `short:"t" long:"token"              description:"GHORG_GITHUB_TOKEN/GHORG_GITLAB_TOKEN/GHORG_GITEA_TOKEN/GHORG_BITBUCKET_APP_PASSWORD/GHORG_BITBUCKET_OAUTH_TOKEN/GHORG_SOURCEHUT_TOKEN - scm token to clone with"`
+	BitbucketUsername string `          long:"bitbucket-username" description:"GHORG_BITBUCKET_USERNAME - Bitbucket only: username associated with the app password"`
+	NoToken           bool   `          long:"no-token"           description:"GHORG_NO_TOKEN - Allows you to run ghorg with no token (GHORG_<SCM>_TOKEN), SCM server needs to specify no auth required for api calls"`
 
 	// SCM and clone type flags
-	SCMType   string `short:"s" long:"scm" description:"GHORG_SCM_TYPE - Type of scm used, github, gitlab, gitea, bitbucket or sourcehut (default github)"`
+	SCMType   string `short:"s" long:"scm"        description:"GHORG_SCM_TYPE - Type of scm used, github, gitlab, gitea, bitbucket or sourcehut (default github)"`
 	CloneType string `short:"c" long:"clone-type" description:"GHORG_CLONE_TYPE - Clone target type, user or org (default org)"`
-	BaseURL   string `long:"base-url" description:"GHORG_SCM_BASE_URL - Change SCM base url, for on self hosted instances (currently gitlab, gitea and github (use format of https://git.mydomain.com/api/v3))"`
+	BaseURL   string `          long:"base-url"   description:"GHORG_SCM_BASE_URL - Change SCM base url, for on self hosted instances (currently gitlab, gitea and github (use format of https://git.mydomain.com/api/v3))"`
 
 	// Filter flags
-	SkipArchived                 bool   `long:"skip-archived" description:"GHORG_SKIP_ARCHIVED - Skips archived repos, github/gitlab/gitea only"`
-	SkipForks                    bool   `long:"skip-forks" description:"GHORG_SKIP_FORKS - Skips repo if its a fork, github/gitlab/gitea only"`
-	Topics                       string `long:"topics" description:"GHORG_TOPICS - Comma separated list of github/gitea topics to filter for"`
-	MatchPrefix                  string `long:"match-prefix" description:"GHORG_MATCH_PREFIX - Only clone repos with matching prefix, can be a comma separated list"`
-	ExcludeMatchPrefix           string `long:"exclude-match-prefix" description:"GHORG_EXCLUDE_MATCH_PREFIX - Exclude cloning repos with matching prefix, can be a comma separated list"`
-	MatchRegex                   string `long:"match-regex" description:"GHORG_MATCH_REGEX - Only clone repos that match name to regex provided"`
-	ExcludeMatchRegex            string `long:"exclude-match-regex" description:"GHORG_EXCLUDE_MATCH_REGEX - Exclude cloning repos that match name to regex provided"`
+	SkipArchived                 bool   `long:"skip-archived"                    description:"GHORG_SKIP_ARCHIVED - Skips archived repos, github/gitlab/gitea only"`
+	SkipForks                    bool   `long:"skip-forks"                       description:"GHORG_SKIP_FORKS - Skips repo if its a fork, github/gitlab/gitea only"`
+	Topics                       string `long:"topics"                           description:"GHORG_TOPICS - Comma separated list of github/gitea topics to filter for"`
+	MatchPrefix                  string `long:"match-prefix"                     description:"GHORG_MATCH_PREFIX - Only clone repos with matching prefix, can be a comma separated list"`
+	ExcludeMatchPrefix           string `long:"exclude-match-prefix"             description:"GHORG_EXCLUDE_MATCH_PREFIX - Exclude cloning repos with matching prefix, can be a comma separated list"`
+	MatchRegex                   string `long:"match-regex"                      description:"GHORG_MATCH_REGEX - Only clone repos that match name to regex provided"`
+	ExcludeMatchRegex            string `long:"exclude-match-regex"              description:"GHORG_EXCLUDE_MATCH_REGEX - Exclude cloning repos that match name to regex provided"`
 	GitlabGroupExcludeMatchRegex string `long:"gitlab-group-exclude-match-regex" description:"GHORG_GITLAB_GROUP_EXCLUDE_MATCH_REGEX - Exclude cloning gitlab groups that match name to regex provided"`
-	GhorgIgnorePath              string `long:"ghorgignore-path" description:"GHORG_IGNORE_PATH - If you want to set a path other than $HOME/.config/ghorg/ghorgignore for your ghorgignore"`
-	GhorgOnlyPath                string `long:"ghorgonly-path" description:"GHORG_ONLY_PATH - If you want to set a path other than $HOME/.config/ghorg/ghorgonly for your ghorgonly"`
-	TargetReposPath              string `long:"target-repos-path" description:"GHORG_TARGET_REPOS_PATH - Path to file with list of repo names to clone, file should contain one repo name per line"`
+	GhorgIgnorePath              string `long:"ghorgignore-path"                 description:"GHORG_IGNORE_PATH - If you want to set a path other than $HOME/.config/ghorg/ghorgignore for your ghorgignore"`
+	GhorgOnlyPath                string `long:"ghorgonly-path"                   description:"GHORG_ONLY_PATH - If you want to set a path other than $HOME/.config/ghorg/ghorgonly for your ghorgonly"`
+	TargetReposPath              string `long:"target-repos-path"                description:"GHORG_TARGET_REPOS_PATH - Path to file with list of repo names to clone, file should contain one repo name per line"`
 
 	// Clone behavior flags
-	NoClean                 bool `long:"no-clean" description:"GHORG_NO_CLEAN - Only clones new repos and does not perform a git clean on existing repos"`
-	Prune                   bool `long:"prune" description:"GHORG_PRUNE - Deletes all files/directories found in your local clone directory that are not found on the remote (e.g., after remote deletion). With GHORG_SKIP_ARCHIVED set, archived repositories will also be pruned from your local clone. Will prompt before deleting any files unless used in combination with --prune-no-confirm"`
-	PruneNoConfirm          bool `long:"prune-no-confirm" description:"GHORG_PRUNE_NO_CONFIRM - Don't prompt on every prune candidate, just delete"`
-	PruneUntouched          bool `long:"prune-untouched" description:"GHORG_PRUNE_UNTOUCHED - Prune repositories that don't have any local changes, see sample-conf.yaml for more details"`
+	NoClean                 bool `long:"no-clean"                   description:"GHORG_NO_CLEAN - Only clones new repos and does not perform a git clean on existing repos"`
+	Prune                   bool `long:"prune"                      description:"GHORG_PRUNE - Deletes all files/directories found in your local clone directory that are not found on the remote (e.g., after remote deletion). With GHORG_SKIP_ARCHIVED set, archived repositories will also be pruned from your local clone. Will prompt before deleting any files unless used in combination with --prune-no-confirm"`
+	PruneNoConfirm          bool `long:"prune-no-confirm"           description:"GHORG_PRUNE_NO_CONFIRM - Don't prompt on every prune candidate, just delete"`
+	PruneUntouched          bool `long:"prune-untouched"            description:"GHORG_PRUNE_UNTOUCHED - Prune repositories that don't have any local changes, see sample-conf.yaml for more details"`
 	PruneUntouchedNoConfirm bool `long:"prune-untouched-no-confirm" description:"GHORG_PRUNE_UNTOUCHED_NO_CONFIRM - Automatically delete repos without showing an interactive confirmation prompt"`
-	FetchAll                bool `long:"fetch-all" description:"GHORG_FETCH_ALL - Fetches all remote branches for each repo by running a git fetch --all"`
-	DryRun                  bool `long:"dry-run" description:"GHORG_DRY_RUN - Perform a dry run of the clone; fetches repos but does not clone them"`
-	Backup                  bool `long:"backup" description:"GHORG_BACKUP - Backup mode, clone as mirror, no working copy (ignores branch parameter)"`
-	IncludeSubmodules       bool `long:"include-submodules" description:"GHORG_INCLUDE_SUBMODULES - Include submodules in all clone and pull operations"`
+	FetchAll                bool `long:"fetch-all"                  description:"GHORG_FETCH_ALL - Fetches all remote branches for each repo by running a git fetch --all"`
+	DryRun                  bool `long:"dry-run"                    description:"GHORG_DRY_RUN - Perform a dry run of the clone; fetches repos but does not clone them"`
+	Backup                  bool `long:"backup"                     description:"GHORG_BACKUP - Backup mode, clone as mirror, no working copy (ignores branch parameter)"`
+	IncludeSubmodules       bool `long:"include-submodules"         description:"GHORG_INCLUDE_SUBMODULES - Include submodules in all clone and pull operations"`
 
 	// Additional content flags
-	CloneWiki     bool `long:"clone-wiki" description:"GHORG_CLONE_WIKI - Additionally clone the wiki page for repo"`
+	CloneWiki     bool `long:"clone-wiki"     description:"GHORG_CLONE_WIKI - Additionally clone the wiki page for repo"`
 	CloneSnippets bool `long:"clone-snippets" description:"GHORG_CLONE_SNIPPETS - Additionally clone all snippets, gitlab only"`
 
 	// Insecure client flags
-	InsecureGitlabClient    bool `long:"insecure-gitlab-client" description:"GHORG_INSECURE_GITLAB_CLIENT - Skip TLS certificate verification for hosted gitlab instances"`
-	InsecureGiteaClient     bool `long:"insecure-gitea-client" description:"GHORG_INSECURE_GITEA_CLIENT - Must be set to clone from a Gitea instance using http"`
+	InsecureGitlabClient    bool `long:"insecure-gitlab-client"    description:"GHORG_INSECURE_GITLAB_CLIENT - Skip TLS certificate verification for hosted gitlab instances"`
+	InsecureGiteaClient     bool `long:"insecure-gitea-client"     description:"GHORG_INSECURE_GITEA_CLIENT - Must be set to clone from a Gitea instance using http"`
 	InsecureBitbucketClient bool `long:"insecure-bitbucket-client" description:"GHORG_INSECURE_BITBUCKET_CLIENT - Must be set to clone from a Bitbucket Server instance using http"`
 	InsecureSourcehutClient bool `long:"insecure-sourcehut-client" description:"GHORG_INSECURE_SOURCEHUT_CLIENT - Must be set to clone from a Sourcehut instance using http"`
 
 	// Directory and output flags
-	PreserveDir         bool   `long:"preserve-dir" description:"GHORG_PRESERVE_DIRECTORY_STRUCTURE - Clones repos in a directory structure that matches gitlab namespaces eg company/unit/subunit/app would clone into ghorg/unit/subunit/app, gitlab only"`
-	OutputDir           string `long:"output-dir" description:"GHORG_OUTPUT_DIR - Name of directory repos will be cloned into (default name of org/repo being cloned"`
-	NoDirSize           bool   `long:"no-dir-size" description:"GHORG_NO_DIR_SIZE - Skips the calculation of the output directory size at the end of a clone operation. This can save time, especially when cloning a large number of repositories"`
+	PreserveDir         bool   `long:"preserve-dir"          description:"GHORG_PRESERVE_DIRECTORY_STRUCTURE - Clones repos in a directory structure that matches gitlab namespaces eg company/unit/subunit/app would clone into ghorg/unit/subunit/app, gitlab only"`
+	OutputDir           string `long:"output-dir"            description:"GHORG_OUTPUT_DIR - Name of directory repos will be cloned into (default name of org/repo being cloned"`
+	NoDirSize           bool   `long:"no-dir-size"           description:"GHORG_NO_DIR_SIZE - Skips the calculation of the output directory size at the end of a clone operation. This can save time, especially when cloning a large number of repositories"`
 	PreserveSCMHostname bool   `long:"preserve-scm-hostname" description:"GHORG_PRESERVE_SCM_HOSTNAME - Appends the scm hostname to the GHORG_ABSOLUTE_PATH_TO_CLONE_TO which will organize your clones into specific folders by the scm provider. e.g. /github.com/kubernetes"`
 
 	// Performance and control flags
-	Concurrency       string `long:"concurrency" description:"GHORG_CONCURRENCY - Max goroutines to spin up while cloning (default 25)"`
+	Concurrency       string `long:"concurrency"         description:"GHORG_CONCURRENCY - Max goroutines to spin up while cloning (default 25)"`
 	CloneDelaySeconds string `long:"clone-delay-seconds" description:"GHORG_CLONE_DELAY_SECONDS - Delay in seconds between cloning repos. Useful for rate limiting. Automatically sets concurrency to 1 when > 0 (default 0)"`
-	CloneDepth        string `long:"clone-depth" description:"GHORG_CLONE_DEPTH - Create a shallow clone with a history truncated to the specified number of commits"`
-	GitFilter         string `long:"git-filter" description:"GHORG_GIT_FILTER - Allows you to pass arguments to git's filter flag. Useful for filtering out binary objects from repos with --git-filter=blob:none, this requires git version 2.19 or greater"`
-	GitBackend        string `long:"git-backend" description:"GHORG_GIT_BACKEND - Git backend to use: 'golang' (default, pure Go implementation) or 'exec' (uses system git)"`
-	SparseCheckout    string `long:"sparse-checkout" description:"GHORG_SPARSE_CHECKOUT_PATTERNS - Comma-separated cone-mode sparse-checkout patterns applied to each clone (e.g. 'docs,src/api'). Requires --git-backend=exec; the go-git backend will warn and skip"`
+	CloneDepth        string `long:"clone-depth"         description:"GHORG_CLONE_DEPTH - Create a shallow clone with a history truncated to the specified number of commits"`
+	GitFilter         string `long:"git-filter"          description:"GHORG_GIT_FILTER - Allows you to pass arguments to git's filter flag. Useful for filtering out binary objects from repos with --git-filter=blob:none, this requires git version 2.19 or greater"`
+	GitBackend        string `long:"git-backend"         description:"GHORG_GIT_BACKEND - Git backend to use: 'golang' (default, pure Go implementation) or 'exec' (uses system git)"`
+	SparseCheckout    string `long:"sparse-checkout"     description:"GHORG_SPARSE_CHECKOUT_PATTERNS - Comma-separated cone-mode sparse-checkout patterns applied to each clone (e.g. 'docs,src/api'). Requires --git-backend=exec; the go-git backend will warn and skip"`
 
 	// Resumability
 	RetryFailed bool `long:"retry-failed" description:"GHORG_RETRY_FAILED - Only attempt repos that failed during the previous run (reads _ghorg_state.json from the clone target directory). Composes with other filters. If no state file exists, falls back to cloning everything"`
 
 	// Exit code flags
-	ExitCodeOnCloneInfos  string `long:"exit-code-on-clone-infos" description:"GHORG_EXIT_CODE_ON_CLONE_INFOS - Allows you to control the exit code when ghorg runs into a problem (info level message) cloning a repo from the remote. Info messages will appear after a clone is complete, similar to success messages. (default 0)"`
+	ExitCodeOnCloneInfos  string `long:"exit-code-on-clone-infos"  description:"GHORG_EXIT_CODE_ON_CLONE_INFOS - Allows you to control the exit code when ghorg runs into a problem (info level message) cloning a repo from the remote. Info messages will appear after a clone is complete, similar to success messages. (default 0)"`
 	ExitCodeOnCloneIssues string `long:"exit-code-on-clone-issues" description:"GHORG_EXIT_CODE_ON_CLONE_ISSUES - Allows you to control the exit code when ghorg runs into a problem (issue level message) cloning a repo from the remote. Issue messages will appear after a clone is complete, similar to success messages (default 1)"`
 
 	// Logging and stats flags
-	Quiet        bool `long:"quiet" description:"GHORG_QUIET - Emit critical output only"`
+	Quiet        bool `long:"quiet"         description:"GHORG_QUIET - Emit critical output only"`
 	StatsEnabled bool `long:"stats-enabled" description:"GHORG_STATS_ENABLED - Creates a CSV in the GHORG_ABSOLUTE_PATH_TO_CLONE_TO called _ghorg_stats.csv with info about each clone. This allows you to track clone data over time such as number of commits and size in megabytes of the clone directory"`
 
 	// GitHub specific flags
 	GitHubTokenFromGitHubApp string `long:"github-token-from-github-app" description:"GHORG_GITHUB_TOKEN_FROM_GITHUB_APP - Indicate that the Github token should be treated as an app token. Needed if you already obtained a github app token outside the context of ghorg"`
-	GitHubAppPemPath         string `long:"github-app-pem-path" description:"GHORG_GITHUB_APP_PEM_PATH - Path to your GitHub App PEM file, for authenticating with GitHub App"`
-	GitHubAppInstallationID  string `long:"github-app-installation-id" description:"GHORG_GITHUB_APP_INSTALLATION_ID - GitHub App Installation ID, for authenticating with GitHub App"`
-	GitHubAppID              string `long:"github-app-id" description:"GHORG_GITHUB_APP_ID - GitHub App ID, for authenticating with GitHub App"`
-	GitHubFilterLanguage     string `long:"github-filter-language" description:"GHORG_GITHUB_FILTER_LANGUAGE - Filter repos by a language. Can be a comma separated value with no spaces"`
-	GitHubUserOption         string `long:"github-user-option" description:"GHORG_GITHUB_USER_OPTION - Only available when also using GHORG_CLONE_TYPE: user e.g. --clone-type=user can be one of: all, owner, member (default: owner)"`
-	GitHubUserGists          bool   `long:"github-user-gists" description:"GHORG_GITHUB_USER_GISTS - Additionally clone all of a GitHub user's gists into a ghorg-gists subdirectory (only available with --clone-type=user --scm=github)"`
+	GitHubAppPemPath         string `long:"github-app-pem-path"          description:"GHORG_GITHUB_APP_PEM_PATH - Path to your GitHub App PEM file, for authenticating with GitHub App"`
+	GitHubAppInstallationID  string `long:"github-app-installation-id"   description:"GHORG_GITHUB_APP_INSTALLATION_ID - GitHub App Installation ID, for authenticating with GitHub App"`
+	GitHubAppID              string `long:"github-app-id"                description:"GHORG_GITHUB_APP_ID - GitHub App ID, for authenticating with GitHub App"`
+	GitHubFilterLanguage     string `long:"github-filter-language"       description:"GHORG_GITHUB_FILTER_LANGUAGE - Filter repos by a language. Can be a comma separated value with no spaces"`
+	GitHubUserOption         string `long:"github-user-option"           description:"GHORG_GITHUB_USER_OPTION - Only available when also using GHORG_CLONE_TYPE: user e.g. --clone-type=user can be one of: all, owner, member (default: owner)"`
+	GitHubUserGists          bool   `long:"github-user-gists"            description:"GHORG_GITHUB_USER_GISTS - Additionally clone all of a GitHub user's gists into a ghorg-gists subdirectory (only available with --clone-type=user --scm=github)"`
 
 	// SSH flags
 	SSHHostname string `long:"ssh-hostname" description:"GHORG_SSH_HOSTNAME - Replace the hostname in SSH clone URLs with a custom hostname (useful for SSH host aliases in ~/.ssh/config)"`
@@ -333,11 +337,11 @@ func setTokenForSCM(opts *CloneFlags) {
 		token = configs.GetTokenFromFile(token)
 	}
 	switch os.Getenv("GHORG_SCM_TYPE") {
-	case "github":
+	case scmGitHub:
 		os.Setenv("GHORG_GITHUB_TOKEN", token)
-	case "gitlab":
+	case scmGitLab:
 		os.Setenv("GHORG_GITLAB_TOKEN", token)
-	case "bitbucket":
+	case scmBitbucket:
 		if opts.BitbucketAPIEmail != "" {
 			os.Setenv("GHORG_BITBUCKET_API_TOKEN", token)
 		} else if opts.BitbucketUsername != "" {
@@ -345,9 +349,9 @@ func setTokenForSCM(opts *CloneFlags) {
 		} else {
 			os.Setenv("GHORG_BITBUCKET_OAUTH_TOKEN", token)
 		}
-	case "gitea":
+	case scmGitea:
 		os.Setenv("GHORG_GITEA_TOKEN", token)
-	case "sourcehut":
+	case scmSourcehut:
 		os.Setenv("GHORG_SOURCEHUT_TOKEN", token)
 	}
 }
@@ -380,7 +384,7 @@ func (c *CloneCommand) parseAndApplyFlags(args []string) ([]string, error) {
 	applyBoolFlags(&opts)
 
 	if len(remaining) < 1 {
-		if os.Getenv("GHORG_SCM_TYPE") == "github" && os.Getenv("GHORG_CLONE_TYPE") == "user" {
+		if os.Getenv("GHORG_SCM_TYPE") == scmGitHub && os.Getenv("GHORG_CLONE_TYPE") == cloneTypeUser {
 			remaining = append(remaining, "")
 		} else {
 			return nil, fmt.Errorf("you must provide an org or user to clone")
@@ -446,10 +450,10 @@ func setupRepoClone() {
 	isDirSizeCached = false
 
 	if os.Getenv("GHORG_GITHUB_USER_GISTS") == "true" {
-		if os.Getenv("GHORG_SCM_TYPE") != "github" {
+		if os.Getenv("GHORG_SCM_TYPE") != scmGitHub {
 			colorlog.PrintErrorAndExit("GHORG_GITHUB_USER_GISTS is only supported for GitHub, please set --scm=github")
 		}
-		if os.Getenv("GHORG_CLONE_TYPE") != "user" {
+		if os.Getenv("GHORG_CLONE_TYPE") != cloneTypeUser {
 			colorlog.PrintErrorAndExit("GHORG_GITHUB_USER_GISTS is only supported for user clones, please set --clone-type=user")
 		}
 
@@ -461,7 +465,9 @@ func setupRepoClone() {
 		}
 
 		if len(gistTargets) == 0 {
-			colorlog.PrintInfo("No gists found for github user: " + targetCloneSource + ", please verify you have sufficient permissions, double check spelling and try again.")
+			colorlog.PrintInfo(
+				"No gists found for github user: " + targetCloneSource + ", please verify you have sufficient permissions, double check spelling and try again.",
+			)
 			os.Exit(0)
 		}
 
@@ -477,11 +483,12 @@ func setupRepoClone() {
 	var cloneTargets []scm.Repo
 	var err error
 
-	if os.Getenv("GHORG_CLONE_TYPE") == "org" {
+	switch os.Getenv("GHORG_CLONE_TYPE") {
+	case cloneTypeOrg:
 		cloneTargets, err = getAllOrgCloneUrls()
-	} else if os.Getenv("GHORG_CLONE_TYPE") == "user" {
+	case cloneTypeUser:
 		cloneTargets, err = getAllUserCloneUrls()
-	} else {
+	default:
 		colorlog.PrintError("GHORG_CLONE_TYPE not set or unsupported")
 		os.Exit(1)
 	}
@@ -493,7 +500,13 @@ func setupRepoClone() {
 	}
 
 	if len(cloneTargets) == 0 {
-		colorlog.PrintInfo("No repos found for " + os.Getenv("GHORG_SCM_TYPE") + " " + os.Getenv("GHORG_CLONE_TYPE") + ": " + targetCloneSource + ", please verify you have sufficient permissions to clone target repos, double check spelling and try again.")
+		colorlog.PrintInfo(
+			"No repos found for " + os.Getenv(
+				"GHORG_SCM_TYPE",
+			) + " " + os.Getenv(
+				"GHORG_CLONE_TYPE",
+			) + ": " + targetCloneSource + ", please verify you have sufficient permissions to clone target repos, double check spelling and try again.",
+		)
 		os.Exit(0)
 	}
 	git := git.NewGit()
@@ -511,7 +524,7 @@ func getAllUserCloneUrls() ([]scm.Repo, error) {
 func getAllUserGistCloneUrls() ([]scm.Repo, error) {
 	asciiTime()
 	PrintConfigs()
-	client, err := scm.GetClient("github")
+	client, err := scm.GetClient(scmGitHub)
 	if err != nil {
 		colorlog.PrintError(err)
 		os.Exit(1)
@@ -736,18 +749,48 @@ func printCloneInventory(totalResources, repos, snippets, wikis, gists int) {
 	if os.Getenv("GHORG_GITHUB_USER_GISTS") == "true" {
 		colorlog.PrintInfo(fmt.Sprintf("%v gists found for %v\n", gists, targetCloneSource))
 	} else if os.Getenv("GHORG_CLONE_WIKI") == "true" && os.Getenv("GHORG_CLONE_SNIPPETS") == "true" {
-		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos, %v snippets, and %v wikis\n", totalResources, targetCloneSource, repos, snippets, wikis))
+		colorlog.PrintInfo(
+			fmt.Sprintf(
+				"%v resources to clone found in %v, %v repos, %v snippets, and %v wikis\n",
+				totalResources,
+				targetCloneSource,
+				repos,
+				snippets,
+				wikis,
+			),
+		)
 	} else if os.Getenv("GHORG_CLONE_WIKI") == "true" {
-		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos and %v wikis\n", totalResources, targetCloneSource, repos, wikis))
+		colorlog.PrintInfo(
+			fmt.Sprintf(
+				"%v resources to clone found in %v, %v repos and %v wikis\n",
+				totalResources,
+				targetCloneSource,
+				repos,
+				wikis,
+			),
+		)
 	} else if os.Getenv("GHORG_CLONE_SNIPPETS") == "true" {
-		colorlog.PrintInfo(fmt.Sprintf("%v resources to clone found in %v, %v repos and %v snippets\n", totalResources, targetCloneSource, repos, snippets))
+		colorlog.PrintInfo(
+			fmt.Sprintf(
+				"%v resources to clone found in %v, %v repos and %v snippets\n",
+				totalResources,
+				targetCloneSource,
+				repos,
+				snippets,
+			),
+		)
 	} else {
 		colorlog.PrintInfo(strconv.Itoa(repos) + " repos found in " + targetCloneSource + "\n")
 	}
 
 	if os.Getenv("GHORG_CONCURRENCY_AUTO_ADJUSTED") == "true" {
 		if delaySeconds, hasDelay := getCloneDelaySeconds(); hasDelay {
-			colorlog.PrintInfo(fmt.Sprintf("GHORG_CLONE_DELAY_SECONDS is set to %d seconds. Automatically setting GHORG_CONCURRENCY to 1 for predictable rate limiting.", delaySeconds))
+			colorlog.PrintInfo(
+				fmt.Sprintf(
+					"GHORG_CLONE_DELAY_SECONDS is set to %d seconds. Automatically setting GHORG_CONCURRENCY to 1 for predictable rate limiting.",
+					delaySeconds,
+				),
+			)
 		}
 		os.Unsetenv("GHORG_CONCURRENCY_AUTO_ADJUSTED")
 	}
@@ -755,7 +798,7 @@ func printCloneInventory(totalResources, repos, snippets, wikis, gists int) {
 
 // resolveRepoSlug determines the directory name for a repo
 func resolveRepoSlug(repo *scm.Repo) string {
-	if os.Getenv("GHORG_SCM_TYPE") == "sourcehut" {
+	if os.Getenv("GHORG_SCM_TYPE") == scmSourcehut {
 		return repo.Name
 	}
 	if repo.IsGitHubGist {
@@ -777,7 +820,12 @@ func pruneUntouchedRepos(untouchedReposToPrune []string) int {
 	}
 
 	if os.Getenv("GHORG_PRUNE_UNTOUCHED_NO_CONFIRM") != "true" {
-		colorlog.PrintSuccess(fmt.Sprintf("PLEASE CONFIRM: The following %d untouched repositories will be deleted. Press enter to confirm: ", len(untouchedReposToPrune)))
+		colorlog.PrintSuccess(
+			fmt.Sprintf(
+				"PLEASE CONFIRM: The following %d untouched repositories will be deleted. Press enter to confirm: ",
+				len(untouchedReposToPrune),
+			),
+		)
 		for _, repoPath := range untouchedReposToPrune {
 			colorlog.PrintInfo(fmt.Sprintf("- %s", repoPath))
 		}
@@ -803,7 +851,9 @@ func printCollisionWarning(hasCollisions bool, repoNameWithCollisions map[string
 		return
 	}
 	fmt.Println("")
-	colorlog.PrintInfo("ATTENTION: ghorg detected collisions in repo names from the groups that were cloned. This occurs when one or more groups share common repo names trying to be cloned to the same directory. The repos that would have collisions were renamed with the group/subgroup appended.")
+	colorlog.PrintInfo(
+		"ATTENTION: ghorg detected collisions in repo names from the groups that were cloned. This occurs when one or more groups share common repo names trying to be cloned to the same directory. The repos that would have collisions were renamed with the group/subgroup appended.",
+	)
 	if os.Getenv("GHORG_DEBUG") != "" {
 		fmt.Println("")
 		colorlog.PrintInfo("Collisions Occured in the following repos...")
@@ -845,8 +895,16 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	filter := NewRepositoryFilter()
 	cloneTargets = filter.ApplyAllFilters(cloneTargets)
 
-	totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount, gistsToCloneCount := getCloneableInventory(cloneTargets)
-	printCloneInventory(totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount, gistsToCloneCount)
+	totalResourcesToClone, reposToCloneCount, snippetToCloneCount, wikisToCloneCount, gistsToCloneCount := getCloneableInventory(
+		cloneTargets,
+	)
+	printCloneInventory(
+		totalResourcesToClone,
+		reposToCloneCount,
+		snippetToCloneCount,
+		wikisToCloneCount,
+		gistsToCloneCount,
+	)
 
 	if os.Getenv("GHORG_DRY_RUN") == "true" {
 		printDryRun(cloneTargets)
@@ -906,7 +964,17 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 	cloneErrors = stats.CloneErrors
 
 	printRemainingMessages()
-	printCloneStatsMessage(stats.CloneCount, stats.PulledCount, stats.SkippedCount, stats.ProtectedCount, stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, untouchedPrunes, stats.TotalDurationSeconds)
+	printCloneStatsMessage(
+		stats.CloneCount,
+		stats.PulledCount,
+		stats.SkippedCount,
+		stats.ProtectedCount,
+		stats.UpdateRemoteCount,
+		stats.NewCommits,
+		stats.SyncedCount,
+		untouchedPrunes,
+		stats.TotalDurationSeconds,
+	)
 	printCollisionWarning(hasCollisions, repoNameWithCollisions)
 
 	var pruneCount int
@@ -925,7 +993,22 @@ func CloneAllRepos(git git.Gitter, cloneTargets []scm.Repo) {
 
 	if os.Getenv("GHORG_STATS_ENABLED") == "true" {
 		date := time.Now().Format("2006-01-02 15:04:05")
-		_ = writeGhorgStats(date, allReposToCloneCount, stats.CloneCount, stats.PulledCount, len(stats.CloneInfos), len(stats.CloneErrors), stats.UpdateRemoteCount, stats.NewCommits, stats.SyncedCount, pruneCount, stats.TotalDurationSeconds, hasCollisions)
+		if err := writeGhorgStats(
+			date,
+			allReposToCloneCount,
+			stats.CloneCount,
+			stats.PulledCount,
+			len(stats.CloneInfos),
+			len(stats.CloneErrors),
+			stats.UpdateRemoteCount,
+			stats.NewCommits,
+			stats.SyncedCount,
+			pruneCount,
+			stats.TotalDurationSeconds,
+			hasCollisions,
+		); err != nil {
+			colorlog.PrintError(fmt.Sprintf("Error writing GHORG_STATS file: %v", err))
+		}
 	}
 
 	if err := SaveState(statePath, state); err != nil {
@@ -959,60 +1042,16 @@ func getGhorgStatsFilePath() string {
 	return statsFilePath
 }
 
-func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount, cloneInfosCount, cloneErrorsCount, updateRemoteCount, newCommits, syncedCount, pruneCount, totalDurationSeconds int, hasCollisions bool) error {
-	statsFilePath := getGhorgStatsFilePath()
-	fileExists := true
-
-	if _, err := os.Stat(statsFilePath); os.IsNotExist(err) {
-		fileExists = false
-	}
-
+func writeGhorgStats(
+	date string,
+	allReposToCloneCount, cloneCount, pulledCount, cloneInfosCount, cloneErrorsCount, updateRemoteCount, newCommits, syncedCount, pruneCount, totalDurationSeconds int,
+	hasCollisions bool,
+) error {
 	header := "datetime,clonePath,scm,cloneType,cloneTarget,totalCount,newClonesCount,existingResourcesPulledCount,dirSizeInMB,newCommits,syncedCount,cloneInfosCount,cloneErrorsCount,updateRemoteCount,pruneCount,hasCollisions,ghorgignore,ghorgonly,totalDurationSeconds,ghorgVersion\n"
 
-	var file *os.File
-	var err error
-
-	if fileExists {
-		// Read the existing header
-		existingHeader, readErr := readFirstLine(statsFilePath)
-		if readErr != nil {
-			colorlog.PrintError(fmt.Sprintf("Error reading header from stats file: %v", readErr))
-			return readErr
-		}
-
-		// Check if the existing header is different from the new header, need to add a newline
-		if existingHeader+"\n" != header {
-			hashedHeader := fmt.Sprintf("%x", sha256.Sum256([]byte(header)))
-			newHeaderFilePath := filepath.Join(os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO"), fmt.Sprintf("ghorg_stats_new_header_%s.csv", hashedHeader))
-			// Create a new file with the new header
-			file, err = os.OpenFile(newHeaderFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-			if err != nil {
-				colorlog.PrintError(fmt.Sprintf("Error creating new header stats file: %v", err))
-				return err
-			}
-			if _, writeErr := file.WriteString(header); writeErr != nil {
-				colorlog.PrintError(fmt.Sprintf("Error writing new header to GHORG_STATS file: %v", writeErr))
-				return writeErr
-			}
-		} else {
-			// Open the existing file in append mode
-			file, err = os.OpenFile(statsFilePath, os.O_APPEND|os.O_WRONLY, 0o644)
-			if err != nil {
-				colorlog.PrintError(fmt.Sprintf("Error opening stats file for appending: %v", err))
-				return err
-			}
-		}
-	} else {
-		// Create the file and write the header
-		file, err = os.OpenFile(statsFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-		if err != nil {
-			colorlog.PrintError(fmt.Sprintf("Error creating stats file: %v", err))
-			return err
-		}
-		if _, err := file.WriteString(header); err != nil {
-			colorlog.PrintError(fmt.Sprintf("Error writing header to GHORG_STATS file: %v", err))
-			return err
-		}
+	file, err := openGhorgStatsFile(getGhorgStatsFilePath(), header)
+	if err != nil {
+		return err
 	}
 	defer file.Close()
 
@@ -1038,11 +1077,55 @@ func writeGhorgStats(date string, allReposToCloneCount, cloneCount, pulledCount,
 		totalDurationSeconds,
 		GetVersion())
 	if _, err := file.WriteString(data); err != nil {
-		colorlog.PrintError(fmt.Sprintf("Error writing data to GHORG_STATS file: %v", err))
-		return err
+		return fmt.Errorf("writing data: %w", err)
 	}
 
 	return nil
+}
+
+// openGhorgStatsFile opens the stats CSV for appending, creating it with
+// header if it does not exist. A file whose header differs from header (an
+// older ghorg's columns) is left alone, and the row goes to a sibling file
+// named for the new header's hash instead.
+func openGhorgStatsFile(statsFilePath, header string) (*os.File, error) {
+	if _, err := os.Stat(statsFilePath); os.IsNotExist(err) {
+		return createGhorgStatsFile(statsFilePath, header)
+	}
+
+	existingHeader, err := readFirstLine(statsFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("reading header from stats file: %w", err)
+	}
+
+	if existingHeader+"\n" != header {
+		hashedHeader := fmt.Sprintf("%x", sha256.Sum256([]byte(header)))
+		newHeaderFilePath := filepath.Join(
+			os.Getenv("GHORG_ABSOLUTE_PATH_TO_CLONE_TO"),
+			fmt.Sprintf("ghorg_stats_new_header_%s.csv", hashedHeader),
+		)
+		return createGhorgStatsFile(newHeaderFilePath, header)
+	}
+
+	file, err := os.OpenFile(filepath.Clean(statsFilePath), os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return nil, fmt.Errorf("opening stats file for appending: %w", err)
+	}
+	return file, nil
+}
+
+// createGhorgStatsFile opens path for appending, creating it if needed, and
+// writes header to it.
+func createGhorgStatsFile(path, header string) (*os.File, error) {
+	const openFlags = os.O_APPEND | os.O_CREATE | os.O_WRONLY
+	// G703: the path is the operator's configured clone directory plus a fixed name.
+	file, err := os.OpenFile(filepath.Clean(path), openFlags, 0o600) //nolint:gosec // G703, see above
+	if err != nil {
+		return nil, fmt.Errorf("creating stats file: %w", err)
+	}
+	if _, err := file.WriteString(header); err != nil {
+		return nil, errors.Join(fmt.Errorf("writing header: %w", err), file.Close())
+	}
+	return file, nil
 }
 
 func readFirstLine(filePath string) (string, error) {
@@ -1111,7 +1194,12 @@ func pruneRepos(cloneTargets []scm.Repo) int {
 
 		// Safeguard: Ensure the path is within the expected base directory
 		if !strings.HasPrefix(absolutePathToDelete, outputDirAbsolutePath) {
-			colorlog.PrintErrorAndExit(fmt.Sprintf("DANGEROUS ACTION DETECTED! Preventing deletion of %s as it is outside the base directory this deletion is not expected, exiting.", absolutePathToDelete))
+			colorlog.PrintErrorAndExit(
+				fmt.Sprintf(
+					"DANGEROUS ACTION DETECTED! Preventing deletion of %s as it is outside the base directory this deletion is not expected, exiting.",
+					absolutePathToDelete,
+				),
+			)
 		}
 
 		// For each item in the org's clone directory, let's make sure we found a corresponding
@@ -1120,10 +1208,12 @@ func pruneRepos(cloneTargets []scm.Repo) int {
 		if userAgreesToDelete && !sliceContainsNamedRepo(cloneTargets, repository) {
 			// If the user specified --prune-no-confirm, we needn't prompt interactively.
 			userAgreesToDelete = pruneNoConfirm || interactiveYesNoPrompt(
-				fmt.Sprintf("%s was not found in remote.  Do you want to prune it? %s", repository, absolutePathToDelete))
+				fmt.Sprintf("%s was not found in remote.  Do you want to prune it? %s", repository, absolutePathToDelete),
+			)
 			if userAgreesToDelete {
 				colorlog.PrintSubtleInfo(
-					fmt.Sprintf("Deleting %s", absolutePathToDelete))
+					fmt.Sprintf("Deleting %s", absolutePathToDelete),
+				)
 				err = os.RemoveAll(absolutePathToDelete)
 				count++
 				if err != nil {
@@ -1153,7 +1243,9 @@ func formatDurationText(durationSeconds int) string {
 	}
 }
 
-func printCloneStatsMessage(cloneCount, pulledCount, skippedCount, protectedCount, updateRemoteCount, newCommits, syncedCount, untouchedPrunes, durationSeconds int) {
+func printCloneStatsMessage(
+	cloneCount, pulledCount, skippedCount, protectedCount, updateRemoteCount, newCommits, syncedCount, untouchedPrunes, durationSeconds int,
+) {
 	durationText := formatDurationText(durationSeconds)
 
 	// Build the stats line dynamically to avoid combinatorial explosion
@@ -1238,7 +1330,8 @@ func asciiTime() {
  +-+-+-+-+ +-+-+ +-+-+-+-+-+
  |T|I|M|E| |T|O| |G|H|O|R|G|
  +-+-+-+-+ +-+-+ +-+-+-+-+-+
-`)
+`,
+	)
 }
 
 // PrintConfigs shows the user what is set before cloning
@@ -1387,7 +1480,7 @@ func setOutputDirName(argz []string) {
 	outputDirName = strings.ToLower(argz[0])
 
 	// Strip ~ prefix for sourcehut usernames to avoid shell expansion issues
-	if os.Getenv("GHORG_SCM_TYPE") == "sourcehut" {
+	if os.Getenv("GHORG_SCM_TYPE") == scmSourcehut {
 		outputDirName = strings.TrimPrefix(outputDirName, "~")
 	}
 

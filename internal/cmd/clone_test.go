@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -199,7 +203,7 @@ func (g MockGitClient) Branch(repo scm.Repo) (string, error) {
 	return "", nil
 }
 
-func (g MockGitClient) RevListCompare(repo scm.Repo, ref1 string, ref2 string) (string, error) {
+func (g MockGitClient) RevListCompare(_ scm.Repo, _, _ string) (string, error) {
 	return "", nil
 }
 
@@ -252,7 +256,7 @@ func (g MockGitClient) MergeIntoDefaultBranch(repo scm.Repo, currentBranch strin
 }
 
 // UpdateRef updates a local ref to point to the given remote ref.
-func (g MockGitClient) UpdateRef(repo scm.Repo, refName string, commitRef string) error {
+func (g MockGitClient) UpdateRef(_ scm.Repo, _, _ string) error {
 	return nil
 }
 

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -176,7 +179,13 @@ func InitConfig() {
 		if _, statErr := os.Stat(configFile); os.IsNotExist(statErr) {
 			os.Setenv("GHORG_CONFIG", "none")
 		} else {
-			colorlog.PrintError(fmt.Sprintf("Something unexpected happened reading configuration file: %s, err: %s", os.Getenv("GHORG_CONFIG"), err))
+			colorlog.PrintError(
+				fmt.Sprintf(
+					"Something unexpected happened reading configuration file: %s, err: %s",
+					os.Getenv("GHORG_CONFIG"),
+					err,
+				),
+			)
 			os.Exit(1)
 		}
 	}
@@ -193,7 +202,9 @@ func InitConfig() {
 	if os.Getenv("GHORG_DEBUG") != "" {
 		fmt.Println("-------- Setting Default ENV values ---------")
 		if os.Getenv("GHORG_CONCURRENCY_DEBUG") == "" {
-			fmt.Println("Setting concurrency to 1, this can be overwritten by setting GHORG_CONCURRENCY_DEBUG; however when using concurrency with GHORG_DEBUG, not all debugging output will be printed in serial order.")
+			fmt.Println(
+				"Setting concurrency to 1, this can be overwritten by setting GHORG_CONCURRENCY_DEBUG; however when using concurrency with GHORG_DEBUG, not all debugging output will be printed in serial order.",
+			)
 			os.Setenv("GHORG_CONCURRENCY", "1")
 		}
 	}

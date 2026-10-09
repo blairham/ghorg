@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -370,7 +374,11 @@ func TestRepositoryProcessor_ProcessRepository_NoCleanModeWithFetchAllDisabled(t
 	}
 	// Should not have any errors since fetch-all is skipped when disabled
 	if len(stats.CloneErrors) != 0 {
-		t.Errorf("Expected no errors when FETCH_ALL is disabled, got %d errors: %v", len(stats.CloneErrors), stats.CloneErrors)
+		t.Errorf(
+			"Expected no errors when FETCH_ALL is disabled, got %d errors: %v",
+			len(stats.CloneErrors),
+			stats.CloneErrors,
+		)
 	}
 }
 

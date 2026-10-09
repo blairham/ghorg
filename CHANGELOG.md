@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Security
+- Sign `checksums.txt` and the `ghcr.io/blairham/ghorg` image with keyless
+  cosign, and attest SLSA build provenance for the archives and the image;
+  `SECURITY.md` shows how to verify them
+- Pin the image's base by digest and move it to Alpine 3.23
+- Add `SECURITY.md` with the trust model and private vulnerability reporting
+- Build with Go 1.26.9
+
+### CI/CD
+- Release and CI through blairham/.github's shared workflows, with the shared
+  configuration baseline, CodeQL `security-extended` and OpenSSF Scorecard
+- Pin every action by commit SHA
+
 ### CI/CD
 - Bump Go to 1.26.6, resolved in CI via check-latest
 - Consolidate open dependabot bumps

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018 gabrie30 and the gabrie30/ghorg contributors
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -22,7 +26,7 @@ type LsCommand struct {
 }
 
 type LsFlags struct {
-	Long  bool `short:"l" long:"long" description:"Display detailed information about each clone directory, including size and number of repositories. Note: This may take longer depending on the number and size of the cloned organizations."`
+	Long  bool `short:"l" long:"long"  description:"Display detailed information about each clone directory, including size and number of repositories. Note: This may take longer depending on the number and size of the cloned organizations."`
 	Total bool `short:"t" long:"total" description:"Display total amounts of all repos cloned. Note: This may take longer depending on the number and size of the cloned organizations."`
 }
 

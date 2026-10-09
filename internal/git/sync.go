@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Blair Hamilton
+// SPDX-License-Identifier: Apache-2.0
+
 // Package git provides Git repository synchronization functionality for ghorg.
 //
 // For comprehensive documentation on sync functionality, safety philosophy,
