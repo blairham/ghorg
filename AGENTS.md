@@ -194,17 +194,22 @@ Applied in order:
 - For git tests: create real temp repos rather than mocking filesystem
 - For SCM tests: use `httptest.NewServer()` with JSON responses
 - Tests must never touch real user state (home directory, keychains) — redirect via temp dirs and env vars
-- Test files are excluded from linting (`.golangci.yml: tests: false`)
 
 ### CI Test Matrix
 
-Tests run on **macOS, Ubuntu, and Windows** via GitHub Actions (`.github/workflows/go-test.yml`). CI configures git before tests:
+Tests run on **Ubuntu and macOS** through blairham/.github's shared `go-ci.yml`, and on **Windows** in `ci.yml`'s own `test-windows` job (go-ci runs its commands under bash; Windows also needs a config file and `core.autocrlf false`). CI configures git before tests:
 ```
 git config --global user.name "Test User"
 git config --global user.email "test@example.com"
 git config --global init.defaultBranch main
 ```
-Pre-commit hooks run in CI via the go-pre-commit action; CodeQL analysis also runs.
+`.github/workflows/ci.yml` calls `go-ci.yml` (Pre-commit, Detect changed files, Build and test, Fuzz) and `go-image.yml` (`Image / Build image`, the Dockerfile's `ghorg` target for all three platforms), both pinned by the latest blairham/.github tag's SHA. CodeQL (`codeql.yml`, `security-extended`) and OpenSSF Scorecard (`scorecard.yml`) are synced from the baseline. Required checks on `main` (ruleset, no bypass): `CI / Pre-commit`, `CI / Detect changed files`, `CI / Build and test (ubuntu-latest)`, `CI / Build and test (macos-latest)`, `Build and test (windows-latest)`, `Image / Build image`, `Analyze`.
+
+## Baseline
+
+`.golangci.yml`, `.editorconfig`, `.pre-commit-config.yaml`, `.yamllint.yml`, `.gitleaks.toml`, `.github/dependabot.yml`, `.github/CODEOWNERS`, `codeql.yml` and `scorecard.yml` are **rendered from blairham/.github** (`make sync REPO=ghorg DIR=<checkout>` there) and checked weekly for drift. Edit the baseline, or add a reasoned override in `overrides/ghorg.yml` there — never these files directly.
+
+Every `.go` file carries an SPDX header (`check-license-headers` hook). Files that also exist in gabrie30/ghorg carry its copyright line above Blair's; `NOTICE` records the fork.
 
 ## Authentication by Provider
 
@@ -224,20 +229,14 @@ All tokens accept either a literal value or a path to a file containing the toke
 - **Platforms:** Linux (amd64/arm64/arm), macOS (amd64/arm64), Windows (amd64)
 - **Homebrew:** a **formula** (not a cask) published to `blairham/homebrew-tap` under `Formula/` via the `brews:` GoReleaser section
 - **macOS binaries** are signed and notarized when signing env vars are present
-- **Docker:** Published to `ghcr.io/blairham/ghorg` (amd64/arm64)
-- **Triggered by:** Git tag push (`v*`) or manual `workflow_dispatch`
+- **Docker:** Published to `ghcr.io/blairham/ghorg` (amd64/arm64/arm/v7) from the Dockerfile's `release` target; image tags keep the `v`
+- **Triggered by:** Git tag push (`v*`), or `workflow_dispatch` with an existing tag (or none, for a `--snapshot` dry run). `release.yml` calls blairham/.github's `go-release.yml`, which runs the tests, GoReleaser, keyless cosign over `checksums.txt` and the image, and `attest-build-provenance` (bundle attached as `ghorg-<tag>.intoto.jsonl`). `SECURITY.md` has the verify commands
 - **Static binaries:** `CGO_ENABLED=0` for full portability
-- Update `CHANGELOG.md` when tagging a release
+- **Release notes are the tag's `CHANGELOG.md` section**, headed `## [X.Y.Z] - <date>` **without** the `v` (go-release looks up `## [0.1.6]` for `v0.1.6`); the release fails if it is missing. Move `[Unreleased]` under the new heading before tagging
 
 ## Linting
 
-golangci-lint v2, pinned in `go.mod`'s `tool` block, config in `.golangci.yml` (~49 linters enabled). Runs in CI, not pre-commit. Notable settings:
-- `tests: false` — test files excluded
-- No naked returns allowed (`nakedret.max-func-lines: 0`)
-- `nolint` directives must specify which linter
-- No global slog loggers (`sloglint.no-global: all`)
-- Exhaustive switch and map checks enabled
-- Import grouping enforced: stdlib, then third-party, then `github.com/blairham/ghorg` (via `goimports` with `local-prefixes`)
+golangci-lint v2, pinned in `go.mod`'s `tool` block, config in `.golangci.yml` (the blairham/.github baseline). It runs as a pre-commit hook (`--new-from-rev HEAD`) and in CI as the `golangci-lint-new` hook (`--new-from-merge-base=origin/main`), so only issues a change introduces are reported; never run it by hand. Test files are linted too (`run.tests: true`); see `.golangci.yml` for the linter set and settings.
 
 ## Key Dependencies
 

@@ -1,6 +1,12 @@
 # ghorg
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/blairham/ghorg)](https://goreportcard.com/report/github.com/blairham/ghorg) [![Go Reference](https://pkg.go.dev/badge/github.com/blairham/ghorg.svg)](https://pkg.go.dev/github.com/blairham/ghorg) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![CI](https://github.com/blairham/ghorg/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/blairham/ghorg/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/blairham/ghorg?sort=semver)](https://github.com/blairham/ghorg/releases/latest)
+[![CodeQL](https://github.com/blairham/ghorg/actions/workflows/codeql.yml/badge.svg)](https://github.com/blairham/ghorg/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/blairham/ghorg/badge)](https://scorecard.dev/viewer/?uri=github.com/blairham/ghorg)
+[![Go Reference](https://pkg.go.dev/badge/github.com/blairham/ghorg.svg)](https://pkg.go.dev/github.com/blairham/ghorg)
+[![Go version](https://img.shields.io/github/go-mod/go-version/blairham/ghorg)](go.mod)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Pronounced [gore-guh]; similar to [gorge](https://www.dictionary.com/browse/gorge). You can use ghorg to gorge on orgs.
 

@@ -1,0 +1,28 @@
+name: Feature request
+description: Something ghorg should clone, filter or report
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like ghorg to do?
+      description: The task, not the implementation.
+    validations:
+      required: true
+  - type: dropdown
+    id: scm
+    attributes:
+      label: Which providers?
+      multiple: true
+      options:
+        - GitHub
+        - GitLab
+        - Gitea
+        - Bitbucket
+        - Sourcehut
+        - all of them
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+      description: What you are doing today instead.

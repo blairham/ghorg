@@ -1,0 +1,64 @@
+name: Bug report
+description: Something ghorg did that it should not have
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please read the
+        [troubleshooting section](https://github.com/blairham/ghorg#troubleshooting)
+        first. **If a token reached a log, a cloned repository's remote or a
+        file on disk, that is a security issue** -- report it privately
+        through Security → Report a vulnerability, not here.
+
+        Never paste tokens, app passwords or private keys. Redact them.
+  - type: input
+    id: version
+    attributes:
+      label: ghorg version or commit
+      description: The output of `ghorg version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: scm
+    attributes:
+      label: Which provider?
+      options:
+        - GitHub
+        - GitLab
+        - Gitea
+        - Bitbucket
+        - Sourcehut
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part?
+      options:
+        - clone
+        - reclone, reclone-server or reclone-cron
+        - config or init
+        - ls
+        - container image
+        - Homebrew formula
+        - something else
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system, and git backend
+      description: e.g. macOS 15, default (go-git) backend; Ubuntu 24.04, GHORG_GIT_BACKEND=exec
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect instead?
+      description: The full command (token removed), and whether the target is your user, a public org or a private one.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output (redacted)
+      render: shell
