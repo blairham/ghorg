@@ -6,9 +6,11 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/cli"
+	"github.com/jessevdk/go-flags"
 )
 
 func TestRecloneServerCommand_Synopsis(t *testing.T) {
@@ -158,5 +160,50 @@ func TestServerPortFormatting(t *testing.T) {
 				t.Errorf("Port formatting: expected %q, got %q", tt.expected, serverPort)
 			}
 		})
+	}
+}
+
+func TestRecloneTriggerArgs(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		cmd     string
+		want    []string
+		wantErr bool
+	}{
+		{name: "empty runs every reclone", cmd: "", want: []string{"reclone"}},
+		{name: "an entry name", cmd: "my-org", want: []string{"reclone", "--", "my-org"}},
+		{name: "a long flag is refused", cmd: "--reclone-path=/tmp/evil.yaml", wantErr: true},
+		{name: "list is refused", cmd: "--list", wantErr: true},
+		{name: "a short flag is refused", cmd: "-h", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := recloneTriggerArgs(tt.cmd)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("recloneTriggerArgs(%q) error = %v, wantErr %v", tt.cmd, err, tt.wantErr)
+			}
+			if strings.Join(got, "\x00") != strings.Join(tt.want, "\x00") {
+				t.Errorf("recloneTriggerArgs(%q) = %q, want %q", tt.cmd, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestRecloneDoubleDashEndsFlags pins the go-flags behavior recloneTriggerArgs
+// relies on: after `--`, a word that looks like a flag is an entry name.
+func TestRecloneDoubleDashEndsFlags(t *testing.T) {
+	t.Parallel()
+	var opts RecloneFlags
+	remaining, err := flags.NewParser(&opts, flags.Default).ParseArgs([]string{"--", "--reclone-path=/tmp/evil.yaml"})
+	if err != nil {
+		t.Fatalf("ParseArgs: %v", err)
+	}
+	if opts.ReclonePath != "" {
+		t.Errorf("ReclonePath = %q, want it unset", opts.ReclonePath)
+	}
+	if len(remaining) != 1 || remaining[0] != "--reclone-path=/tmp/evil.yaml" {
+		t.Errorf("remaining = %q, want the word as an entry name", remaining)
 	}
 }
