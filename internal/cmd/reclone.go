@@ -152,32 +152,79 @@ func printFinalOutput(argz []string, reCloneMap map[string]ReClone) {
 	}
 }
 
+// secretFlags are the clone flags whose value is a credential, longest first
+// so that a longer flag is never read as a shorter one.
+var secretFlags = []string{"--bitbucket-api-token", "--token", "-t"}
+
+// sanitizeCmd returns cmd, for logging, with the value of every credential
+// flag replaced by XXXXXXX. A flag counts only at the start of an argument,
+// in either the `--token=v` or the `--token v` form, and its value runs to the
+// next space outside quotes, so a quoted token is masked whole.
 func sanitizeCmd(cmd string) string {
-	if strings.Contains(cmd, "-t=") {
-		splitCmd := strings.Split(cmd, "-t=")
-		firstHalf := splitCmd[0]
-		secondHalf := strings.Split(splitCmd[1], " ")[1:]
-		return firstHalf + "-t=XXXXXXX " + strings.Join(secondHalf, " ")
+	var b strings.Builder
+	for i := 0; i < len(cmd); {
+		flag := secretFlagAt(cmd, i)
+		if flag == "" {
+			b.WriteByte(cmd[i])
+			i++
+			continue
+		}
+		b.WriteString(flag)
+		j := i + len(flag)
+		if cmd[j] == '=' {
+			b.WriteByte('=')
+			j++
+		} else {
+			for j < len(cmd) && cmd[j] == ' ' {
+				b.WriteByte(' ')
+				j++
+			}
+			// go-flags never takes a word starting with a dash as the value
+			// of `--token v`, so that word is the next flag, not the token.
+			if j < len(cmd) && cmd[j] == '-' {
+				i = j
+				continue
+			}
+		}
+		end := argEnd(cmd, j)
+		if end > j {
+			b.WriteString("XXXXXXX")
+		}
+		i = end
 	}
-	if strings.Contains(cmd, "-t ") {
-		splitCmd := strings.Split(cmd, "-t ")
-		firstHalf := splitCmd[0]
-		secondHalf := strings.Split(splitCmd[1], " ")[1:]
-		return firstHalf + "-t XXXXXXX " + strings.Join(secondHalf, " ")
+	return b.String()
+}
+
+// secretFlagAt returns the credential flag that starts an argument at cmd[i],
+// or "" if there is none.
+func secretFlagAt(cmd string, i int) string {
+	if i > 0 && cmd[i-1] != ' ' {
+		return ""
 	}
-	if strings.Contains(cmd, "--token=") {
-		splitCmd := strings.Split(cmd, "--token=")
-		firstHalf := splitCmd[0]
-		secondHalf := strings.Split(splitCmd[1], " ")[1:]
-		return firstHalf + "--token=XXXXXXX " + strings.Join(secondHalf, " ")
+	for _, flag := range secretFlags {
+		n := i + len(flag)
+		if strings.HasPrefix(cmd[i:], flag) && n < len(cmd) && (cmd[n] == '=' || cmd[n] == ' ') {
+			return flag
+		}
 	}
-	if strings.Contains(cmd, "--token ") {
-		splitCmd := strings.Split(cmd, "--token ")
-		firstHalf := splitCmd[0]
-		secondHalf := strings.Split(splitCmd[1], " ")[1:]
-		return firstHalf + "--token XXXXXXX " + strings.Join(secondHalf, " ")
+	return ""
+}
+
+// argEnd returns the index of the first space at or after j that is outside
+// single or double quotes, or len(cmd).
+func argEnd(cmd string, j int) int {
+	inSingleQuote, inDoubleQuote := false, false
+	for ; j < len(cmd); j++ {
+		switch ch := cmd[j]; {
+		case ch == '\'' && !inDoubleQuote:
+			inSingleQuote = !inSingleQuote
+		case ch == '"' && !inSingleQuote:
+			inDoubleQuote = !inDoubleQuote
+		case ch == ' ' && !inSingleQuote && !inDoubleQuote:
+			return j
+		}
 	}
-	return cmd
+	return j
 }
 
 // splitCommandArgs splits a command string into arguments, properly handling
