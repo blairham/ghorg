@@ -29,7 +29,7 @@ concurrency:
 jobs:
   ci:
     name: CI
-    uses: blairham/.github/.github/workflows/go-ci.yml@9711060ad4860f35860bcbf90d90f103617082d2 # v0.0.1
+    uses: blairham/.github/.github/workflows/go-ci.yml@48d6c8f94aa8381c550818e0a0b2a0d61f280a6b # v0.0.2
     with:
       os: '["ubuntu-latest", "macos-latest"]'
       # The git tests make real commits, so the runner needs an identity and
@@ -45,7 +45,7 @@ jobs:
   image:
     name: Image
     needs: ci
-    uses: blairham/.github/.github/workflows/go-image.yml@9711060ad4860f35860bcbf90d90f103617082d2 # v0.0.1
+    uses: blairham/.github/.github/workflows/go-image.yml@48d6c8f94aa8381c550818e0a0b2a0d61f280a6b # v0.0.2
     with:
       run: ${{ needs.ci.outputs.code == 'true' }}
       targets: '["ghorg"]'
