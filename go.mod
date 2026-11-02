@@ -1,6 +1,6 @@
 module github.com/blairham/ghorg
 
-go 1.26.9
+go 1.26.10
 
 require (
 	code.gitea.io/sdk/gitea v0.25.1
@@ -15,12 +15,12 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/knadh/koanf/parsers/yaml v1.1.1
 	github.com/knadh/koanf/providers/file v1.2.1
-	github.com/knadh/koanf/v2 v2.3.7
+	github.com/knadh/koanf/v2 v2.4.1
 	github.com/korovkin/limiter v0.0.0-20260306054425-004398ae7895
 	github.com/ktrysmt/go-bitbucket v0.10.0
 	github.com/mitchellh/go-homedir v1.1.0
 	gitlab.com/gitlab-org/api/client-go v1.46.0
-	go.yaml.in/yaml/v3 v3.0.5
+	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/oauth2 v0.37.0
 	gopkg.in/yaml.v2 v2.4.0
 )
