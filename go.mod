@@ -1,6 +1,6 @@
 module github.com/blairham/ghorg
 
-go 1.26.10
+go 1.27.4
 
 require (
 	code.gitea.io/sdk/gitea v0.25.1

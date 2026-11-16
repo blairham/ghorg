@@ -6,7 +6,7 @@ Working agreements and project reference for AI coding agents. This is the cross
 
 ghorg is a CLI tool that bulk-clones all repositories from a GitHub, GitLab, Gitea, Bitbucket, or Sourcehut organization/user into a single local directory. Use cases include code searching, team onboarding, backups, and audits.
 
-- **Language:** Go (pinned in `go.mod`, currently 1.26.x — `go.mod` is authoritative)
+- **Language:** Go (pinned in `go.mod`, currently 1.27.x — `go.mod` is authoritative)
 - **CLI framework:** `hashicorp/cli`
 - **Flag parsing:** `jessevdk/go-flags`
 - **Config parsing:** `knadh/koanf` (YAML)
