@@ -40,7 +40,7 @@ jobs:
         git config --global init.defaultBranch main &&
         go test -race ./...
 
-  # Build only; a v* tag publishes (release.yml). The `ghorg` stage compiles
+  # Build only; a release publishes (release.yml). The `ghorg` stage compiles
   # from source; the release stage copies GoReleaser's binary instead.
   image:
     name: Image

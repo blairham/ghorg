@@ -1,15 +1,9 @@
 # Changelog
 
-## [Unreleased]
-
-### Security
-- golang.org/x/net 0.60.0 (five HTTP/2 advisories) and klauspost/compress
-  1.18.7 (GO-2026-5841); `osv-scanner.toml` records the two advisories with
-  no fix, which reach only GoReleaser's tool graph
-
-### Documentation
-- New README screenshots of `ghorg clone` and `ghorg reclone`, recorded from
-  VHS tapes in `docs/tapes/`; a note on the clash with homebrew-core's `ghorg`
+A release's notes are its section here. From the release after 0.1.6 on,
+release-please writes each section from the Conventional Commit titles of
+the pull requests it carries (see CONTRIBUTING.md); edit a title, not this
+file.
 
 ## [0.1.6] - 2026-10-09
 
