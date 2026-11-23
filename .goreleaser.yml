@@ -8,7 +8,8 @@ before:
   hooks:
     - go mod tidy
 builds:
-  - env:
+  - id: ghorg
+    env:
       - CGO_ENABLED=0
     main: .
     mod_timestamp: "{{ .CommitTimestamp }}"
@@ -34,32 +35,37 @@ archives:
     name_template: >-
       {{- .ProjectName }}_ {{- .Version }}_ {{- title .Os }}_ {{- if eq .Arch "amd64" }}x86_64 {{- else if eq .Arch "386" }}i386 {{- else }}{{ .Arch }}{{ end }} {{- if .Arm }}v{{ .Arm }}{{ end -}}
 
-# A formula, not a cask. ghorg is a CLI binary with no bundle, no installer and
-# no service; `brew services` and `brew test` are worth keeping, and formulae
-# work on Homebrew for Linux exactly as they do on macOS.
+# A formula, not a cask: ghorg is a CLI binary with no bundle, no installer and
+# no service; `brew test` is worth keeping, and formulae work on Homebrew for
+# Linux exactly as they do on macOS.
 #
-# GoReleaser marks `brews` deprecated in favor of `homebrew_casks`, on the
-# grounds that formulae installing pre-compiled binaries are "hackyish" and
-# were only needed because Linuxbrew could not handle casks. There is no
-# announced removal date, and the Linuxbrew limitation is not our reason for
-# using them.
+# The formula builds from the source archive below (`brew install -s`) and
+# pours bottles made from the release's darwin and linux ghorg binaries, the
+# way homebrew-core ships a CLI, rather than a formula that only downloads a
+# prebuilt archive (what the deprecated `brews` wrote). homebrew_bottles comes
+# from blairham/goreleaser (goreleaser/goreleaser#7342), which release.yml
+# selects with goreleaser-ref; the official GoReleaser rejects this section.
 #
 # Note there is no quarantine hook here: casks flag their downloads with
 # com.apple.quarantine and need it stripped, formulae do not.
-brews:
+homebrew_bottles:
   - name: ghorg
+    ids:
+      - ghorg
     repository:
       owner: blairham
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    directory: Formula
     homepage: https://github.com/blairham/ghorg
     description: Quickly clone an entire org/users repositories into one directory
     license: Apache-2.0
-    install: |
-      bin.install "ghorg"
     test: |
       system "#{bin}/ghorg", "version"
+
+# The tarball the formula's `url` points at, for building from source.
+source:
+  enabled: true
+
 notarize:
   macos:
     - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'

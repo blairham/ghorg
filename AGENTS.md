@@ -35,7 +35,7 @@ Run `make help` for the full, current list.
 | `make release` | Full GoReleaser release (requires `GITHUB_TOKEN`) |
 | `make release-dry` / `release-check` | Dry-run release / validate GoReleaser config |
 
-gofumpt, golangci-lint, and GoReleaser are all pinned in `go.mod`'s `tool` block — run them via `go tool`, never a separately installed binary.
+gofumpt, golangci-lint, and GoReleaser are all pinned in `go.mod`'s `tool` block — run them via `go tool`, never a separately installed binary. The one exception is GoReleaser on this config, which needs blairham/goreleaser for `homebrew_bottles` (see Release & Distribution).
 
 There is no `make lint` target: golangci-lint runs as a pre-commit hook and in CI, never by hand.
 
@@ -227,7 +227,7 @@ All tokens accept either a literal value or a path to a file containing the toke
 
 - **GoReleaser v2**, pinned in `go.mod`'s `tool` block, config in `.goreleaser.yml`
 - **Platforms:** Linux (amd64/arm64/arm), macOS (amd64/arm64), Windows (amd64)
-- **Homebrew:** a **formula** (not a cask) published to `blairham/homebrew-tap` under `Formula/` via the `brews:` GoReleaser section
+- **Homebrew:** a **formula** (not a cask) published to `blairham/homebrew-tap` under `Formula/` via the `homebrew_bottles:` GoReleaser section: it builds from the release's source archive (`source.enabled`) and pours bottles of the darwin/linux `ghorg` binaries. `homebrew_bottles` exists only in blairham/goreleaser (goreleaser/goreleaser#7342), so `release.yml` passes `goreleaser-ref`, and the official GoReleaser pinned in `go.mod` rejects the config: the Makefile's GoReleaser targets need `GORELEASER=<blairham/goreleaser binary>`
 - **macOS binaries** are signed and notarized when signing env vars are present
 - **Docker:** Published to `ghcr.io/blairham/ghorg` (amd64/arm64/arm/v7) from the Dockerfile's `release` target; image tags keep the `v`
 - **Triggered by:** Git tag push (`v*`), or `workflow_dispatch` with an existing tag (or none, for a `--snapshot` dry run). `release.yml` calls blairham/.github's `go-release.yml`, which runs the tests, GoReleaser, keyless cosign over `checksums.txt` and the image, and `attest-build-provenance` (bundle attached as `ghorg-<tag>.intoto.jsonl`). `SECURITY.md` has the verify commands
