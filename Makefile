@@ -2,17 +2,22 @@
        test-helpers test-all test-coverage test-coverage-func clean release \
        release-dry release-check
 
+# .goreleaser.yml uses homebrew_bottles, which only blairham/goreleaser parses
+# (goreleaser/goreleaser#7342); the official one pinned in go.mod rejects the
+# config. Point this at a build of blairham/goreleaser to use the targets below.
+GORELEASER ?= go tool goreleaser
+
 ## Build targets
 
 build: ## Multi-platform build via GoReleaser snapshot
-	go tool goreleaser build --snapshot --clean
+	$(GORELEASER) build --snapshot --clean
 
 build-local: fmt ## Fast local dev build
 	@mkdir -p dist
 	go build -ldflags "-X github.com/blairham/ghorg/internal/cmd.version=$$(git describe --tags --always --dirty)" -o dist/ghorg .
 
 build-docker: ## Build Docker images locally (no push)
-	go tool goreleaser release --snapshot --clean --skip=publish
+	$(GORELEASER) release --snapshot --clean --skip=publish
 
 ## Install targets
 
@@ -63,13 +68,13 @@ fmt: ## Format all Go files
 ## Release targets
 
 release: test ## Full GoReleaser release (requires GITHUB_TOKEN)
-	go tool goreleaser release --clean
+	$(GORELEASER) release --clean
 
 release-dry: ## Dry-run release (no publish)
-	go tool goreleaser release --snapshot --clean
+	$(GORELEASER) release --snapshot --clean
 
 release-check: ## Validate goreleaser configuration
-	go tool goreleaser check
+	$(GORELEASER) check
 
 ## Misc targets
 
