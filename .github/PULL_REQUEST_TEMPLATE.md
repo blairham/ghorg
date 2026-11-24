@@ -24,6 +24,6 @@ cloned from: cloud or self-hosted, user or org, public or private.
 ---
 
 - [ ] I have signed the CLA (see CLA.md)
-- [ ] A user-visible change has a line under `[Unreleased]` in CHANGELOG.md
+- [ ] The title is a Conventional Commit (`feat:`, `fix:`, `feat!:`, `docs:` …) — it becomes the changelog entry
 
 Closes #
